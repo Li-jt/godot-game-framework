@@ -1,10 +1,11 @@
 ## SceneHost
-## 场景宿主。管理持久挂载点和 UI 层级，协调场景切换。
+## 场景宿主。管理持久挂载点、相机和 UI 层级，协调场景切换。
 ##
 ## 场景树结构：
 ##   Main (GameBootstrap)
 ##   └── SceneHost
-##       ├── WorldRoot   (Node2D)  — 游戏世界挂载点
+##       ├── WorldRoot   (Node2D)    — 游戏世界挂载点
+##       ├── GameCamera  (Camera2D)  — 游戏相机（持久，不随世界切换销毁）
 ##       └── UIRoot      (Control)
 ##           ├── HudLayer
 ##           ├── ScreenLayer
@@ -16,6 +17,7 @@ class_name SceneHost
 extends Node
 
 var world_root: Node2D = null
+var game_camera: Camera2D = null
 var ui_root: Control = null
 
 var hud_layer: Control = null
@@ -67,6 +69,10 @@ func get_world_root() -> Node2D:
 	return world_root
 
 
+func get_camera() -> Camera2D:
+	return game_camera
+
+
 func get_ui_root() -> Control:
 	return ui_root
 
@@ -115,7 +121,6 @@ func replace_world(p_scene_path: String, p_data: Dictionary = {}) -> OperationRe
 
 	var new_node: Node = node_result.data
 
-	# 自动注入 ctx
 	if new_node is WorldRoot and _world_context != null:
 		var wr := new_node as WorldRoot
 		wr.ctx = _world_context
@@ -143,6 +148,14 @@ func _create_mount_points() -> void:
 	world_root = Node2D.new()
 	world_root.name = "WorldRoot"
 	add_child(world_root)
+
+	game_camera = Camera2D.new()
+	game_camera.name = "GameCamera"
+	game_camera.position = Vector2(640, 360)
+	game_camera.zoom = Vector2(1.5, 1.5)
+	game_camera.enabled = true
+	game_camera.make_current()
+	add_child(game_camera)
 
 	ui_root = Control.new()
 	ui_root.name = "UIRoot"
