@@ -1,0 +1,19 @@
+; Engine configuration file.
+; 框架开发项目 —— 仅用于在 Godot 编辑器中编辑和调试框架代码。
+; 不作为可运行游戏使用。
+
+config_version=5
+
+[application]
+
+config/name="game_framework"
+config/version="0.1.0"
+config/features=PackedStringArray("4.6")
+
+[editor_plugins]
+
+enabled=PackedStringArray()
+
+[rendering]
+
+rendering_device/driver.vulkan="d3d12"
