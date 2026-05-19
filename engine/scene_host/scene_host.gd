@@ -4,7 +4,7 @@
 ## 场景树结构：
 ##   Main (GameBootstrap)
 ##   └── SceneHost
-##       ├── WorldRoot   (Node2D)  — 游戏世界
+##       ├── WorldRoot   (Node2D)  — 游戏世界挂载点
 ##       └── UIRoot      (Control)
 ##           ├── HudLayer
 ##           ├── ScreenLayer
@@ -28,6 +28,9 @@ var debug_layer: Control = null
 var _scene_factory: SceneFactory = null
 var _log: LogService = null
 
+## 世界上下文。Game 层通过 set_world_context() 注入，后续所有世界加载自动传入。
+var _world_context: GameServices = null
+
 
 func configure(p_scene_factory: SceneFactory, p_log: LogService) -> OperationResult:
 	if p_scene_factory == null:
@@ -45,6 +48,15 @@ func _ready() -> void:
 
 func is_runtime_ready() -> bool:
 	return world_root != null and ui_root != null and hud_layer != null
+
+
+# ============================================================
+# 世界上下文
+# ============================================================
+
+## 设置世界上下文。Game 层在注册完面板后调用一次。
+func set_world_context(p_ctx: GameServices) -> void:
+	_world_context = p_ctx
 
 
 # ============================================================
@@ -95,15 +107,20 @@ func unload_world() -> void:
 
 
 ## 先加载新世界，成功后再清理旧世界。加载失败旧世界不受影响。
+## 若根节点为 WorldRoot 类型，自动注入 ctx 并调用 _on_world_setup()。
 func replace_world(p_scene_path: String, p_data: Dictionary = {}) -> OperationResult:
-	# 先加载新场景（不清理旧世界）
 	var node_result := _scene_factory.create(p_scene_path, p_data)
 	if node_result.is_fail():
 		return node_result
 
 	var new_node: Node = node_result.data
 
-	# 新场景加载成功 → 清理旧世界 → 挂载新世界
+	# 自动注入 ctx
+	if new_node is WorldRoot and _world_context != null:
+		var wr := new_node as WorldRoot
+		wr.ctx = _world_context
+		wr._on_world_setup()
+
 	unload_world()
 	world_root.add_child(new_node)
 	_log.info("SceneHost", "世界已切换: %s" % p_scene_path)
