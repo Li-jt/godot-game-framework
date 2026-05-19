@@ -4,20 +4,22 @@
 ## 场景树结构：
 ##   Main (GameBootstrap)
 ##   └── SceneHost
-##       ├── WorldRoot   (Node2D)    — 游戏世界挂载点
-##       ├── GameCamera  (Camera2D)  — 游戏相机（持久，不随世界切换销毁）
-##       └── UIRoot      (Control)
-##           ├── HudLayer
-##           ├── ScreenLayer
-##           ├── PopupLayer
-##           ├── TooltipLayer
-##           ├── SystemLayer
-##           └── DebugLayer
+##       ├── WorldRoot   (Node2D)     — 游戏世界挂载点，受 GameCamera 影响
+##       ├── GameCamera  (Camera2D)   — 游戏世界相机（用户可拖动/缩放）
+##       └── UiCanvas    (CanvasLayer) — UI 层（独立于游戏相机，固定屏幕渲染）
+##           └── UIRoot  (Control)
+##               ├── HudLayer
+##               ├── ScreenLayer
+##               ├── PopupLayer
+##               ├── TooltipLayer
+##               ├── SystemLayer
+##               └── DebugLayer
 class_name SceneHost
 extends Node
 
 var world_root: Node2D = null
 var game_camera: Camera2D = null
+var ui_canvas: CanvasLayer = null
 var ui_root: Control = null
 
 var hud_layer: Control = null
@@ -56,7 +58,6 @@ func is_runtime_ready() -> bool:
 # 世界上下文
 # ============================================================
 
-## 设置世界上下文。Game 层在注册完面板后调用一次。
 func set_world_context(p_ctx: GameServices) -> void:
 	_world_context = p_ctx
 
@@ -75,6 +76,10 @@ func get_camera() -> Camera2D:
 
 func get_ui_root() -> Control:
 	return ui_root
+
+
+func get_ui_canvas() -> CanvasLayer:
+	return ui_canvas
 
 
 ## 根据 PanelKind 返回对应 UI 层
@@ -98,12 +103,10 @@ func load_world(p_scene_path: String, p_data: Dictionary = {}) -> OperationResul
 	return _load_into(world_root, p_scene_path, p_data)
 
 
-## 根据 PanelKind 加载面板到对应 UI 层
 func load_ui_panel(p_kind: UIPanelDef.PanelKind, p_scene_path: String, p_data: Dictionary = {}) -> OperationResult:
 	return _load_into(get_ui_layer(p_kind), p_scene_path, p_data)
 
 
-## 卸载当前世界。触发 _on_world_exit() 钩子后清理。
 func unload_world() -> void:
 	for child in world_root.get_children():
 		if child.has_method("_on_world_exit"):
@@ -112,8 +115,6 @@ func unload_world() -> void:
 	_log.info("SceneHost", "世界已卸载")
 
 
-## 先加载新世界，成功后再清理旧世界。加载失败旧世界不受影响。
-## 若根节点为 WorldRoot 类型，自动注入 ctx 并调用 _on_world_setup()。
 func replace_world(p_scene_path: String, p_data: Dictionary = {}) -> OperationResult:
 	var node_result := _scene_factory.create(p_scene_path, p_data)
 	if node_result.is_fail():
@@ -145,10 +146,12 @@ func clear_layer(p_kind: UIPanelDef.PanelKind) -> void:
 # ============================================================
 
 func _create_mount_points() -> void:
+	# 世界挂载点
 	world_root = Node2D.new()
 	world_root.name = "WorldRoot"
 	add_child(world_root)
 
+	# 游戏相机（渲染世界，用户可拖动/缩放）
 	game_camera = Camera2D.new()
 	game_camera.name = "GameCamera"
 	game_camera.position = Vector2(640, 360)
@@ -157,10 +160,17 @@ func _create_mount_points() -> void:
 	game_camera.make_current()
 	add_child(game_camera)
 
+	# UI CanvasLayer（独立于游戏相机的固定屏幕渲染层）
+	ui_canvas = CanvasLayer.new()
+	ui_canvas.name = "UiCanvas"
+	ui_canvas.layer = 100
+	ui_canvas.follow_viewport_enabled = false
+	add_child(ui_canvas)
+
 	ui_root = Control.new()
 	ui_root.name = "UIRoot"
 	ui_root.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(ui_root)
+	ui_canvas.add_child(ui_root)
 
 	hud_layer = _create_ui_layer("HudLayer")
 	screen_layer = _create_ui_layer("ScreenLayer")
