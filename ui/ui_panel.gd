@@ -1,0 +1,89 @@
+## UIPanel
+## 所有游戏 UI 面板的基类。Game 层的面板脚本继承此类。
+##
+## 字段：
+##   panel_name  — 面板名称，由 UIService 在 open 时赋值
+##   ctx         — GameServices 上下文，由 UIService 在实例化后自动注入
+##
+## 生命周期（由 UIService 调用，子类重写带下划线的方法）：
+##
+##   destroy 策略（默认）：
+##     实例化 → ctx 注入 → _on_factory_init(data) → open(data) → _on_open(data)
+##     close() → _on_close() → queue_free
+##
+##   cache 策略：
+##     首次实例化 → ctx 注入 → open(data) → _on_open(data)
+##     关闭 → _on_hide() → hide（留在内存）
+##     再次 open(data) → _on_reopen(data) → show
+##     缓存满被回收 → _on_close() → queue_free
+##
+## 使用方式：
+##   [codeblock]
+##   class_name ItemDetailPanel
+##   extends UIPanel
+##
+##   func _on_open(p_data: Dictionary) -> void:
+##       $Label.text = str(p_data.get("id", ""))
+##       ctx.log.info("面板打开")  # 直接使用 self.ctx
+##   [/codeblock]
+class_name UIPanel
+extends Control
+
+## 由 UIService 在 open 时设置，用于反向查找面板定义
+var panel_name: String = ""
+
+## GameServices 上下文。由 UIService 在面板实例化后自动注入。
+## 子类在 _on_open / _on_reopen 中可直接使用。
+var ctx: UiContext = null
+
+
+## SceneFactory 钩子：实例化后自动调用。p_data 为 SceneFactory.create() 传入的 init_data。
+func _on_factory_init(p_data: Dictionary) -> void:
+	pass
+
+
+## 先填数据再显示，避免空面板闪烁。子类不要重写。
+func open(p_data: Dictionary = {}) -> void:
+	_on_open(p_data)
+	show()
+
+
+## 重新打开已缓存面板。先填数据再显示。子类不要重写。
+func reopen(p_data: Dictionary = {}) -> void:
+	_on_reopen(p_data)
+	show()
+
+
+## UIService 调用。子类不要重写。
+func close() -> void:
+	_on_close()
+	hide()
+	queue_free()
+
+
+## 隐藏面板（cache 策略专用）。子类不要重写。
+func hide_panel() -> void:
+	_on_hide()
+	hide()
+
+
+# ============================================================
+# 子类重写
+# ============================================================
+
+func _on_open(p_data: Dictionary) -> void:
+	pass
+
+
+## 重新打开时调用（仅在 cache 策略、非首次打开时触发）
+func _on_reopen(p_data: Dictionary) -> void:
+	pass
+
+
+func _on_close() -> void:
+	pass
+
+
+## 面板被隐藏时调用（仅在 cache 策略下触发），用于暂停轮询等
+func _on_hide() -> void:
+	pass

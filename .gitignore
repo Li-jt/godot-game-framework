@@ -1,0 +1,7 @@
+# Godot 自动生成
+.godot/
+*.uid
+*.import
+
+# macOS
+.DS_Store
