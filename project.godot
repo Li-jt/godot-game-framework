@@ -1,6 +1,10 @@
 ; Engine configuration file.
-; 框架开发项目 —— 仅用于在 Godot 编辑器中编辑和调试框架代码。
-; 不作为可运行游戏使用。
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
 
 config_version=5
 
