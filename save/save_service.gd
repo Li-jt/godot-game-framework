@@ -16,10 +16,7 @@ var _provider: SaveProvider = null
 var _path_resolver: PathResolver = null
 var _log: LogService = null
 
-## from_version → SaveVersionMigrator
 var _migrators: Dictionary = {}
-
-## 注册的可存档模块（按 save_key 索引，后注册覆盖先注册）
 var _saveables: Dictionary = {}  # String key → ISaveable
 
 
@@ -53,7 +50,6 @@ func register_migrator(p_migrator: SaveVersionMigrator) -> void:
 # ISaveable 注册
 # ============================================================
 
-## 注册可存档模块。同一 save_key 后注册的覆盖先注册的。
 func register_saveable(p_saveable: ISaveable) -> void:
 	var key := p_saveable.save_key()
 	if key.is_empty():
@@ -63,7 +59,6 @@ func register_saveable(p_saveable: ISaveable) -> void:
 	_log.info("Save", "注册存档模块: %s" % key)
 
 
-## 取消注册
 func unregister_saveable(p_key: String) -> void:
 	_saveables.erase(p_key)
 
@@ -78,7 +73,7 @@ func save_all(p_slot: int, p_meta: SaveMeta) -> OperationResult:
 	return save(p_slot, data, p_meta)
 
 
-## 保存指定数据
+## 保存指定数据。写入时自动标记当前 SaveVersion。
 func save(p_slot: int, p_data: Dictionary, p_meta: SaveMeta) -> OperationResult:
 	p_meta.save_version = SaveVersion.CURRENT
 	return _provider.save(p_slot, p_data, p_meta)
@@ -86,15 +81,16 @@ func save(p_slot: int, p_data: Dictionary, p_meta: SaveMeta) -> OperationResult:
 
 ## 读取并自动恢复所有已注册的 ISaveable 模块
 func load_and_restore(p_slot: int) -> OperationResult:
-	var result := load(p_slot)
+	var result := load_slot(p_slot)
 	if result.is_fail():
 		return result
 	_restore_save_data(result.data as Dictionary)
 	return OperationResult.ok()
 
 
-## 读取原始数据（不自动恢复）
-func load(p_slot: int) -> OperationResult:
+## 读取原始存档数据（不自动恢复）。自动检测版本并执行迁移链。
+## 注意：方法名用 load_slot 避免与 Godot 内置 load() 冲突。
+func load_slot(p_slot: int) -> OperationResult:
 	var raw_result := _provider.load_full(p_slot)
 	if raw_result.is_fail():
 		return raw_result
@@ -140,7 +136,7 @@ func list_slots() -> OperationResult:
 	return _provider.list_slots()
 
 
-func delete(p_slot: int) -> OperationResult:
+func delete_slot(p_slot: int) -> OperationResult:
 	return _provider.delete(p_slot)
 
 
@@ -148,7 +144,6 @@ func delete(p_slot: int) -> OperationResult:
 # 内部
 # ============================================================
 
-## 遍历所有 ISaveable，调用 on_save() 构建存档字典
 func _build_save_data() -> Dictionary:
 	var data := {}
 	for key in _saveables.keys():
@@ -158,7 +153,6 @@ func _build_save_data() -> Dictionary:
 	return data
 
 
-## 遍历存档字典，按 key 匹配 ISaveable 调用 on_load()
 func _restore_save_data(p_data: Dictionary) -> void:
 	var restored := 0
 	for key in p_data.keys():
