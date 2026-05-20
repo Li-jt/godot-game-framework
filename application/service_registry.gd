@@ -2,20 +2,10 @@
 ## 服务注册中心（Application 层基础设施）。
 ## 仅供 AppBootstrap 装配阶段和 Framework 内部使用。
 ## Game 层禁止直接访问，应通过注入的 context（GameServices）获取所需服务。
-##
-## 使用方式：
-##   [codeblock]
-##   # 注册
-##   registry.register(ServiceRegistry.KEY_LOG, log_service)
-##
-##   # 读取（装配层内部）
-##   var log := registry.get_log()
-##   var scene_factory := registry.get_scene_factory()
-##   [/codeblock]
 class_name ServiceRegistry
 extends RefCounted
 
-# 标准服务 Key 常量 —— 后续模块按此注册
+# 标准服务 Key 常量
 const KEY_AUDIO_RUNTIME: String = "AudioRuntime"
 const KEY_INPUT_ADAPTER: String = "InputAdapter"
 const KEY_SCHEDULER: String = "Scheduler"
@@ -44,12 +34,13 @@ const KEY_DATA_ACCESS: String = "DataAccess"
 # 全局单例引用（由 AppBootstrap 在启动时赋值）
 static var instance: ServiceRegistry = null
 
+## Framework 内部获取实例（ISaveable 自注册等场景使用）
+static func get_instance() -> ServiceRegistry:
+	return instance
+
 var _services: Dictionary = {}
 
 
-## 注册服务。
-## 拒绝：空 key、null service、重复 key。
-## 若 p_service 是 ModuleLifecycle 且未 ready，也拒绝。
 func register(p_key: String, p_service: Object) -> OperationResult:
 	if p_key.is_empty():
 		return OperationResult.fail(OperationResult.ERR_BAD_REQUEST, "注册失败: key 不能为空", "ServiceRegistry")
@@ -66,8 +57,6 @@ func register(p_key: String, p_service: Object) -> OperationResult:
 	return OperationResult.ok()
 
 
-## 批量注册。p_entries: Array[Array] = [[key, service], ...]
-## 遇第一个错误立即停止并返回，不回滚已注册的。
 func register_all(p_entries: Array) -> OperationResult:
 	for entry in p_entries:
 		var pair: Array = entry as Array
@@ -79,8 +68,6 @@ func register_all(p_entries: Array) -> OperationResult:
 	return OperationResult.ok()
 
 
-## 验证所有必需 key 已注册且对应服务 is_ready()。
-## 返回第一个缺失/未就绪的错误；全部通过返回 ok。
 func verify_required(p_keys: Array[String]) -> OperationResult:
 	for key in p_keys:
 		if not _services.has(key):
@@ -96,99 +83,35 @@ func verify_required(p_keys: Array[String]) -> OperationResult:
 	return OperationResult.ok()
 
 
-## 获取服务（通用）
 func get_service(p_key: String) -> Variant:
 	return _services.get(p_key, null)
 
 
-## 服务是否已注册
 func has(p_key: String) -> bool:
 	return _services.has(p_key)
 
 
-## 已注册的服务数量
 func count() -> int:
 	return _services.size()
 
 
-# ============================================================
 # 类型化便捷访问器
-# ============================================================
-
-func get_config() -> AppConfig:
-	return _services.get(KEY_CONFIG, null) as AppConfig
-
-
-func get_audio_runtime() -> AudioRuntime:
-	return _services.get(KEY_AUDIO_RUNTIME, null) as AudioRuntime
-
-
-func get_input_adapter() -> InputAdapter:
-	return _services.get(KEY_INPUT_ADAPTER, null) as InputAdapter
-
-
-func get_scheduler() -> Scheduler:
-	return _services.get(KEY_SCHEDULER, null) as Scheduler
-
-
-func get_scene_host() -> SceneHost:
-	return _services.get(KEY_SCENE_HOST, null) as SceneHost
-
-
-func get_scene_factory() -> SceneFactory:
-	return _services.get(KEY_SCENE_FACTORY, null) as SceneFactory
-
-
-func get_asset_loading() -> AssetLoadingService:
-	return _services.get(KEY_ASSET_LOADING, null) as AssetLoadingService
-
-
-func get_file_system() -> FileSystemService:
-	return _services.get(KEY_FILE_SYSTEM, null) as FileSystemService
-
-
-func get_path_resolver() -> PathResolver:
-	return _services.get(KEY_PATH_RESOLVER, null) as PathResolver
-
-
-func get_audio_service() -> AudioService:
-	return _services.get(KEY_AUDIO, null) as AudioService
-
-
-func get_input_service() -> InputService:
-	return _services.get(KEY_INPUT, null) as InputService
-
-
-func get_config_service() -> ConfigService:
-	return _services.get(KEY_CONFIG_SERVICE, null) as ConfigService
-
-
-func get_runtime_service() -> RuntimeService:
-	return _services.get(KEY_RUNTIME, null) as RuntimeService
-
-
-func get_save_service() -> SaveService:
-	return _services.get(KEY_SAVE, null) as SaveService
-
-
-func get_ui_service() -> UIService:
-	return _services.get(KEY_UI, null) as UIService
-
-
-func get_resource() -> ResourceService:
-	return _services.get(KEY_RESOURCE, null) as ResourceService
-
-
-func get_app_flow() -> AppFlow:
-	return _services.get(KEY_FLOW, null) as AppFlow
-
-
-func get_event_bus() -> EventBus:
-	return _services.get(KEY_EVENT_BUS, null) as EventBus
-
-
-func get_log() -> LogService:
-	return _services.get(KEY_LOG, null) as LogService
-
-
-# Static shortcuts have been removed. New code should use injected GameServices, not ServiceRegistry.
+func get_config() -> AppConfig: return _services.get(KEY_CONFIG, null) as AppConfig
+func get_audio_runtime() -> AudioRuntime: return _services.get(KEY_AUDIO_RUNTIME, null) as AudioRuntime
+func get_input_adapter() -> InputAdapter: return _services.get(KEY_INPUT_ADAPTER, null) as InputAdapter
+func get_scheduler() -> Scheduler: return _services.get(KEY_SCHEDULER, null) as Scheduler
+func get_scene_host() -> SceneHost: return _services.get(KEY_SCENE_HOST, null) as SceneHost
+func get_scene_factory() -> SceneFactory: return _services.get(KEY_SCENE_FACTORY, null) as SceneFactory
+func get_asset_loading() -> AssetLoadingService: return _services.get(KEY_ASSET_LOADING, null) as AssetLoadingService
+func get_file_system() -> FileSystemService: return _services.get(KEY_FILE_SYSTEM, null) as FileSystemService
+func get_path_resolver() -> PathResolver: return _services.get(KEY_PATH_RESOLVER, null) as PathResolver
+func get_audio_service() -> AudioService: return _services.get(KEY_AUDIO, null) as AudioService
+func get_input_service() -> InputService: return _services.get(KEY_INPUT, null) as InputService
+func get_config_service() -> ConfigService: return _services.get(KEY_CONFIG_SERVICE, null) as ConfigService
+func get_runtime_service() -> RuntimeService: return _services.get(KEY_RUNTIME, null) as RuntimeService
+func get_save_service() -> SaveService: return _services.get(KEY_SAVE, null) as SaveService
+func get_ui_service() -> UIService: return _services.get(KEY_UI, null) as UIService
+func get_resource() -> ResourceService: return _services.get(KEY_RESOURCE, null) as ResourceService
+func get_app_flow() -> AppFlow: return _services.get(KEY_FLOW, null) as AppFlow
+func get_event_bus() -> EventBus: return _services.get(KEY_EVENT_BUS, null) as EventBus
+func get_log() -> LogService: return _services.get(KEY_LOG, null) as LogService
