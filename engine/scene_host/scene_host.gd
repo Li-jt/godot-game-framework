@@ -1,7 +1,9 @@
 ## SceneHost
 ## 场景宿主。管理持久挂载点、相机和 UI 层级，协调场景切换。
 ##
-## 场景树结构：
+## 节点结构定义在 scene_host.tscn 中，编辑器可直接查看和调整。
+##
+## 场景树：
 ##   Main (GameBootstrap)
 ##   └── SceneHost
 ##       ├── WorldRoot   (Node2D)     — 游戏世界挂载点，受 GameCamera 影响
@@ -17,17 +19,17 @@
 class_name SceneHost
 extends Node
 
-var world_root: Node2D = null
-var game_camera: Camera2D = null
-var ui_canvas: CanvasLayer = null
-var ui_root: Control = null
+var world_root: Node2D
+var game_camera: Camera2D
+var ui_canvas: CanvasLayer
+var ui_root: Control
 
-var hud_layer: Control = null
-var screen_layer: Control = null
-var popup_layer: Control = null
-var tooltip_layer: Control = null
-var system_layer: Control = null
-var debug_layer: Control = null
+var hud_layer: Control
+var screen_layer: Control
+var popup_layer: Control
+var tooltip_layer: Control
+var system_layer: Control
+var debug_layer: Control
 
 var _scene_factory: SceneFactory = null
 var _log: LogService = null
@@ -47,7 +49,20 @@ func configure(p_scene_factory: SceneFactory, p_log: LogService) -> OperationRes
 
 
 func _ready() -> void:
-	_create_mount_points()
+	world_root = $WorldRoot as Node2D
+	game_camera = $GameCamera as Camera2D
+	game_camera.enabled = true
+	game_camera.make_current()
+
+	ui_canvas = $UiCanvas as CanvasLayer
+	ui_root = $UiCanvas/UIRoot as Control
+
+	hud_layer = $UiCanvas/UIRoot/HudLayer as Control
+	screen_layer = $UiCanvas/UIRoot/ScreenLayer as Control
+	popup_layer = $UiCanvas/UIRoot/PopupLayer as Control
+	tooltip_layer = $UiCanvas/UIRoot/TooltipLayer as Control
+	system_layer = $UiCanvas/UIRoot/SystemLayer as Control
+	debug_layer = $UiCanvas/UIRoot/DebugLayer as Control
 
 
 func is_runtime_ready() -> bool:
@@ -82,7 +97,6 @@ func get_ui_canvas() -> CanvasLayer:
 	return ui_canvas
 
 
-## 根据 PanelKind 返回对应 UI 层
 func get_ui_layer(p_kind: UIPanelDef.PanelKind) -> Control:
 	match p_kind:
 		UIPanelDef.PanelKind.HUD:     return hud_layer
@@ -139,54 +153,6 @@ func clear_world() -> void:
 
 func clear_layer(p_kind: UIPanelDef.PanelKind) -> void:
 	_clear_children(get_ui_layer(p_kind))
-
-
-# ============================================================
-# 内部
-# ============================================================
-
-func _create_mount_points() -> void:
-	# 世界挂载点
-	world_root = Node2D.new()
-	world_root.name = "WorldRoot"
-	add_child(world_root)
-
-	# 游戏相机（渲染世界，用户可拖动/缩放）
-	game_camera = Camera2D.new()
-	game_camera.name = "GameCamera"
-	game_camera.position = Vector2(640, 360)
-	game_camera.zoom = Vector2(1.5, 1.5)
-	add_child(game_camera)
-	game_camera.enabled = true
-	game_camera.make_current()
-
-	# UI CanvasLayer（独立于游戏相机的固定屏幕渲染层）
-	ui_canvas = CanvasLayer.new()
-	ui_canvas.name = "UiCanvas"
-	ui_canvas.layer = 100
-	ui_canvas.follow_viewport_enabled = false
-	add_child(ui_canvas)
-
-	ui_root = Control.new()
-	ui_root.name = "UIRoot"
-	ui_root.set_anchors_preset(Control.PRESET_FULL_RECT)
-	ui_canvas.add_child(ui_root)
-
-	hud_layer = _create_ui_layer("HudLayer")
-	screen_layer = _create_ui_layer("ScreenLayer")
-	popup_layer = _create_ui_layer("PopupLayer")
-	tooltip_layer = _create_ui_layer("TooltipLayer")
-	system_layer = _create_ui_layer("SystemLayer")
-	debug_layer = _create_ui_layer("DebugLayer")
-
-
-func _create_ui_layer(p_name: String) -> Control:
-	var layer := Control.new()
-	layer.name = p_name
-	layer.set_anchors_preset(Control.PRESET_FULL_RECT)
-	layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	ui_root.add_child(layer)
-	return layer
 
 
 func _load_into(p_target: Node, p_scene_path: String, p_data: Dictionary) -> OperationResult:

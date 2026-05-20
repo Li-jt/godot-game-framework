@@ -1,0 +1,66 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/framework/engine/scene_host/scene_host.gd" id="1_scene_host"]
+
+[node name="SceneHost" type="Node"]
+script = ExtResource("1_scene_host")
+
+[node name="WorldRoot" type="Node2D" parent="."]
+
+[node name="GameCamera" type="Camera2D" parent="."]
+position = Vector2(640, 360)
+zoom = Vector2(1.5, 1.5)
+
+[node name="UiCanvas" type="CanvasLayer" parent="."]
+layer = 100
+follow_viewport_enabled = false
+
+[node name="UIRoot" type="Control" parent="UiCanvas"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="HudLayer" type="Control" parent="UiCanvas/UIRoot"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="ScreenLayer" type="Control" parent="UiCanvas/UIRoot"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="PopupLayer" type="Control" parent="UiCanvas/UIRoot"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="TooltipLayer" type="Control" parent="UiCanvas/UIRoot"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="SystemLayer" type="Control" parent="UiCanvas/UIRoot"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="DebugLayer" type="Control" parent="UiCanvas/UIRoot"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2

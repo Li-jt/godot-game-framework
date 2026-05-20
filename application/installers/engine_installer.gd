@@ -3,6 +3,9 @@
 class_name EngineInstaller
 extends ServiceInstaller
 
+const SCENE_HOST_PATH := "res://src/framework/engine/scene_host/scene_host.tscn"
+
+
 ## 返回 Dictionary 并合并 p_core_deps
 func install(p_deps: Dictionary) -> OperationResult:
 	var bs: AppBootstrap = p_deps.get("_bootstrap")
@@ -25,8 +28,12 @@ func install(p_deps: Dictionary) -> OperationResult:
 	bs._track_module(scene_factory)
 	if not bs._cfg_or_fail("SceneFactory", scene_factory.configure(asset_loading, log), scene_factory): return _fail()
 
-	# SceneHost
-	var scene_host := SceneHost.new()
+	# SceneHost — 从 .tscn 实例化，节点树在编辑器中可见
+	var scene_host_scene := load(SCENE_HOST_PATH) as PackedScene
+	if scene_host_scene == null:
+		return OperationResult.fail(OperationResult.ERR_IO, "无法加载 SceneHost 场景: %s" % SCENE_HOST_PATH, "EngineInstaller")
+
+	var scene_host := scene_host_scene.instantiate() as SceneHost
 	scene_host.name = "SceneHost"
 	if not bs._cfg_or_fail("SceneHost", scene_host.configure(scene_factory, log), null): return _fail()
 	bs.add_child(scene_host)
