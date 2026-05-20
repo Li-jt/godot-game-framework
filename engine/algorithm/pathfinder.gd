@@ -1,4 +1,5 @@
-## Pathfinder — A* 寻路算法（Framework 层）。纯静态。
+## Pathfinder — A* 寻路（Framework 层）。可实例化，支持注入启发式。
+## 每次 find_path() 传入不同的 graph 和 traversal，同一实例可服务多种单位类型。
 class_name Pathfinder
 extends RefCounted
 
@@ -13,15 +14,20 @@ class PathNode:
 		pos = p_pos; parent = p_parent; g = p_g; h = p_h; f = p_g + p_h
 
 
-static func find_path(p_from: Vector2i, p_to: Vector2i, p_query: IPathQuery) -> Array[Vector2i]:
-	if not p_query.is_in_bounds(p_from) or not p_query.is_in_bounds(p_to):
-		return []
-	if not p_query.is_walkable(p_to):
+var _heuristic: IHeuristic
+
+
+func _init(p_heuristic: IHeuristic = null) -> void:
+	_heuristic = p_heuristic if p_heuristic != null else ManhattanHeuristic.new()
+
+
+func find_path(p_from: Vector2i, p_to: Vector2i, p_graph: IPathGraph, p_traversal: ITraversal) -> Array:
+	if not p_traversal.is_walkable(p_to):
 		return []
 	if p_from == p_to:
 		return [p_from]
 
-	var open: Array[PathNode] = [PathNode.new(p_from, null, 0, _heuristic(p_from, p_to))]
+	var open: Array[PathNode] = [PathNode.new(p_from, null, 0, _heuristic.estimate(p_from, p_to))]
 	var closed: Dictionary = {}
 
 	while not open.is_empty():
@@ -34,14 +40,15 @@ static func find_path(p_from: Vector2i, p_to: Vector2i, p_query: IPathQuery) -> 
 
 		closed[key] = true
 
-		for nb in p_query.get_neighbors(current.pos):
-			if closed.has(_key(nb)):
+		for nb in p_graph.get_neighbors(current.pos):
+			var nb_pos: Vector2i = nb
+			if closed.has(_key(nb_pos)):
 				continue
-			if not p_query.is_walkable(nb) and nb != p_to:
+			if not p_traversal.is_walkable(nb_pos) and nb_pos != p_to:
 				continue
 
-			var g: int = current.g + 1
-			var idx := _find_in_open(open, nb)
+			var g: int = current.g + int(p_graph.get_cost(current.pos, nb_pos))
+			var idx := _find_in_open(open, nb_pos)
 			if idx >= 0:
 				var existing := open[idx]
 				if g < existing.g:
@@ -49,29 +56,25 @@ static func find_path(p_from: Vector2i, p_to: Vector2i, p_query: IPathQuery) -> 
 					existing.f = g + existing.h
 					existing.parent = current
 			else:
-				var h: int = _heuristic(nb, p_to)
-				open.append(PathNode.new(nb, current, g, h))
+				var h: int = _heuristic.estimate(nb_pos, p_to)
+				open.append(PathNode.new(nb_pos, current, g, h))
 
 	return []
 
 
-static func _heuristic(p_a: Vector2i, p_b: Vector2i) -> int:
-	return absi(p_a.x - p_b.x) + absi(p_a.y - p_b.y)
-
-
-static func _key(p_pos: Vector2i) -> String:
+func _key(p_pos: Vector2i) -> String:
 	return "%d,%d" % [p_pos.x, p_pos.y]
 
 
-static func _find_in_open(p_open: Array[PathNode], p_pos: Vector2i) -> int:
+func _find_in_open(p_open: Array[PathNode], p_pos: Vector2i) -> int:
 	for i in p_open.size():
 		if p_open[i].pos == p_pos:
 			return i
 	return -1
 
 
-static func _rebuild_path(p_node: PathNode) -> Array[Vector2i]:
-	var path: Array[Vector2i] = []
+func _rebuild_path(p_node: PathNode) -> Array:
+	var path: Array = []
 	var cur: PathNode = p_node
 	while cur != null:
 		path.push_front(cur.pos)
