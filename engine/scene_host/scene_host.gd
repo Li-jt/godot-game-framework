@@ -49,7 +49,7 @@ func configure(p_scene_factory: SceneFactory, p_log: LogService) -> OperationRes
 
 
 func _ready() -> void:
-	world_root = $WorldRoot as Node2D
+	world_root = $WorldMount as Node2D
 	game_camera = $GameCamera as Camera2D
 	game_camera.enabled = true
 	game_camera.make_current()

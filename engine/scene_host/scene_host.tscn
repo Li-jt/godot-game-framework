@@ -5,7 +5,7 @@
 [node name="SceneHost" type="Node"]
 script = ExtResource("1_scene_host")
 
-[node name="WorldRoot" type="Node2D" parent="."]
+[node name="WorldMount" type="Node2D" parent="."]
 
 [node name="GameCamera" type="Camera2D" parent="."]
 position = Vector2(640, 360)
