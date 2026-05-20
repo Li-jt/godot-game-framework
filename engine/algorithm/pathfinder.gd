@@ -32,8 +32,8 @@ static func find_path(p_from: Vector2i, p_to: Vector2i, p_query: WorldQuery) -> 
 			if not p_query.is_walkable(nb) and nb != p_to:
 				continue
 
-			var g := current.g + 1
-			var idx := _find_in_open(open, nb)
+			var g: int = current.g + 1
+			var idx: int = _find_in_open(open, nb)
 			if idx >= 0:
 				var existing: Dictionary = open[idx]
 				if g < existing.g:
@@ -41,7 +41,7 @@ static func find_path(p_from: Vector2i, p_to: Vector2i, p_query: WorldQuery) -> 
 					existing.f = g + existing.h
 					existing.parent = current
 			else:
-				var h := _heuristic(nb, p_to)
+				var h: int = _heuristic(nb, p_to)
 				open.append(_make_node(nb, current, g, h))
 
 	return []
