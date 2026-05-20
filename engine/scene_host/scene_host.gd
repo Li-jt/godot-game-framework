@@ -156,9 +156,9 @@ func _create_mount_points() -> void:
 	game_camera.name = "GameCamera"
 	game_camera.position = Vector2(640, 360)
 	game_camera.zoom = Vector2(1.5, 1.5)
+	add_child(game_camera)
 	game_camera.enabled = true
 	game_camera.make_current()
-	add_child(game_camera)
 
 	# UI CanvasLayer（独立于游戏相机的固定屏幕渲染层）
 	ui_canvas = CanvasLayer.new()
