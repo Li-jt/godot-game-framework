@@ -13,7 +13,7 @@ class PathNode:
 		pos = p_pos; parent = p_parent; g = p_g; h = p_h; f = p_g + p_h
 
 
-static func find_path(p_from: Vector2i, p_to: Vector2i, p_query: WorldQuery) -> Array[Vector2i]:
+static func find_path(p_from: Vector2i, p_to: Vector2i, p_query: IPathQuery) -> Array[Vector2i]:
 	if not p_query.is_in_bounds(p_from) or not p_query.is_in_bounds(p_to):
 		return []
 	if not p_query.is_walkable(p_to):
