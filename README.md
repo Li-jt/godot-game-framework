@@ -73,3 +73,15 @@ git pull origin main
 ```
 
 注意 `CHANGELOG.md` 中的破坏性变更。
+
+## 架构文档
+
+详见 [`docs/architecture.md`](docs/architecture.md) — 包含：
+- 整体分层与装配流程
+- 自动注入体系（UIPanel.ctx / WorldRoot.ctx）
+- 存档系统（ISaveable 自注册 + 多态序列化）
+- 寻路算法框架（IPathGraph + ITraversal + IHeuristic 三层拆分）
+- 输入系统（InputContext 栈）
+- UI 面板生命周期
+- 配置系统优先级
+- 关键设计原则
