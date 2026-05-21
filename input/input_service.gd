@@ -30,6 +30,7 @@ var _move_left: String = ""
 var _move_right: String = ""
 var _move_up: String = ""
 var _move_down: String = ""
+var _game_input_blocker: Callable = Callable()
 
 
 func _on_init() -> OperationResult:
@@ -67,6 +68,11 @@ func set_move_keys(p_left: String, p_right: String, p_up: String, p_down: String
 	_move_down = p_down
 
 
+## 设置游戏输入动态阻挡回调。UIService 可用它实现鼠标悬停 UI 时屏蔽世界动作。
+func set_game_input_blocker(p_blocker: Callable) -> void:
+	_game_input_blocker = p_blocker
+
+
 # ============================================================
 # 上下文栈
 # ============================================================
@@ -102,15 +108,15 @@ func get_current_context() -> InputContext:
 # ============================================================
 
 func is_pressed(p_action_id: String) -> bool:
-	return _is_action_allowed(p_action_id) and _adapter.is_action_pressed(_resolve(p_action_id))
+	return _is_action_allowed(p_action_id) and not _is_blocked_by_game_input_gate(p_action_id) and _adapter.is_action_pressed(_resolve(p_action_id))
 
 
 func is_just_pressed(p_action_id: String) -> bool:
-	return _is_action_allowed(p_action_id) and _adapter.is_action_just_pressed(_resolve(p_action_id))
+	return _is_action_allowed(p_action_id) and not _is_blocked_by_game_input_gate(p_action_id) and _adapter.is_action_just_pressed(_resolve(p_action_id))
 
 
 func is_just_released(p_action_id: String) -> bool:
-	return _is_action_allowed(p_action_id) and _adapter.is_action_just_released(_resolve(p_action_id))
+	return _is_action_allowed(p_action_id) and not _is_blocked_by_game_input_gate(p_action_id) and _adapter.is_action_just_released(_resolve(p_action_id))
 
 
 func get_move_vector() -> Vector2:
@@ -165,3 +171,9 @@ func _is_action_allowed(p_action_id: String) -> bool:
 			return false
 		return not ctx.blocked_action_ids.has(p_action_id)
 	return true
+
+
+func _is_blocked_by_game_input_gate(p_action_id: String) -> bool:
+	if not _game_input_blocker.is_valid():
+		return false
+	return bool(_game_input_blocker.call(p_action_id))

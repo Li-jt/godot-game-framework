@@ -4,6 +4,8 @@ class_name UIService
 extends ModuleLifecycle
 
 const MAX_CACHED := 5
+const GAME_INPUT_BLOCK_ALWAYS := 1
+const GAME_INPUT_BLOCK_POINTER_ONLY := 2
 
 var _scene_host: SceneHost = null
 var _input_service: InputService = null
@@ -40,6 +42,7 @@ func configure(p_ui_context: UiContext) -> OperationResult:
 
 	_scene_host = p_ui_context.scene_host
 	_input_service = p_ui_context.input
+	_input_service.set_game_input_blocker(_should_block_game_action)
 	_log = p_ui_context.log
 	return OperationResult.ok()
 
@@ -364,7 +367,7 @@ func _recalculate_input_block() -> void:
 	for name in _active_panels.keys():
 		var def := _get_def(name)
 		var panel: UIPanel = _active_panels[name]
-		if def == null or not def.blocks_game_input or not panel.visible:
+		if def == null or not _uses_always_game_input_block(def) or not panel.visible:
 			continue
 		for action_id in def.blocked_action_ids:
 			if action_id == "*":
@@ -398,6 +401,31 @@ func _recalculate_input_block() -> void:
 	elif _ui_block_context != null:
 		_input_service.pop_context()
 		_ui_block_context = null
+
+
+func _should_block_game_action(p_action_id: String) -> bool:
+	for name in _active_panels.keys():
+		var def := _get_def(name)
+		var panel: UIPanel = _active_panels[name]
+		if def == null or panel == null or not panel.visible:
+			continue
+		if def.game_input_block_mode != GAME_INPUT_BLOCK_POINTER_ONLY:
+			continue
+		if not _def_blocks_action(def, p_action_id):
+			continue
+		if panel.is_pointer_over_game_input_blocking_area(panel.get_global_mouse_position()):
+			return true
+	return false
+
+
+func _uses_always_game_input_block(p_def: UIPanelDef) -> bool:
+	return p_def.blocks_game_input or p_def.game_input_block_mode == GAME_INPUT_BLOCK_ALWAYS
+
+
+func _def_blocks_action(p_def: UIPanelDef, p_action_id: String) -> bool:
+	if p_def.blocked_action_ids.has("*"):
+		return true
+	return p_def.blocked_action_ids.has(p_action_id)
 
 
 # ============================================================

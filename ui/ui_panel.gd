@@ -38,7 +38,7 @@ var ctx: UiContext = null
 
 
 ## SceneFactory 钩子：实例化后自动调用。p_data 为 SceneFactory.create() 传入的 init_data。
-func _on_factory_init(p_data: Dictionary) -> void:
+func _on_factory_init(_p_data: Dictionary) -> void:
 	pass
 
 
@@ -67,16 +67,22 @@ func hide_panel() -> void:
 	hide()
 
 
+## 判断指定全局鼠标坐标是否位于会阻挡游戏输入的区域。
+## 默认使用面板自身矩形；HUD 等非全屏交互面板可覆盖为更窄的阻挡区域。
+func is_pointer_over_game_input_blocking_area(p_global_mouse_pos: Vector2) -> bool:
+	return visible and get_global_rect().has_point(p_global_mouse_pos)
+
+
 # ============================================================
 # 子类重写
 # ============================================================
 
-func _on_open(p_data: Dictionary) -> void:
+func _on_open(_p_data: Dictionary) -> void:
 	pass
 
 
 ## 重新打开时调用（仅在 cache 策略、非首次打开时触发）
-func _on_reopen(p_data: Dictionary) -> void:
+func _on_reopen(_p_data: Dictionary) -> void:
 	pass
 
 
