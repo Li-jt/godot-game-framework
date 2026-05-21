@@ -16,9 +16,11 @@ extends ModuleLifecycle
 var _mode: RuntimeMode.Mode = RuntimeMode.Mode.LOCAL
 var _prediction_enabled: bool = false
 var _rollback_enabled: bool = false
+var _command_bus = null
 
 
 func _on_init() -> OperationResult:
+	_command_bus = CommandBus.new()
 	return OperationResult.ok()
 
 
@@ -84,6 +86,20 @@ func is_rollback_enabled() -> bool:
 
 
 # ============================================================
+# 命令总线
+# ============================================================
+
+## 配置框架级命令总线。Local 策略会优先通过命令总线执行命令。
+func set_command_bus(p_command_bus) -> void:
+	_command_bus = p_command_bus
+
+
+## 获取当前命令总线。用于注册/注销命令处理器。
+func get_command_bus():
+	return _command_bus
+
+
+# ============================================================
 # 策略入口（CommandExecutor / SaveService 通过此方法获取策略）
 # ============================================================
 
@@ -92,6 +108,8 @@ func is_rollback_enabled() -> bool:
 func get_command_strategy() -> OperationResult:
 	if _mode == RuntimeMode.Mode.LOCAL:
 		var s := LocalCommandStrategy.new()
+		if _command_bus != null:
+			s.configure_command_bus(_command_bus)
 		return OperationResult.ok(s)
 	return OperationResult.fail(OperationResult.ERR_INTERNAL, "Remote/Hybrid 命令策略尚未实现", module_name)
 
