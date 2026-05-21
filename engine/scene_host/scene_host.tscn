@@ -1,21 +1,20 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://bla4hxulwc6ql"]
 
-[ext_resource type="Script" path="res://src/framework/engine/scene_host/scene_host.gd" id="1_scene_host"]
+[ext_resource type="Script" uid="uid://btbribs5plw33" path="res://src/framework/engine/scene_host/scene_host.gd" id="1_scene_host"]
 
-[node name="SceneHost" type="Node"]
+[node name="SceneHost" type="Node" unique_id=107187853]
 script = ExtResource("1_scene_host")
 
-[node name="WorldMount" type="Node2D" parent="."]
+[node name="WorldMount" type="Node2D" parent="." unique_id=417624880]
 
-[node name="GameCamera" type="Camera2D" parent="."]
+[node name="GameCamera" type="Camera2D" parent="." unique_id=747740193]
 position = Vector2(640, 360)
 zoom = Vector2(1.5, 1.5)
 
-[node name="UiCanvas" type="CanvasLayer" parent="."]
+[node name="UiCanvas" type="CanvasLayer" parent="." unique_id=551937507]
 layer = 100
-follow_viewport_enabled = false
 
-[node name="UIRoot" type="Control" parent="UiCanvas"]
+[node name="UIRoot" type="Control" parent="UiCanvas" unique_id=1759136672]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -23,44 +22,56 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="HudLayer" type="Control" parent="UiCanvas/UIRoot"]
+[node name="HudLayer" type="Control" parent="UiCanvas/UIRoot" unique_id=236440561]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 
-[node name="ScreenLayer" type="Control" parent="UiCanvas/UIRoot"]
+[node name="ScreenLayer" type="Control" parent="UiCanvas/UIRoot" unique_id=1364019416]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 
-[node name="PopupLayer" type="Control" parent="UiCanvas/UIRoot"]
+[node name="PopupLayer" type="Control" parent="UiCanvas/UIRoot" unique_id=515053928]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 
-[node name="TooltipLayer" type="Control" parent="UiCanvas/UIRoot"]
+[node name="TooltipLayer" type="Control" parent="UiCanvas/UIRoot" unique_id=1598913711]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 
-[node name="SystemLayer" type="Control" parent="UiCanvas/UIRoot"]
+[node name="SystemLayer" type="Control" parent="UiCanvas/UIRoot" unique_id=1906445034]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 
-[node name="DebugLayer" type="Control" parent="UiCanvas/UIRoot"]
+[node name="DebugLayer" type="Control" parent="UiCanvas/UIRoot" unique_id=2117161598]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
