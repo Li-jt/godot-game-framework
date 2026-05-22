@@ -6,7 +6,7 @@ extends Node
 const REQUIRED_KEYS: Array[String] = [
 	"Runtime", "PathResolver", "FileSystem", "EventBus", "Localization", "Debug",
 	"Flow", "Save", "ConfigService", "Resource", "AssetLoading", "SceneFactory",
-	"UI", "SceneHost", "Scheduler", "Input", "InputAdapter", "Audio",
+	"UI", "SceneHost", "Scheduler", "Input", "InputAdapter", "Audio", "Threading",
 	"AudioRuntime", "Config", "Log",
 ]
 
@@ -52,7 +52,7 @@ func _run_boot_sequence() -> void:
 		deps.config, deps.log, deps.scene_host, deps.save_service,
 		deps.input_service, deps.ui_service, deps.audio_service, deps.config_svc,
 		deps.resource_svc, deps.event_bus, deps.loc_service, deps.debug_service,
-		deps.app_flow, deps.scheduler
+		deps.app_flow, deps.scheduler, deps.runtime_svc, deps.threading_svc
 	)
 
 	_print_banner(deps.config, log)
@@ -131,6 +131,7 @@ func _build_registry_entries(p_deps: Dictionary) -> Array:
 		[ServiceRegistry.KEY_CONFIG_SERVICE, p_deps.config_svc],
 		[ServiceRegistry.KEY_RESOURCE,       p_deps.resource_svc],
 		[ServiceRegistry.KEY_ASSET_LOADING,  p_deps.asset_loading],
+		["Threading",                        p_deps.threading_svc],
 		[ServiceRegistry.KEY_SCENE_FACTORY,  p_deps.scene_factory],
 		[ServiceRegistry.KEY_UI,             p_deps.ui_service],
 		[ServiceRegistry.KEY_SCENE_HOST,     p_deps.scene_host],
@@ -145,14 +146,14 @@ func _build_registry_entries(p_deps: Dictionary) -> Array:
 
 func _build_game_services(
 	p_config, p_log, p_scene_host, p_save_service, p_input, p_ui, p_audio,
-	p_config_service, p_resource, p_event_bus, p_loc, p_debug, p_app_flow, p_scheduler
+	p_config_service, p_resource, p_event_bus, p_loc, p_debug, p_app_flow, p_scheduler, p_runtime, p_threading
 ) -> GameServices:
 	var s := GameServices.new()
 	s.config = p_config; s.log = p_log; s.scene_host = p_scene_host
 	s.save_service = p_save_service; s.input = p_input; s.ui = p_ui
 	s.audio = p_audio; s.config_service = p_config_service; s.resource = p_resource
 	s.event_bus = p_event_bus; s.loc = p_loc; s.debug = p_debug; s.app_flow = p_app_flow
-	s.scheduler = p_scheduler
+	s.scheduler = p_scheduler; s.runtime = p_runtime; s.threading = p_threading
 	return s
 
 func _print_banner(p_config: AppConfig, p_log: LogService) -> void:

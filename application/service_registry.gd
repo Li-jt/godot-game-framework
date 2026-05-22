@@ -12,6 +12,7 @@ const KEY_SCHEDULER: String = "Scheduler"
 const KEY_SCENE_HOST: String = "SceneHost"
 const KEY_SCENE_FACTORY: String = "SceneFactory"
 const KEY_ASSET_LOADING: String = "AssetLoading"
+const KEY_THREADING: String = "Threading"
 const KEY_FILE_SYSTEM: String = "FileSystem"
 const KEY_PATH_RESOLVER: String = "PathResolver"
 const KEY_CONFIG: String = "Config"
@@ -103,6 +104,7 @@ func get_scheduler() -> Scheduler: return _services.get(KEY_SCHEDULER, null) as 
 func get_scene_host() -> SceneHost: return _services.get(KEY_SCENE_HOST, null) as SceneHost
 func get_scene_factory() -> SceneFactory: return _services.get(KEY_SCENE_FACTORY, null) as SceneFactory
 func get_asset_loading() -> AssetLoadingService: return _services.get(KEY_ASSET_LOADING, null) as AssetLoadingService
+func get_threading(): return _services.get(KEY_THREADING, null)
 func get_file_system() -> FileSystemService: return _services.get(KEY_FILE_SYSTEM, null) as FileSystemService
 func get_path_resolver() -> PathResolver: return _services.get(KEY_PATH_RESOLVER, null) as PathResolver
 func get_audio_service() -> AudioService: return _services.get(KEY_AUDIO, null) as AudioService

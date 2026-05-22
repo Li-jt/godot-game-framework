@@ -1,5 +1,5 @@
 ## EngineInstaller
-## 安装引擎适配层服务：AssetLoading / SceneFactory / SceneHost / Scheduler / InputAdapter
+## 安装引擎适配层服务：AssetLoading / SceneFactory / SceneHost / Scheduler / Threading / InputAdapter
 class_name EngineInstaller
 extends ServiceInstaller
 
@@ -45,12 +45,21 @@ func install(p_deps: Dictionary) -> OperationResult:
 	bs.add_child(scheduler)
 	bs._track_node(scheduler)
 
+	# ThreadingService
+	var threading_svc := ThreadingService.new()
+	threading_svc.module_name = "ThreadingService"
+	if not bs._init_or_fail(threading_svc): return _fail()
+	bs._track_module(threading_svc)
+	if not bs._cfg_or_fail("ThreadingService", threading_svc.configure(core.config.threading, log), threading_svc): return _fail()
+	scheduler.register(Scheduler.TickGroup.FRAME, "ThreadingServicePump", threading_svc.pump, -200)
+
 	# InputAdapter
 	var input_adapter := InputAdapter.new()
 
 	deps.merge({
 		"asset_loading": asset_loading, "scene_factory": scene_factory,
 		"scene_host": scene_host, "scheduler": scheduler, "input_adapter": input_adapter,
+		"threading_svc": threading_svc,
 	})
 	return OperationResult.ok(deps)
 

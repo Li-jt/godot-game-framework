@@ -11,6 +11,7 @@ var network: NetworkSection = NetworkSection.new()
 var save: SaveSection = SaveSection.new()
 var resource: ResourceSection = ResourceSection.new()
 var logging: LoggingSection = LoggingSection.new()
+var threading: ThreadingSection = ThreadingSection.new()
 var debug: DebugSection = DebugSection.new()
 var feature_flags: FeatureFlagsSection = FeatureFlagsSection.new()
 
@@ -79,6 +80,17 @@ class DebugSection:
 	var enable_debug_panel: bool = false
 	var show_prediction_state: bool = false
 	var show_network_stats: bool = false
+
+
+## 线程任务配置
+class ThreadingSection:
+	extends RefCounted
+	var enabled: bool = true
+	var max_active_jobs: int = 4
+	var max_dispatch_per_tick: int = 2
+	var default_timeout_ms: int = 30000
+	var slow_job_warn_ms: int = 120
+	var history_limit: int = 256
 
 
 ## 功能开关配置

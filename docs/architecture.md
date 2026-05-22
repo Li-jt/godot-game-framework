@@ -9,7 +9,7 @@
 ```
 Application     ← 启动装配：AppBootstrap + ServiceRegistry + Installer
   ├── Core      ← 基类：ModuleLifecycle / OperationResult / GameServices / 上下文
-  ├── Engine    ← Godot 适配：SceneHost / SceneFactory / Scheduler / InputAdapter / 算法
+  ├── Engine    ← Godot 适配：SceneHost / SceneFactory / Scheduler / ThreadingService / InputAdapter / 算法
   ├── Environment ← 配置加载：AppConfigLoader / EnvParser / ConfigSummary
   ├── Event     ← EventBus + EventToken + scope 清理
   ├── Flow      ← AppFlow 状态机（BOOT → MAIN_MENU → LOADING → IN_GAME ⇄ PAUSE）
@@ -190,7 +190,44 @@ allowed（白名单）> block_all（全禁）> blocked（黑名单）> 放行
 
 ---
 
-# 8. UI 面板生命周期
+# 8. 线程任务系统
+
+## 目标
+
+- 统一后台计算任务提交能力（地图生成、批量寻路预计算、压缩等）
+- 主线程安全回收任务结果，禁止子线程直接写场景树
+- 提供优先级、取消、超时、重试、统计与回调
+
+## 关键类型
+
+| 类 | 职责 |
+|----|------|
+| `ThreadingService` | 提交/调度/回收线程任务 |
+| `ThreadJobOptions` | 任务超时、重试、标签、优先级配置 |
+| `ThreadJobHandle` | 任务取消、状态查询、结果读取 |
+| `ThreadJobToken` | 协作式取消令牌 |
+| `ThreadJobSummary` | 统一任务执行摘要 |
+
+## 执行流程
+
+```
+Game/Framework 提交任务
+  → ThreadingService.submit()
+  → 队列按 priority 排序
+  → WorkerThreadPool 后台执行
+  → 主线程 pump() 回收结果
+  → 回调 on_completed/on_failed/on_timeout/on_finished
+```
+
+## 线程边界
+
+- 子线程：只做纯数据计算
+- 主线程：写入世界状态、操作 Node/UI、触发回调
+- 运行中取消：协作式（任务主动检查 token）
+
+---
+
+# 9. UI 面板生命周期
 
 | 策略 | 关闭行为 | 适用 |
 |------|---------|------|
@@ -201,7 +238,7 @@ allowed（白名单）> block_all（全禁）> blocked（黑名单）> 放行
 
 ---
 
-# 9. 配置系统
+# 10. 配置系统
 
 ## 配置优先级
 
@@ -228,7 +265,7 @@ debug:  enable_debug_panel, show_prediction_state
 
 ---
 
-# 10. 框架发布与版本管理
+# 11. 框架发布与版本管理
 
 ## 仓库关系
 
@@ -257,7 +294,7 @@ SaveService.load_slot() 自动检测版本 + 执行迁移链
 
 ---
 
-# 11. 关键设计原则
+# 12. 关键设计原则
 
 1. **class_name 全局引用**：所有类通过 `class_name` 注册，不写路径 import
 2. **接口通过继承**：GDScript 无 `implements`，用基类虚方法实现接口语义

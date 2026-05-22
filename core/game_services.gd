@@ -37,6 +37,10 @@ var loc: LocalizationService = null
 var app_flow: AppFlow = null
 ## Tick 调度器（Game 层注册逐帧回调）
 var scheduler: Scheduler = null
+## 运行时模式服务（Local/Remote/Hybrid 命令与存档策略入口）
+var runtime: RuntimeService = null
+## 线程任务服务（后台计算任务提交与主线程回收）
+var threading = null
 
 
 # ============================================================

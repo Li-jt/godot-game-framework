@@ -23,6 +23,7 @@ func validate(p_config: AppConfig) -> OperationResult:
 	_validate_save(p_config.save, errors)
 	_validate_resource(p_config.resource, errors)
 	_validate_logging(p_config.logging, errors)
+	_validate_threading(p_config.threading, errors)
 
 	if errors.is_empty():
 		return OperationResult.ok()
@@ -91,3 +92,16 @@ func _validate_resource(p: AppConfig.ResourceSection, p_errors: Array[String]) -
 func _validate_logging(p: AppConfig.LoggingSection, p_errors: Array[String]) -> void:
 	if p.write_to_file and p.log_root.is_empty():
 		p_errors.append("logging.logRoot 不能为空：logging.writeToFile 为 true")
+
+
+func _validate_threading(p: AppConfig.ThreadingSection, p_errors: Array[String]) -> void:
+	if p.max_active_jobs <= 0:
+		p_errors.append("threading.maxActiveJobs 必须大于 0，当前值: %d" % p.max_active_jobs)
+	if p.max_dispatch_per_tick <= 0:
+		p_errors.append("threading.maxDispatchPerTick 必须大于 0，当前值: %d" % p.max_dispatch_per_tick)
+	if p.default_timeout_ms <= 0:
+		p_errors.append("threading.defaultTimeoutMs 必须大于 0，当前值: %d" % p.default_timeout_ms)
+	if p.slow_job_warn_ms <= 0:
+		p_errors.append("threading.slowJobWarnMs 必须大于 0，当前值: %d" % p.slow_job_warn_ms)
+	if p.history_limit < 32:
+		p_errors.append("threading.historyLimit 必须大于等于 32，当前值: %d" % p.history_limit)

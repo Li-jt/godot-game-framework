@@ -21,6 +21,7 @@
 | Logging | 日志服务 |
 | UI | 面板管理、主题、控件 |
 | Engine | Godot 适配层（资源、场景、路径、调度） |
+| Threading | 后台任务调度（优先级、取消、超时、重试、回调） |
 | Resource | 资源缓存与加载 |
 | Runtime | 运行时模式（Local/Remote/Hybrid） |
 | Save | 存档服务、版本迁移 |

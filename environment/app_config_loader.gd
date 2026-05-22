@@ -107,6 +107,7 @@ func _apply_json(p_config: AppConfig, p_dict: Dictionary) -> void:
 			"save":        _merge_save(p_config.save, section_value)
 			"resource":    _merge_resource(p_config.resource, section_value)
 			"logging":     _merge_logging(p_config.logging, section_value)
+			"threading":   _merge_threading(p_config.threading, section_value)
 			"debug":       _merge_debug(p_config.debug, section_value)
 			"featureFlags": _merge_feature_flags(p_config.feature_flags, section_value)
 
@@ -138,6 +139,13 @@ func _apply_env(p_config: AppConfig, p_env: Dictionary) -> void:
 	_str_field(p_config.logging, "level", p_env, "LOG_LEVEL")
 	_bool_field(p_config.logging, "write_to_file", p_env, "LOG_WRITE_TO_FILE")
 	_str_field(p_config.logging, "log_root", p_env, "LOG_ROOT")
+
+	_bool_field(p_config.threading, "enabled", p_env, "THREADING_ENABLED")
+	_int_field(p_config.threading, "max_active_jobs", p_env, "THREADING_MAX_ACTIVE_JOBS")
+	_int_field(p_config.threading, "max_dispatch_per_tick", p_env, "THREADING_MAX_DISPATCH_PER_TICK")
+	_int_field(p_config.threading, "default_timeout_ms", p_env, "THREADING_DEFAULT_TIMEOUT_MS")
+	_int_field(p_config.threading, "slow_job_warn_ms", p_env, "THREADING_SLOW_JOB_WARN_MS")
+	_int_field(p_config.threading, "history_limit", p_env, "THREADING_HISTORY_LIMIT")
 
 	_bool_field(p_config.debug, "enable_debug_panel", p_env, "ENABLE_DEBUG_PANEL")
 	_bool_field(p_config.debug, "show_prediction_state", p_env, "SHOW_PREDICTION_STATE")
@@ -188,6 +196,15 @@ func _merge_logging(p_target: AppConfig.LoggingSection, p_dict: Dictionary) -> v
 	_str(p_target, "level", p_dict, "level")
 	_bool(p_target, "write_to_file", p_dict, "writeToFile")
 	_str(p_target, "log_root", p_dict, "logRoot")
+
+
+func _merge_threading(p_target: AppConfig.ThreadingSection, p_dict: Dictionary) -> void:
+	_bool(p_target, "enabled", p_dict, "enabled")
+	_int(p_target, "max_active_jobs", p_dict, "maxActiveJobs")
+	_int(p_target, "max_dispatch_per_tick", p_dict, "maxDispatchPerTick")
+	_int(p_target, "default_timeout_ms", p_dict, "defaultTimeoutMs")
+	_int(p_target, "slow_job_warn_ms", p_dict, "slowJobWarnMs")
+	_int(p_target, "history_limit", p_dict, "historyLimit")
 
 
 func _merge_debug(p_target: AppConfig.DebugSection, p_dict: Dictionary) -> void:
