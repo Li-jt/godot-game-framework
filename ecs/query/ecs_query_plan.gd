@@ -104,8 +104,7 @@ func execute(p_world: EcsWorld) -> EcsQueryResult:
 
 
 ## EcsQueryRow — 单行查询结果，包含实体 ID 和所有组件数据。
-class EcsQueryRow
-extends RefCounted
+class EcsQueryRow extends RefCounted:
 
 var entity: int = 0
 var _components: Dictionary = {}
