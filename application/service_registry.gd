@@ -31,6 +31,10 @@ const KEY_DEBUG: String = "Debug"
 const KEY_COMMAND: String = "Command"
 const KEY_NETWORK: String = "Network"
 const KEY_DATA_ACCESS: String = "DataAccess"
+const KEY_ECS_WORLD: String = "EcsWorld"
+const KEY_ECS_SCHEDULER: String = "EcsScheduler"
+const KEY_ECS_DEBUG: String = "EcsDebug"
+const KEY_ECS_SAVE_ADAPTER: String = "EcsSaveAdapter"
 
 # 全局单例引用（由 AppBootstrap 在启动时赋值）
 static var instance: ServiceRegistry = null
@@ -117,3 +121,5 @@ func get_resource() -> ResourceService: return _services.get(KEY_RESOURCE, null)
 func get_app_flow() -> AppFlow: return _services.get(KEY_FLOW, null) as AppFlow
 func get_event_bus() -> EventBus: return _services.get(KEY_EVENT_BUS, null) as EventBus
 func get_log() -> LogService: return _services.get(KEY_LOG, null) as LogService
+func get_ecs_world() -> EcsWorld: return _services.get(KEY_ECS_WORLD, null) as EcsWorld
+func get_ecs_scheduler() -> EcsScheduler: return _services.get(KEY_ECS_SCHEDULER, null) as EcsScheduler

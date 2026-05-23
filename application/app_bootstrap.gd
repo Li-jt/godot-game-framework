@@ -30,10 +30,15 @@ func _run_boot_sequence() -> void:
 	var engine_result := EngineInstaller.new().install({"_bootstrap": self, "_core_deps": core_result.data})
 	if engine_result.is_fail(): return
 
+	# Phase 2.5: ECS
+	var ecs_result := EcsInstaller.new().install({"_bootstrap": self, "_engine_deps": engine_result.data})
+	if ecs_result.is_fail(): return
+
 	# Phase 3: Services
-	var svc_result := ServiceInstallerImpl.new().install({"_bootstrap": self, "_engine_deps": engine_result.data})
+	var svc_result := ServiceInstallerImpl.new().install({"_bootstrap": self, "_engine_deps": engine_result.data, "_ecs_deps": ecs_result.data})
 	if svc_result.is_fail(): return
 	var deps: Dictionary = svc_result.data
+	deps.merge(ecs_result.data)
 
 	# Registry
 	var registry := ServiceRegistry.new()
@@ -52,7 +57,8 @@ func _run_boot_sequence() -> void:
 		deps.config, deps.log, deps.scene_host, deps.save_service,
 		deps.input_service, deps.ui_service, deps.audio_service, deps.config_svc,
 		deps.resource_svc, deps.event_bus, deps.loc_service, deps.debug_service,
-		deps.app_flow, deps.scheduler, deps.runtime_svc, deps.threading_svc
+		deps.app_flow, deps.scheduler, deps.runtime_svc, deps.threading_svc,
+		deps.ecs_world, deps.ecs_scheduler
 	)
 
 	_print_banner(deps.config, log)
@@ -142,11 +148,14 @@ func _build_registry_entries(p_deps: Dictionary) -> Array:
 		[ServiceRegistry.KEY_AUDIO_RUNTIME,  p_deps.audio_runtime],
 		[ServiceRegistry.KEY_CONFIG,         p_deps.config],
 		[ServiceRegistry.KEY_LOG,            p_deps.log],
+		[ServiceRegistry.KEY_ECS_WORLD,      p_deps.ecs_world],
+		[ServiceRegistry.KEY_ECS_SCHEDULER,  p_deps.ecs_scheduler],
 	]
 
 func _build_game_services(
 	p_config, p_log, p_scene_host, p_save_service, p_input, p_ui, p_audio,
-	p_config_service, p_resource, p_event_bus, p_loc, p_debug, p_app_flow, p_scheduler, p_runtime, p_threading
+	p_config_service, p_resource, p_event_bus, p_loc, p_debug, p_app_flow, p_scheduler, p_runtime, p_threading,
+	p_ecs_world, p_ecs_scheduler
 ) -> GameServices:
 	var s := GameServices.new()
 	s.config = p_config; s.log = p_log; s.scene_host = p_scene_host
@@ -154,6 +163,7 @@ func _build_game_services(
 	s.audio = p_audio; s.config_service = p_config_service; s.resource = p_resource
 	s.event_bus = p_event_bus; s.loc = p_loc; s.debug = p_debug; s.app_flow = p_app_flow
 	s.scheduler = p_scheduler; s.runtime = p_runtime; s.threading = p_threading
+	s.ecs_world = p_ecs_world; s.ecs_scheduler = p_ecs_scheduler
 	return s
 
 func _print_banner(p_config: AppConfig, p_log: LogService) -> void:

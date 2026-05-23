@@ -41,6 +41,10 @@ var scheduler: Scheduler = null
 var runtime: RuntimeService = null
 ## 线程任务服务（后台计算任务提交与主线程回收）
 var threading = null
+## ECS 世界（实体管理与组件存储）
+var ecs_world: EcsWorld = null
+## ECS 调度器（系统分组与 tick 驱动）
+var ecs_scheduler: EcsScheduler = null
 
 
 # ============================================================
