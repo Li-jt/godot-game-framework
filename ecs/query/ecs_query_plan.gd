@@ -17,24 +17,26 @@ func _init(p_with: Array[StringName], p_without: Array[StringName], p_optional: 
 
 ## 对指定世界执行查询，返回匹配的实体和组件数据。
 func execute(p_world: EcsWorld) -> EcsQueryResult:
-	var registry := p_world.get_registry()
-	var storage_index := p_world.get_storage_index()
+	var registry := p_world._get_registry()
+	var storage_index := p_world._get_storage_index()
 
+	# P2-2: 无 with 条件时，候选集为全部存活实体
+	var candidates: PackedInt64Array
 	if _with_types.is_empty():
-		return EcsQueryResult.new()
-
-	# 统计每种 with 组件需要的 type_id 和 storage
-	var with_type_ids: Array[int] = []
-	var with_storages: Array[EcsSparseSetStorage] = []
-	for with_type in _with_types:
-		var tid := registry.type_id_of(with_type)
-		if tid == 0:
-			return EcsQueryResult.new()
-		var storage := storage_index.get_storage(tid)
-		if storage == null:
-			return EcsQueryResult.new()
-		with_type_ids.append(tid)
-		with_storages.append(storage)
+		candidates = p_world.all_entities()
+	else:
+		var with_type_ids: Array[int] = []
+		var with_storages: Array[EcsSparseSetStorage] = []
+		for with_type in _with_types:
+			var tid := registry.type_id_of(with_type)
+			if tid == 0:
+				return EcsQueryResult.new()
+			var storage := storage_index.get_storage(tid)
+			if storage == null:
+				return EcsQueryResult.new()
+			with_type_ids.append(tid)
+			with_storages.append(storage)
+		candidates = with_storages[0].entities()
 
 	# 解析 without 的 type_id
 	var without_type_ids: Array[int] = []
@@ -44,32 +46,29 @@ func execute(p_world: EcsWorld) -> EcsQueryResult:
 			without_type_ids.append(tid)
 
 	# 解析 optional 的 type_id
-	var optional_type_ids: Array[int] = []
 	var optional_type_names: Array[StringName] = []
 	for opt_type in _optional_types:
-		var tid := registry.type_id_of(opt_type)
-		if tid != 0:
-			optional_type_ids.append(tid)
+		if registry.type_id_of(opt_type) != 0:
 			optional_type_names.append(opt_type)
 
-	# 以第一个 with 组件的实体集为候选，遍历过滤
-	var primary_storage: EcsSparseSetStorage = with_storages[0]
 	var result := EcsQueryResult.new()
 	result._required_types = _with_types
 	result._optional_types = optional_type_names
 
-	for entity in primary_storage.entities():
+	for entity in candidates:
 		if not p_world.has_entity(entity):
 			continue
 
-		# 检查所有 required
-		var matches := true
-		for i in range(1, with_storages.size()):
-			if not with_storages[i].contains(entity):
-				matches = false
-				break
-		if not matches:
-			continue
+		# 检查所有 required（_with_types 非空时）
+		if not _with_types.is_empty():
+			var matches := true
+			for with_type in _with_types:
+				var s := storage_index.get_storage(registry.type_id_of(with_type))
+				if s == null or not s.contains(entity):
+					matches = false
+					break
+			if not matches:
+				continue
 
 		# 检查 without
 		var excluded := false

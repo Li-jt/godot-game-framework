@@ -1,13 +1,14 @@
 ## EcsWorld — ECS 世界核心。
-## 管理实体生命周期、组件存储和世界版本号。
+## 管理实体生命周期、组件存储、ID 分配和世界版本号。
 ## 所有 ECS 操作均通过此对象完成，不直接操作存储层。
 class_name EcsWorld
-extends RefCounted
+extends IEcsWorld
 
-var _entities: Dictionary = {}  # int entity_id -> bool (存在标记)
+var _entities: Dictionary = {}  # int entity_id -> bool
 var _registry: EcsComponentTypeRegistry = null
 var _storage_index: EcsStorageIndex = null
 var _version: int = 0
+var _next_entity_id: int = 1
 
 
 func _init() -> void:
@@ -20,15 +21,14 @@ func _init() -> void:
 # ============================================================
 
 
-## 生成一个新实体，返回实体 ID。
 func spawn() -> int:
-	var id := EcsEntityId.create()
+	var id := _next_entity_id
+	_next_entity_id += 1
 	_entities[id] = true
 	_version += 1
 	return id
 
 
-## 销毁实体及其全部组件。不存在时返回 false。
 func despawn(p_entity: int) -> bool:
 	if not _entities.has(p_entity):
 		return false
@@ -41,12 +41,10 @@ func despawn(p_entity: int) -> bool:
 	return true
 
 
-## 检查实体是否存在。
 func has_entity(p_entity: int) -> bool:
 	return _entities.has(p_entity)
 
 
-## 返回当前世界存活实体数量。
 func entity_count() -> int:
 	return _entities.size()
 
@@ -56,7 +54,6 @@ func entity_count() -> int:
 # ============================================================
 
 
-## 为实体添加组件。实体已拥有同类型组件时返回冲突错误。
 func add_component(p_entity: int, p_type: StringName, p_data: Variant) -> OperationResult:
 	if not _entities.has(p_entity):
 		return OperationResult.fail(OperationResult.ERR_NOT_FOUND, "实体不存在: %d" % p_entity, "EcsWorld")
@@ -72,7 +69,6 @@ func add_component(p_entity: int, p_type: StringName, p_data: Variant) -> Operat
 	return OperationResult.ok()
 
 
-## 为实体设置组件数据（存在则覆盖，不存在则新增）。
 func set_component(p_entity: int, p_type: StringName, p_data: Variant) -> OperationResult:
 	if not _entities.has(p_entity):
 		return OperationResult.fail(OperationResult.ERR_NOT_FOUND, "实体不存在: %d" % p_entity, "EcsWorld")
@@ -86,7 +82,6 @@ func set_component(p_entity: int, p_type: StringName, p_data: Variant) -> Operat
 	return OperationResult.ok()
 
 
-## 获取实体的组件数据，不存在时返回 null。
 func get_component(p_entity: int, p_type: StringName) -> Variant:
 	if not _entities.has(p_entity):
 		return null
@@ -99,7 +94,6 @@ func get_component(p_entity: int, p_type: StringName) -> Variant:
 	return storage.get_data(p_entity)
 
 
-## 移除实体的组件，不存在时静默忽略。
 func remove_component(p_entity: int, p_type: StringName) -> void:
 	if not _entities.has(p_entity):
 		return
@@ -113,7 +107,6 @@ func remove_component(p_entity: int, p_type: StringName) -> void:
 	_version += 1
 
 
-## 检查实体是否拥有指定组件。
 func has_component(p_entity: int, p_type: StringName) -> bool:
 	if not _entities.has(p_entity):
 		return false
@@ -131,19 +124,8 @@ func has_component(p_entity: int, p_type: StringName) -> bool:
 # ============================================================
 
 
-## 返回世界版本号，每次结构变更后递增。
 func get_version() -> int:
 	return _version
-
-
-## 获取组件类型注册中心（只读引用）。
-func get_registry() -> EcsComponentTypeRegistry:
-	return _registry
-
-
-## 获取存储索引（只读引用）。
-func get_storage_index() -> EcsStorageIndex:
-	return _storage_index
 
 
 ## 返回所有存活实体 ID 列表。
@@ -152,3 +134,26 @@ func all_entities() -> PackedInt64Array:
 	for id in _entities.keys():
 		result.append(id)
 	return result
+
+
+## 重置世界（清空所有实体和组件，重置 ID 分配器）。
+func reset() -> void:
+	_entities.clear()
+	_storage_index.clear()
+	_registry = EcsComponentTypeRegistry.new()
+	_storage_index = EcsStorageIndex.new()
+	_next_entity_id = 1
+	_version = 0
+
+
+# ============================================================
+# 内部（仅供 EcsQueryPlan 等框架内部使用）
+# ============================================================
+
+
+func _get_registry() -> EcsComponentTypeRegistry:
+	return _registry
+
+
+func _get_storage_index() -> EcsStorageIndex:
+	return _storage_index
