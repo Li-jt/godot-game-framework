@@ -14,6 +14,7 @@ var _group_order: Array[StringName] = []
 var _world: EcsWorld = null
 var _ecb_pool: EcsCommandBufferPool = null
 var _active: bool = false
+var _framework_handle = null  # Scheduler.TickHandle
 
 
 func _init(p_world: EcsWorld = null) -> void:
@@ -101,3 +102,31 @@ func get_group(p_group_name: StringName) -> EcsSystemGroup:
 ## 返回所有分组名称。
 func get_group_names() -> Array[StringName]:
 	return _group_order.duplicate()
+
+
+## 将自身注册到 Framework Scheduler，确保 ECS tick 在正确的阶段执行。
+## 绑定后 EcsScheduler.tick() 会由 Framework Scheduler 自动驱动。
+func bind_to_framework_scheduler(p_scheduler: Scheduler) -> OperationResult:
+	if p_scheduler == null:
+		return OperationResult.fail(OperationResult.ERR_BAD_REQUEST, "Framework 调度器不能为空", "EcsScheduler")
+	_framework_handle = p_scheduler.register(
+		Scheduler.TickGroup.SIMULATION,
+		"EcsScheduler",
+		_framework_tick,
+		0
+	)
+	return OperationResult.ok()
+
+
+## 启动调度器（初始化所有系统）。
+func start_ecs_scheduler() -> void:
+	start()
+
+
+## 停止调度器（关闭所有系统）。
+func stop_ecs_scheduler() -> void:
+	stop()
+
+
+func _framework_tick(p_delta: float) -> void:
+	tick(p_delta)
