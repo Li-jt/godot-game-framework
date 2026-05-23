@@ -45,6 +45,13 @@ func has_entity(p_entity: int) -> bool:
 	return _entities.has(p_entity)
 
 
+## 强制使用指定 ID 创建实体（供快照恢复使用，不自动分配 ID）。
+func _force_spawn(p_entity: int) -> void:
+	_entities[p_entity] = true
+	_next_entity_id = maxi(_next_entity_id, p_entity + 1)
+	_version += 1
+
+
 func entity_count() -> int:
 	return _entities.size()
 
