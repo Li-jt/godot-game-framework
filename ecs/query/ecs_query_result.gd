@@ -28,7 +28,7 @@ func count() -> int:
 
 
 ## 获取指定索引处的行，越界时返回 null。
-func get_row(p_index: int) -> EcsQueryRow:
+func get_row(p_index: int) -> EcsQueryPlan.EcsQueryRow:
 	if p_index < 0 or p_index >= _rows.size():
 		return null
 	return _rows[p_index]
