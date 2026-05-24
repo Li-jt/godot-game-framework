@@ -26,7 +26,7 @@ var _enabled: bool = true
 var _max_active_jobs: int = 4
 var _max_dispatch_per_tick: int = 2
 var _default_timeout_ms: int = 30000
-var _slow_job_warn_ms: int = 120
+var _slow_job_warn_ms: int = 350
 var _history_limit: int = 256
 
 var _log: LogService = null
@@ -401,7 +401,10 @@ func _finalize_job(p_record: JobRecord, p_state: int, p_result: OperationResult)
 		var new_count := count + 1
 		_stats["completed_with_duration"] = new_count
 		_stats["avg_duration_ms"] = ((avg * count) + duration) / float(new_count)
-		if duration >= _slow_job_warn_ms and _log != null:
+		var warn_threshold := _slow_job_warn_ms
+		if p_record.options != null and p_record.options.metadata.has("slow_warn_ms"):
+			warn_threshold = maxi(1, int(p_record.options.metadata.get("slow_warn_ms", warn_threshold)))
+		if duration >= warn_threshold and _log != null:
 			_log.warning("Threading", "慢任务 %s 耗时 %d ms（state=%s）" % [summary.name, duration, summary.status_text()])
 
 	_emit_callbacks(summary, p_record.options.callbacks)
