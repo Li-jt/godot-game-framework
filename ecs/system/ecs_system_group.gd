@@ -44,8 +44,9 @@ func tick(p_world: EcsWorld, p_ecb: EcsCommandBuffer, p_delta: float) -> void:
 		else:
 			_accumulators[i] += p_delta
 			if _accumulators[i] >= desc.tick_interval:
-				_accumulators[i] -= desc.tick_interval
-				_systems[i].on_tick(p_world, p_ecb, desc.tick_interval)
+				var elapsed := _accumulators[i]
+				_accumulators[i] = 0.0
+				_systems[i].on_tick(p_world, p_ecb, elapsed)
 
 
 func shutdown_all() -> void:

@@ -78,7 +78,7 @@ func tick(p_delta: float) -> void:
 		_ecb_pool.release(ecb)
 
 		if apply_result.is_fail():
-			push_error("[EcsScheduler] 命令应用失败 [%s]: %s" % [group_name, apply_result.error.message])
+			push_error("[EcsScheduler] 命令应用失败 [%s]: %s" % [group_name, apply_result.error.message if apply_result.error != null else "未知错误"])
 
 
 ## 停止调度器（关闭所有系统）。

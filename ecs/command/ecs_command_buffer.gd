@@ -60,14 +60,14 @@ func apply_to(p_world: EcsWorld) -> OperationResult:
 				if actual_id > 0:
 					var result := p_world.add_component(actual_id, cmd.component_type, cmd.data)
 					if result.is_fail() and result.status_code != OperationResult.ERR_CONFLICT:
-						push_error("[EcsCommandBuffer] add_component 失败: %s" % result.error.message)
+						push_error("[EcsCommandBuffer] add_component 失败: %s" % result.error.message if result.error != null else "未知错误")
 
 			EcsCommand.SET_COMPONENT:
 				var actual_id := _resolve(temp_to_real, cmd.entity)
 				if actual_id > 0:
 					var result := p_world.set_component(actual_id, cmd.component_type, cmd.data)
 					if result.is_fail():
-						push_error("[EcsCommandBuffer] set_component 失败: %s" % result.error.message)
+						push_error("[EcsCommandBuffer] set_component 失败: %s" % result.error.message if result.error != null else "未知错误")
 
 			EcsCommand.REMOVE_COMPONENT:
 				var actual_id := _resolve(temp_to_real, cmd.entity)
