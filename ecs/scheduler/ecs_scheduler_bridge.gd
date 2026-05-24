@@ -6,7 +6,7 @@ extends RefCounted
 
 var _ecs_scheduler: EcsScheduler = null
 var _framework_scheduler: Scheduler = null
-var _handle = null  # Scheduler.TickHandle
+var _handle: Scheduler.TickHandle = null
 
 
 ## 绑定 ECS 调度器和 Framework 调度器。

@@ -2,7 +2,7 @@
 ## 提供 O(1) 的增删改查，并支持高效的实体遍历（entities()）。
 ## 第一版实现，后续可进阶 Archetype/Chunk 存储。
 class_name EcsSparseSetStorage
-extends RefCounted
+extends IEcsStorage
 
 ## 稀疏映射：entity_id -> dense 数组中的索引
 var _sparse: Dictionary = {}

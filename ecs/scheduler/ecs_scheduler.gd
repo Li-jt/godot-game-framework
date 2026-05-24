@@ -2,7 +2,7 @@
 ## 驱动 Initialization / Simulation / Presentation 三组系统。
 ## 每组使用独立 EcsCommandBuffer，组末统一 apply 到世界。
 class_name EcsScheduler
-extends RefCounted
+extends IEcsScheduler
 
 # 标准分组名称常量
 const GROUP_INITIALIZATION: StringName = &"Initialization"
@@ -14,7 +14,7 @@ var _group_order: Array[StringName] = []
 var _world: EcsWorld = null
 var _ecb_pool: EcsCommandBufferPool = null
 var _active: bool = false
-var _framework_handle = null  # Scheduler.TickHandle
+var _framework_handle: Scheduler.TickHandle = null
 
 
 func _init(p_world: EcsWorld = null) -> void:

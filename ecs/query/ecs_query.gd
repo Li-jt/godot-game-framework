@@ -2,7 +2,7 @@
 ## 支持链式调用，通过 with/without/optional 组合过滤条件。
 ## 调用 build() 返回预编译的 EcsQueryPlan。
 class_name EcsQuery
-extends RefCounted
+extends IEcsQuery
 
 var _with_types: Array[StringName] = []
 var _without_types: Array[StringName] = []

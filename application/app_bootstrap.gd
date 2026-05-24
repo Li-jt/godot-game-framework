@@ -6,7 +6,7 @@ extends Node
 const REQUIRED_KEYS: Array[String] = [
 	"Runtime", "PathResolver", "FileSystem", "EventBus", "Localization", "Debug",
 	"Flow", "Save", "ConfigService", "Resource", "AssetLoading", "SceneFactory",
-	"UI", "SceneHost", "Scheduler", "Input", "InputAdapter", "Audio", "Threading",
+	"UI", "SceneHost", "Scheduler", "Input", "InputAdapter", "Audio", ServiceRegistry.KEY_THREADING,
 	"AudioRuntime", "Config", "Log",
 ]
 
@@ -137,7 +137,7 @@ func _build_registry_entries(p_deps: Dictionary) -> Array:
 		[ServiceRegistry.KEY_CONFIG_SERVICE, p_deps.config_svc],
 		[ServiceRegistry.KEY_RESOURCE,       p_deps.resource_svc],
 		[ServiceRegistry.KEY_ASSET_LOADING,  p_deps.asset_loading],
-		["Threading",                        p_deps.threading_svc],
+		[ServiceRegistry.KEY_THREADING,      p_deps.threading_svc],
 		[ServiceRegistry.KEY_SCENE_FACTORY,  p_deps.scene_factory],
 		[ServiceRegistry.KEY_UI,             p_deps.ui_service],
 		[ServiceRegistry.KEY_SCENE_HOST,     p_deps.scene_host],

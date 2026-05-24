@@ -1,7 +1,7 @@
 ## EcsStorageIndex — 组件类型到存储实例的索引映射。
 ## 为 EcsQuery 提供候选实体集，按需创建存储实例。
 class_name EcsStorageIndex
-extends RefCounted
+extends IEcsStorageIndex
 
 var _storages: Dictionary = {}  # int type_id -> EcsSparseSetStorage
 
