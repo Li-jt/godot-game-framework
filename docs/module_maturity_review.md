@@ -15,7 +15,7 @@
    `RuntimeService` 已经定义 Local / Remote / Hybrid，但 `Remote` 和 `Hybrid` 的命令、存档、网络、预测、回滚都还没有落地。
 
 2. **Framework 能力和 Game 约定之间仍有若干“软连接”**  
-   例如 UI 输入阻挡已经有机制，但 Game 层必须正确使用 `InputService`；Command pipeline 目前主要在 Game 层实现，Framework 还没有提供统一命令总线。
+   例如 UI 输入阻挡已经有机制，但 Game 层必须正确使用 `InputService`；命令总线虽已在 Framework 落地最小版，但 Command pipeline 仍主要在 Game 层编排。
 
 3. **数据访问层、网络层、资源层偏接口和占位**  
    有 Repository / UnitOfWork / NetworkClient 形态，但缺少真实 Provider、重试、超时、序列化、缓存失效、冲突解决等生产能力。
@@ -34,6 +34,7 @@
 |---|---:|---|---|---|
 | Application / Installer | 3/5 | 依赖图、阶段化启动、失败恢复、可测试装配 | 依赖顺序硬编码，缺少依赖声明和启动阶段扩展点 | P1 |
 | Core / OperationResult | 3.5/5 | 统一错误、上下文、错误链、可观测性 | 错误上下文较弱，缺少 trace/correlation id | P2 |
+| ECS | 3/5 | ECS 世界、系统组、查询、命令、快照、存档桥接 | 已有完整骨架，但缺少系统级性能剖析、回放与并发契约测试 | P1 |
 | Environment / AppConfig | 3.5/5 | 多来源配置、校验、环境覆盖、热重载 | 命令行/编辑器覆盖仍是预留，缺少 schema 化文档 | P2 |
 | Logging | 3/5 | 多 sink、结构化日志、文件轮转、过滤、远程上报 | 同步写文件，缺少结构化输出和采样 | P2 |
 | EventBus | 2.5/5 | 事件类型化、优先级、异步队列、生命周期绑定 | 字符串事件易错，缺少 payload 约束和安全派发 | P1 |
@@ -44,7 +45,7 @@
 | Scheduler | 2.5/5 | tick phase、固定步长、暂停分组、性能预算 | 没有物理固定步、异常隔离、耗时统计、动态优先级 | P2 |
 | Resource / AssetLoading | 2.5/5 | 引用计数、异步加载、分组、热更新、预加载 | 缓存策略简单，缺少资源引用关系和异步加载 | P1 |
 | Save | 3/5 | Provider、多槽位、迁移、原子写、云存档、快照 | 自动注册生命周期风险，远程/混合存档未实现，缺少 schema | P1 |
-| Runtime | 2/5 | Local/Remote/Hybrid 策略、预测、回滚、重放 | 只有 Local 真正可用，Remote/Hybrid 返回未实现 | P0 |
+| Runtime | 2.5/5 | Local/Remote/Hybrid 策略、预测、回滚、重放 | CommandBus + Local 策略可用，但 Remote/Hybrid 和完整确认链路未实现 | P0 |
 | Network | 1.5/5 | HTTP/WebSocket、重试、超时、认证、断线恢复 | 只有抽象和 Mock，没有真实客户端 | P0 |
 | DataAccess | 2/5 | Repository、事务、revision、冲突解决、缓存 | 接口存在，缺少真实实现和与 Runtime/Save 的集成 | P1 |
 | Audio | 2.5/5 | cue、bus、混音、池化、淡入淡出、设置保存 | 基础播放可用，缺少音频策略、优先级、实例管理 | P3 |
@@ -56,7 +57,7 @@
 
 ## 3. 与市面成熟方案的主要差距
 
-### 3.1 缺少 Framework 级 Command Bus
+### 3.1 Command Bus 已落地最小版，但闭环未完成
 
 成熟项目通常会把世界修改统一进入命令管线：
 
@@ -64,14 +65,16 @@
 Intent -> Command -> Validate -> Strategy(Local/Remote/Hybrid) -> Apply/Confirm/Rollback -> Event
 ```
 
-当前项目中，框架已有 `RuntimeService`、`CommandStrategy`、`LocalCommandStrategy`，但真正的 `GameCommandExecutor` 在 Game 层。这样对当前游戏是可工作的，但从框架角度看还不成熟：
+当前项目中，Framework 已有 `ICommand`、`ICommandHandler`、`CommandBus`，并且 `RuntimeService` 在 Local 模式下会把命令执行委托到命令总线。相比早期阶段，这已经提供了统一入口。
 
-- Framework 没有统一命令接口，如 `ICommand`、`ICommandValidator`、`ICommandHandler`。
-- Runtime 策略没有接入命令生命周期。
-- Prediction / rollback / reconciliation 没有标准上下文。
-- 命令执行结果没有统一事件、审计、重放或调试记录。
+但从生产级框架角度看仍不完整：
 
-建议：下一阶段在 Framework 增加轻量 Command Bus，但不要把游戏业务命令放进 Framework。
+- 命令总线尚未提供 `CommandEnvelope`（command_id / sequence / timestamp / source）。
+- Runtime 策略缺少 confirm / reject / reconcile 生命周期。
+- Prediction / rollback 仍无统一上下文与快照协议。
+- 命令执行缺少统一 trace、审计、重放与指标。
+
+建议：下一阶段做 Command Bus V2（envelope + trace + strategy lifecycle），并保持“Framework 提供机制，Game 提供业务命令”。
 
 ### 3.2 Remote / Hybrid 仍是概念层
 
@@ -178,7 +181,7 @@ CommandStrategy -> Repository/Network -> Revision -> ChangeSet -> Save/Cache
 
 优点：
 
-- 三阶段装配清晰：Core -> Engine -> Services。
+- 四阶段装配清晰：Core -> Engine -> ECS -> Services。
 - 失败时有 `_cleanup_on_fail()`。
 - `GameServices` 将 Game 层依赖显式化。
 
@@ -239,17 +242,19 @@ CommandStrategy -> Repository/Network -> Revision -> ChangeSet -> Save/Cache
 
 - Local/Remote/Hybrid 的方向明确。
 - `CommandStrategy` 预留了策略替换点。
+- 已有框架级 `CommandBus` + `ICommand` + `ICommandHandler` 最小闭环。
 
 问题：
 
 - Remote/Hybrid 未实现。
-- Framework 没有命令总线，导致 Game 层必须自己组织 command executor。
+- 命令总线当前为最小版，缺少 envelope/sequence/source 等元数据。
+- 缺少统一 trace/审计/重放链路，命令可观测性不足。
 - 没有 command id、sequence、dedupe、replay。
 
 建议：
 
-- 增加 Framework 级 `CommandBus` 和 `CommandEnvelope`。
-- Local 先做完整链路：validate、execute、event、trace。
+- 在现有 `CommandBus` 上补 `CommandEnvelope`、command id、sequence、source。
+- Local 先做完整链路：validate、route、execute、event、trace。
 - 再做 Hybrid：snapshot、predict、confirm、rollback。
 
 ### Save
@@ -335,7 +340,7 @@ CommandStrategy -> Repository/Network -> Revision -> ChangeSet -> Save/Cache
 ### P0：必须先明确的能力边界
 
 1. 明确 Remote/Hybrid 是未完成能力，避免项目误用。
-2. 定义 Framework 级 Command Bus 最小接口。
+2. 将现有 Command Bus 升级为 V2（Envelope/Sequence/Trace）。
 3. 实现真实 NetworkClient 或明确延期。
 
 ### P1：支撑当前游戏继续扩展
@@ -367,7 +372,7 @@ CommandStrategy -> Repository/Network -> Revision -> ChangeSet -> Save/Cache
 短期不要一次性把框架做“大”。建议只做三条最有收益的链路：
 
 1. **Command Bus 最小闭环**  
-   Framework 定义命令 envelope、handler、strategy、trace；Game 只提供具体 command 和 handler。
+   在现有 CommandBus 基础上补齐 envelope、handler、strategy lifecycle、trace；Game 只提供具体 command 和 handler。
 
 2. **Input/UI 契约测试**  
    保证所有世界输入都走 `InputService`，UI pointer-only 阻挡不会回归。

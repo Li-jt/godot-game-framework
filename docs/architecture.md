@@ -9,6 +9,7 @@
 ```
 Application     ← 启动装配：AppBootstrap + ServiceRegistry + Installer
   ├── Core      ← 基类：ModuleLifecycle / OperationResult / GameServices / 上下文
+  ├── ECS       ← 实体组件系统：World / Query / CommandBuffer / Scheduler / Snapshot / SaveAdapter
   ├── Engine    ← Godot 适配：SceneHost / SceneFactory / Scheduler / ThreadingService / InputAdapter / 算法
   ├── Environment ← 配置加载：AppConfigLoader / EnvParser / ConfigSummary
   ├── Event     ← EventBus + EventToken + scope 清理
@@ -17,7 +18,7 @@ Application     ← 启动装配：AppBootstrap + ServiceRegistry + Installer
   ├── Logging   ← LogService + LogSink（控制台/文件/内存）
   ├── UI        ← UIService + UIPanel + UIPanelDef + UiContext 自动注入
   ├── Save      ← SaveService + ISaveable + SaveProvider + SaveVersionMigrator
-  ├── Runtime   ← RuntimeService + CommandStrategy / SaveStrategy
+  ├── Runtime   ← RuntimeService + CommandBus + CommandStrategy / SaveStrategy
   ├── Resource  ← ResourceService 缓存
   ├── Network   ← NetworkClient / NetworkRequest / NetworkResponse / MockClient
   └── DataAccess ← Repository 接口 (IWorld/Entity/Map/Save) + UnitOfWork + ChangeSet
@@ -36,6 +37,7 @@ AppBootstrap 装配流程:
   _ready() → _run_boot_sequence()
     Phase 1: CoreInstaller       → 配置/日志/运行时/事件/流程
     Phase 2: EngineInstaller     → 资源/场景/调度/输入适配
+    Phase 2.5: EcsInstaller      → EcsWorld / EcsScheduler 绑定到 Framework Scheduler
     Phase 3: ServiceInstallerImpl → 存档/UI/音频/调试
     → 构建 ServiceRegistry
     → 构建 GameServices
@@ -60,7 +62,7 @@ ServiceInstallerImpl
   → UIService.configure(ui_context) → _panel_context = ui_context
     → open("panel") → panel.ctx = _panel_context
 
-GameFlow.configure(ctx)
+GameBootstrap._on_post_boot(context)
   → scene_host.set_world_context(ctx)
     → replace_world(path) → if root is WorldRoot: root.ctx = ctx; root._on_world_setup()
 ```
@@ -227,7 +229,41 @@ Game/Framework 提交任务
 
 ---
 
-# 9. UI 面板生命周期
+# 9. 命令总线（主干）
+
+## 目标
+
+- 提供框架级统一命令入口，避免 Game 层直接绑定具体执行器实现
+- 统一命令前置校验与路由规则，为后续 Remote/Hybrid 扩展保留插槽
+
+## 核心类型
+
+| 类 | 职责 |
+|----|------|
+| `ICommand` | 命令抽象（`command_key` / `validate` / `execute`） |
+| `ICommandHandler` | 命令处理器抽象（`command_key` / `handle`） |
+| `CommandBus` | 命令校验、路由、fallback 执行 |
+| `RuntimeService` | 提供当前模式命令策略并注入 CommandBus |
+
+## 执行顺序（Local）
+
+```
+RuntimeService.get_command_strategy()
+  → LocalCommandStrategy.execute(command, context)
+    → CommandBus.execute(command, context)
+      1) validate()（若命令实现）
+      2) 按 command_key 路由到 Handler（若已注册）
+      3) 否则回退 command.execute()
+```
+
+## 当前边界
+
+- Local 模式可用；Remote/Hybrid 策略仍返回未实现
+- 现阶段为最小可用命令总线，尚未提供 envelope、sequence、重放与审计链路
+
+---
+
+# 10. UI 面板生命周期
 
 | 策略 | 关闭行为 | 适用 |
 |------|---------|------|
@@ -238,7 +274,7 @@ Game/Framework 提交任务
 
 ---
 
-# 10. 配置系统
+# 11. 配置系统
 
 ## 配置优先级
 
@@ -265,7 +301,7 @@ debug:  enable_debug_panel, show_prediction_state
 
 ---
 
-# 11. 框架发布与版本管理
+# 12. 框架发布与版本管理
 
 ## 仓库关系
 
@@ -294,7 +330,7 @@ SaveService.load_slot() 自动检测版本 + 执行迁移链
 
 ---
 
-# 12. 关键设计原则
+# 13. 关键设计原则
 
 1. **class_name 全局引用**：所有类通过 `class_name` 注册，不写路径 import
 2. **接口通过继承**：GDScript 无 `implements`，用基类虚方法实现接口语义

@@ -4,7 +4,8 @@
 
 ## 版本
 
-- **框架版本**: 0.1.0
+- **最新发布版本**: 0.1.0
+- **主干状态**: 包含未发布增强（ECS、Threading、NodePool、命令总线最小实现）
 - **引擎要求**: Godot 4.6+
 
 ## 分层
@@ -13,6 +14,7 @@
 |----|------|
 | Application | 启动、生命周期、服务装配 |
 | Core | 通用基类、OperationResult、GameServices、上下文 |
+| ECS | 实体组件系统（World/Query/Command/Scheduler/Snapshot/Save） |
 | Config | 配置加载、Def 校验 |
 | Environment | AppConfig 加载/合并/校验 |
 | Event | 事件总线 |
@@ -27,6 +29,21 @@
 | Save | 存档服务、版本迁移 |
 | Network | 网络请求抽象 |
 | DataAccess | Repository 接口、UnitOfWork |
+
+## 当前实现状态（主干）
+
+### 已落地
+
+- 启动装配链路已扩展为 Core → Engine → ECS → Services，ECS 服务默认接入框架。
+- ECS 已具备核心能力：World、SparseSet 存储、Query、CommandBuffer、Scheduler、Snapshot、Save 适配。
+- ThreadingService 已提供后台任务提交与主线程回收（优先级、取消、超时、重试、回调）。
+- SceneHost 已固定为可视化场景宿主（WorldMount + Camera + CanvasLayer 多层 UI）。
+
+### 尚未完整
+
+- Runtime 的 Remote/Hybrid 策略仍为预留，当前可用路径以 Local 为主。
+- Network 层目前是抽象基类 + Mock 客户端，尚无真实 HTTP/WebSocket 客户端实现。
+- DataAccess 层以 Repository 接口为主，缺少完整的生产级 Provider 闭环实现。
 
 ## 在其他项目中使用
 
@@ -79,10 +96,12 @@ git pull origin main
 
 详见 [`docs/architecture.md`](docs/architecture.md) — 包含：
 - 整体分层与装配流程
+- ECS 装配与调度桥接
 - 自动注入体系（UIPanel.ctx / WorldRoot.ctx）
 - 存档系统（ISaveable 自注册 + 多态序列化）
 - 寻路算法框架（IPathGraph + ITraversal + IHeuristic 三层拆分）
 - 输入系统（InputContext 栈）
+- 线程任务系统（ThreadingService + JobHandle/Token）
 - UI 面板生命周期
 - 配置系统优先级
 - 关键设计原则

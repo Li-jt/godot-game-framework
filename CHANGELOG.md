@@ -1,5 +1,31 @@
 # Changelog
 
+## [Unreleased] — 2026-05-29
+
+### 新增
+
+- **ECS**: 新增完整 ECS 基础设施（EcsWorld、SparseSet Storage、Query、CommandBuffer、SystemGroup、Scheduler、Snapshot、SaveAdapter）
+- **Application**: 新增 `EcsInstaller`，启动装配链路扩展为 Core → Engine → ECS → Services
+- **Threading**: 新增 `ThreadingService` 与任务类型体系（Handle/Token/Options/Summary/Callbacks）
+- **Runtime**: 新增框架级 `CommandBus` 最小实现，支持命令处理器注册与执行转发
+- **Engine**: 新增 `NodePool` 通用节点对象池
+- **Docs**: 新增架构文档与模块成熟度评审文档
+
+### 变更
+
+- **ECS**: `EcsScheduler` 直接注册到 Framework `Scheduler`，移除中间桥接对象以避免 GC 回收风险
+- **Engine/SceneHost**: 场景宿主改为从 `.tscn` 实例化；世界挂载点命名从 `WorldRoot` 调整为 `WorldMount`；UI 与相机层级进一步解耦
+- **Engine/Algorithm**: Pathfinder 升级为接口化三层拆分（`IPathGraph` / `ITraversal` / `IHeuristic`），支持按请求注入通行规则
+- **Save**: `SaveService` API 调整（`load_slot` / `delete_slot`），避免与 Godot 内置函数命名冲突
+- **UI/Input**: 新增 UI 输入阻挡闸门，强化面板与世界输入边界
+
+### 修复
+
+- **ECS**: 修复 `EcsScheduler` 节流系统使用时间参数错误（改为传入实际 elapsed）
+- **ECS**: 修复 QueryRow 内嵌类导致的语法与外部引用问题，提取为独立类型
+- **ECS**: 补全接口继承、命名统一、类型标注与空安全处理
+- **Threading**: `slow_job_warn` 默认阈值由 120ms 调整为 350ms，并支持按任务覆写
+
 ## [0.1.0] — 2026-05-19
 
 ### 新增
