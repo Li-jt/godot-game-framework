@@ -42,7 +42,7 @@ func save_prediction_snapshot(p_world: EcsWorld) -> void:
 func rollback_prediction(p_world: EcsWorld) -> OperationResult:
 	if _prediction_stack.is_empty():
 		return OperationResult.fail(OperationResult.ERR_PRECONDITION, "无可用预测快照", "EcsRuntimeBridge")
-	var snapshot := _prediction_stack.pop_back()
+	var snapshot: Variant = _prediction_stack.pop_back()
 	return _snapshot_applier.apply(p_world, snapshot)
 
 

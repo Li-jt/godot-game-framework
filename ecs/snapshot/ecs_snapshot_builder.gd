@@ -6,29 +6,29 @@ extends RefCounted
 
 ## 从指定世界构建快照。
 func build(p_world: EcsWorld) -> EcsWorldSnapshot:
-	var snapshot := EcsWorldSnapshot.new()
+	var snapshot: EcsWorldSnapshot = EcsWorldSnapshot.new()
 	snapshot.version = p_world.get_version()
 	snapshot.timestamp = Time.get_unix_time_from_system()
 
 	# 组件类型注册表快照
-	var registry := p_world._get_registry()
+	var registry: EcsComponentTypeRegistry = p_world._get_registry()
 	for type_name in registry.all_types():
-		var tid := registry.type_id_of(type_name)
+		var tid: int = registry.type_id_of(type_name)
 		snapshot.component_registry[type_name] = {
 			"type_id": tid,
 			"version": registry.type_version(tid),
 		}
 
 	# 实体组件数据
-	var storage_index := p_world._get_storage_index()
+	var storage_index: EcsStorageIndex = p_world._get_storage_index()
 	for entity in p_world.all_entities():
 		var entity_data: Dictionary = {"entity": entity, "components": {}}
 		for type_id in storage_index.all_type_ids():
-			var storage := storage_index.get_storage(type_id)
+			var storage: IEcsStorage = storage_index.get_storage(type_id)
 			if storage == null or not storage.contains(entity):
 				continue
 			var type_name: StringName = registry.type_name_of(type_id)
-			var component := storage.get_data(entity)
+			var component: Variant = storage.get_data(entity)
 			if component != null and component.has_method("serialize"):
 				entity_data["components"][type_name] = component.serialize()
 			else:

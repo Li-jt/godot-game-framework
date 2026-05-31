@@ -14,7 +14,7 @@ func apply(p_world: EcsWorld, p_snapshot: EcsWorldSnapshot) -> OperationResult:
 	p_world.reset()
 
 	# 恢复组件类型注册
-	var registry := p_world._get_registry()
+	var registry: EcsComponentTypeRegistry = p_world._get_registry()
 	var registry_data: Dictionary = p_snapshot.component_registry
 	for type_name in registry_data.keys():
 		var info: Dictionary = registry_data[type_name]

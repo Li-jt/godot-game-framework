@@ -15,7 +15,7 @@ func get_storage(p_type_id: int) -> EcsSparseSetStorage:
 func get_or_create_storage(p_type_id: int) -> EcsSparseSetStorage:
 	if _storages.has(p_type_id):
 		return _storages[p_type_id]
-	var storage := EcsSparseSetStorage.new()
+	var storage: EcsSparseSetStorage = EcsSparseSetStorage.new()
 	_storages[p_type_id] = storage
 	return storage
 

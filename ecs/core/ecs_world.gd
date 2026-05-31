@@ -22,7 +22,7 @@ func _init() -> void:
 
 
 func spawn() -> int:
-	var id := _next_entity_id
+	var id: int = _next_entity_id
 	_next_entity_id += 1
 	_entities[id] = true
 	_version += 1
@@ -34,7 +34,7 @@ func despawn(p_entity: int) -> bool:
 		return false
 	_entities.erase(p_entity)
 	for type_id in _storage_index.all_type_ids():
-		var storage := _storage_index.get_storage(type_id)
+		var storage: IEcsStorage = _storage_index.get_storage(type_id)
 		if storage != null and storage.contains(p_entity):
 			storage.erase(p_entity)
 	_version += 1
@@ -64,7 +64,7 @@ func entity_count() -> int:
 func add_component(p_entity: int, p_type: StringName, p_data: Variant) -> OperationResult:
 	if not _entities.has(p_entity):
 		return OperationResult.fail(OperationResult.ERR_NOT_FOUND, "实体不存在: %d" % p_entity, "EcsWorld")
-	var reg_result := _registry.register_type(p_type)
+	var reg_result: OperationResult = _registry.register_type(p_type)
 	if reg_result.is_fail():
 		return reg_result
 	var type_id: int = reg_result.data
@@ -79,7 +79,7 @@ func add_component(p_entity: int, p_type: StringName, p_data: Variant) -> Operat
 func set_component(p_entity: int, p_type: StringName, p_data: Variant) -> OperationResult:
 	if not _entities.has(p_entity):
 		return OperationResult.fail(OperationResult.ERR_NOT_FOUND, "实体不存在: %d" % p_entity, "EcsWorld")
-	var reg_result := _registry.register_type(p_type)
+	var reg_result: OperationResult = _registry.register_type(p_type)
 	if reg_result.is_fail():
 		return reg_result
 	var type_id: int = reg_result.data
@@ -92,7 +92,7 @@ func set_component(p_entity: int, p_type: StringName, p_data: Variant) -> Operat
 func get_component(p_entity: int, p_type: StringName) -> Variant:
 	if not _entities.has(p_entity):
 		return null
-	var type_id := _registry.type_id_of(p_type)
+	var type_id: int = _registry.type_id_of(p_type)
 	if type_id == 0:
 		return null
 	var storage := _storage_index.get_storage(type_id)
@@ -104,7 +104,7 @@ func get_component(p_entity: int, p_type: StringName) -> Variant:
 func remove_component(p_entity: int, p_type: StringName) -> void:
 	if not _entities.has(p_entity):
 		return
-	var type_id := _registry.type_id_of(p_type)
+	var type_id: int = _registry.type_id_of(p_type)
 	if type_id == 0:
 		return
 	var storage := _storage_index.get_storage(type_id)
@@ -117,7 +117,7 @@ func remove_component(p_entity: int, p_type: StringName) -> void:
 func has_component(p_entity: int, p_type: StringName) -> bool:
 	if not _entities.has(p_entity):
 		return false
-	var type_id := _registry.type_id_of(p_type)
+	var type_id: int = _registry.type_id_of(p_type)
 	if type_id == 0:
 		return false
 	var storage := _storage_index.get_storage(type_id)

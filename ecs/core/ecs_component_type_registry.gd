@@ -14,7 +14,7 @@ var _next_id: int = 1
 func register_type(p_type: StringName, p_version: int = 1) -> OperationResult:
 	if _type_to_id.has(p_type):
 		return OperationResult.ok(_type_to_id[p_type])
-	var tid := _next_id
+	var tid: int = _next_id
 	_next_id += 1
 	_type_to_id[p_type] = tid
 	_id_to_type[tid] = p_type

@@ -10,7 +10,7 @@ var _spawned_temps: Array[int] = []  # 本缓冲中已 spawn 的临时 ID
 
 
 func spawn() -> int:
-	var temp_id := _temp_counter
+	var temp_id: int = _temp_counter
 	_temp_counter -= 1
 	_spawned_temps.append(temp_id)
 	_commands.append(EcsCommand.new(EcsCommand.SPAWN, temp_id))
@@ -36,7 +36,7 @@ func despawn(p_entity: int) -> void:
 ## 预校验 + 应用全部命令。预校验失败时不执行任何操作。
 func apply_to(p_world: EcsWorld) -> OperationResult:
 	# P2-4 + P2-3: 先预校验全部命令
-	var validate_result := _validate_all()
+	var validate_result: OperationResult = _validate_all()
 	if validate_result.is_fail():
 		_commands.clear()
 		_spawned_temps.clear()
@@ -47,7 +47,7 @@ func apply_to(p_world: EcsWorld) -> OperationResult:
 	for cmd in _commands:
 		match cmd.type:
 			EcsCommand.SPAWN:
-				var real_id := p_world.spawn()
+				var real_id: int = p_world.spawn()
 				temp_to_real[cmd.entity] = real_id
 
 			EcsCommand.DESPAWN:

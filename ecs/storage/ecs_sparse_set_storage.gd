@@ -18,7 +18,7 @@ func insert(p_entity: int, p_data: Variant) -> void:
 		var idx: int = _sparse[p_entity]
 		_dense[idx] = p_data
 		return
-	var idx := _dense.size()
+	var idx: int = _dense.size()
 	_sparse[p_entity] = idx
 	_dense.append(p_data)
 	_entities.append(p_entity)
@@ -31,7 +31,7 @@ func erase(p_entity: int) -> void:
 	var idx: int = _sparse[p_entity]
 	_sparse.erase(p_entity)
 	# swap-remove：用末尾元素填充删除位置，保持 dense 紧凑
-	var last_idx := _dense.size() - 1
+	var last_idx: int = _dense.size() - 1
 	if idx != last_idx:
 		var last_entity: int = _entities[last_idx]
 		_dense[idx] = _dense[last_idx]

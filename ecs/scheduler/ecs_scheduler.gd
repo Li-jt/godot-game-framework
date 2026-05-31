@@ -72,9 +72,9 @@ func tick(p_delta: float) -> void:
 		if group.system_count() == 0:
 			continue
 
-		var ecb := _ecb_pool.acquire()
+		var ecb: EcsCommandBuffer = _ecb_pool.acquire()
 		group.tick(_world, ecb, p_delta)
-		var apply_result := ecb.apply_to(_world)
+		var apply_result: OperationResult = ecb.apply_to(_world)
 		_ecb_pool.release(ecb)
 
 		if apply_result.is_fail():
