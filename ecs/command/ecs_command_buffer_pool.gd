@@ -10,7 +10,7 @@ var _pool: Array[EcsCommandBuffer] = []
 func acquire() -> EcsCommandBuffer:
 	if _pool.is_empty():
 		return EcsCommandBuffer.new()
-	var buf := _pool.pop_back()
+	var buf: EcsCommandBuffer = _pool.pop_back() as EcsCommandBuffer
 	buf.clear()
 	return buf
 
