@@ -52,27 +52,13 @@ func get_vector(p_negative_x: String, p_positive_x: String, p_negative_y: String
 # ============================================================
 
 ## 读取指定逻辑动作对应的组合轴值。
-## 会聚合所有 input_map_actions 的 get_action_strength 和鼠标滚轮增量。
-## 返回值范围通常为 -1.0 ~ 1.0（滚轮根据 factor 缩放）。
+## 聚合所有 input_map_actions 的 get_action_strength。
+## 键盘返回 0/1（按下时），手柄返回 -1~1，鼠标滚轮每 tick 返回正负 delta。
 func read_axis(p_input_map_actions: Array[String], p_sensitivity: float = 1.0, p_deadzone: float = 0.1) -> float:
 	if blocked: return 0.0
 	var total: float = 0.0
 	for action_name in p_input_map_actions:
-		var name := str(action_name)
-		# Godot InputMap 动作：读 strength
-		total += Input.get_action_strength(name)
-		# 鼠标滚轮：通过 is_action_just_pressed 获取增量
-		if Input.is_action_just_pressed(name):
-			# 判断正负方向
-			var ev_list := InputMap.action_get_events(StringName(name))
-			for ev in ev_list:
-				if ev is InputEventMouseButton:
-					var mb := ev as InputEventMouseButton
-					match mb.button_index:
-						MOUSE_BUTTON_WHEEL_UP:
-							total += absf(mb.factor) if mb.factor != 0.0 else 1.0
-						MOUSE_BUTTON_WHEEL_DOWN:
-							total -= absf(mb.factor) if mb.factor != 0.0 else 1.0
+		total += Input.get_action_strength(str(action_name))
 	total *= p_sensitivity
 	if absf(total) < p_deadzone: return 0.0
 	return clampf(total, -1.0, 1.0)
