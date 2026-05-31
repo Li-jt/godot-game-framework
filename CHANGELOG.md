@@ -1,30 +1,24 @@
 # Changelog
 
-## [Unreleased] — 2026-05-29
+## [0.2.0] — 2026-05-31
 
 ### 新增
 
-- **ECS**: 新增完整 ECS 基础设施（EcsWorld、SparseSet Storage、Query、CommandBuffer、SystemGroup、Scheduler、Snapshot、SaveAdapter）
-- **Application**: 新增 `EcsInstaller`，启动装配链路扩展为 Core → Engine → ECS → Services
-- **Threading**: 新增 `ThreadingService` 与任务类型体系（Handle/Token/Options/Summary/Callbacks）
-- **Runtime**: 新增框架级 `CommandBus` 最小实现，支持命令处理器注册与执行转发
-- **Engine**: 新增 `NodePool` 通用节点对象池
-- **Docs**: 新增架构文档与模块成熟度评审文档
+- **InputService v2.0**: 新增 `register_action_def()` 支持完整动作定义（二进制/轴类型），新增 `read_axis()` 统一轴查询（聚合键盘/鼠标滚轮/手柄），`_game_input_blocker` 扩展到所有查询方法
+- **InputActionDef**: 输入动作定义类，描述动作类型（BINARY/AXIS）、InputMap 绑定列表、灵敏度和死区
+- **InputAdapter v2.0**: 新增 `read_axis()` 方法，聚合 InputMap action strength + 鼠标滚轮增量，支持手柄摇杆/扳机
 
 ### 变更
 
-- **ECS**: `EcsScheduler` 直接注册到 Framework `Scheduler`，移除中间桥接对象以避免 GC 回收风险
-- **Engine/SceneHost**: 场景宿主改为从 `.tscn` 实例化；世界挂载点命名从 `WorldRoot` 调整为 `WorldMount`；UI 与相机层级进一步解耦
-- **Engine/Algorithm**: Pathfinder 升级为接口化三层拆分（`IPathGraph` / `ITraversal` / `IHeuristic`），支持按请求注入通行规则
-- **Save**: `SaveService` API 调整（`load_slot` / `delete_slot`），避免与 Godot 内置函数命名冲突
-- **UI/Input**: 新增 UI 输入阻挡闸门，强化面板与世界输入边界
+- `InputService.is_pressed/is_just_pressed/is_just_released` 统一走 `_can_pass()` 过滤（上下文 + 动态阻挡器），修复 dynamic blocker 仅对键盘生效的问题
+- `InputAdapter.read_axis` 通过 `InputMap.action_get_events` 自动检测滚轮方向，无需手动注册正负方向
 
-### 修复
+### 原则
 
-- **ECS**: 修复 `EcsScheduler` 节流系统使用时间参数错误（改为传入实际 elapsed）
-- **ECS**: 修复 QueryRow 内嵌类导致的语法与外部引用问题，提取为独立类型
-- **ECS**: 补全接口继承、命名统一、类型标注与空安全处理
-- **Threading**: `slow_job_warn` 默认阈值由 120ms 调整为 350ms，并支持按任务覆写
+- 所有游戏输入必须通过 `InputService` 查询，禁止直接使用 Godot `Input` 单例或 `_input/_unhandled_input` 回调
+- 新增输入设备（手柄、触摸屏）只需修改 InputMap 绑定，不改业务代码
+
+---
 
 ## [0.1.0] — 2026-05-19
 
