@@ -1,122 +1,75 @@
-## InputActionState — 单个动作的运行时状态（v3.0）。
-## ActionResolver 每帧更新，InputService 对外暴露读取。
-## 生命周期：end_frame() 被调用 → 合成值 → 清零脉冲供下帧。
+## InputActionState — 单个动作的运行时状态（v4.0）。
+## 仅维护值与标记，不做跨动作调度。由 ActionResolver 驱动。
 class_name InputActionState
 extends RefCounted
 
-var _def: InputActionDef
-
-## 本帧 IMPULSE 绑定累加脉冲值
-var _impulse_value: float = 0.0
-## 本帧 HELD 绑定当前值（每帧 poll_held 覆盖）
-var _held_value: float = 0.0
-## 本帧 ANALOG 绑定原始值
-var _analog_value: float = 0.0
-
-## 二进制按下状态
-var _pressed: bool = false
-## 本帧是否刚按下
-var _just_pressed: bool = false
-## 本帧是否刚释放
-var _just_released: bool = false
-
-## 最终输出值（未经平滑）
+## 最终输出值
 var value: float = 0.0
-## 平滑后的输出值
 var smoothed_value: float = 0.0
+var pressed: bool = false
+var just_pressed: bool = false
+var just_released: bool = false
+
+var _impulse_acc: float = 0.0
+var _held_acc: float = 0.0
+var _analog_acc: float = 0.0
+var _was_pressed: bool = false
+var _had_input_this_frame: bool = false
 
 
-func _init(p_def: InputActionDef) -> void:
-	_def = p_def
-
-
-## 处理匹配到的原始事件（由 ActionResolver.process_event 调用）。
-func apply_event(p_event: InputEvent, p_binding: InputBinding) -> void:
-	match p_binding.mode:
-		InputBinding.Mode.IMPULSE:
-			if p_binding.is_press_event(p_event):
-				_impulse_value += p_binding.scale
-				_just_pressed = true
-				_pressed = true
-		InputBinding.Mode.HELD:
-			pass  # HELD 由 poll_held() 每帧轮询，不在这里处理
-		InputBinding.Mode.ANALOG:
-			_analog_value = p_binding.extract_analog(p_event) * p_binding.scale
-
-
-## 在新帧开始处理事件前调用，清零上一帧的脉冲值和释放标记。
-## 没有 HELD 绑定的动作同时清零 _pressed（上帧 IMPULSE 已过期）。
 func begin_frame() -> void:
-	_impulse_value = 0.0
-	_analog_value = 0.0
-	_just_pressed = false
-	_just_released = false
-	if not _has_held_binding():
-		_pressed = false
+	_impulse_acc = 0.0
+	_analog_acc = 0.0
+	_was_pressed = pressed
+	_had_input_this_frame = false
 
 
-## 每帧结束时调用：轮询 HELD → 合成 → 死区/灵敏度/平滑。
-func end_frame(p_delta: float) -> void:
-	# 1. 轮询 HELD 绑定
-	_poll_held()
+func accumulate_impulse(p_value: float) -> void:
+	_impulse_acc += p_value
+	_had_input_this_frame = true
 
-	# 2. 合成原始值
-	var raw: float = 0.0
-	match _def.compose_mode:
+
+func accumulate_held(p_value: float) -> void:
+	_held_acc = p_value
+	_had_input_this_frame = true
+
+
+func accumulate_analog(p_value: float) -> void:
+	_analog_acc = p_value
+	_had_input_this_frame = true
+
+
+func finalize(p_def: InputActionDef, p_delta: float) -> void:
+	# 1. compose
+	var raw: float
+	match p_def.compose_mode:
 		InputActionDef.ComposeMode.SUM:
-			raw = _impulse_value + _held_value + _analog_value
+			raw = _impulse_acc + _held_acc + _analog_acc
 		InputActionDef.ComposeMode.MAX:
-			raw = maxf(maxf(_impulse_value, _held_value), _analog_value)
+			raw = maxf(maxf(_impulse_acc, _held_acc), _analog_acc)
 		InputActionDef.ComposeMode.AVERAGE:
 			var count := 0
-			if absf(_held_value) > 0.0: count += 1
-			if absf(_analog_value) > 0.0: count += 1
-			var divisor: float = maxf(1.0, float(count))
-			raw = (_impulse_value + _held_value + _analog_value) / divisor
+			if absf(_held_acc) > 0.0: count += 1
+			if absf(_analog_acc) > 0.0: count += 1
+			raw = (_impulse_acc + _held_acc + _analog_acc) / maxf(1.0, float(count))
+		_:
+			raw = _impulse_acc + _held_acc + _analog_acc
 
-	# 3. 死区
-	if absf(raw) < _def.deadzone:
+	# 2. deadzone
+	if absf(raw) < p_def.deadzone:
 		raw = 0.0
 
-	# 4. 灵敏度
-	value = raw * _def.sensitivity
+	# 3. sensitivity
+	value = raw * p_def.sensitivity
 
-	# 5. 平滑（指数移动平均）
-	if _def.smoothing > 0.0:
-		var t: float = clampf(_def.smoothing * p_delta * 60.0, 0.0, 1.0)
+	# 4. smoothing
+	if p_def.smoothing > 0.0:
+		var t: float = clampf(p_def.smoothing * p_delta * 60.0, 0.0, 1.0)
 		smoothed_value = lerpf(smoothed_value, value, t)
 	else:
 		smoothed_value = value
 
-	# 6. _pressed 延迟清零（IMPULSE 动作确保 is_pressed 在整帧有效）
-	# 下一帧 begin_frame 会通过 _poll_held/apply_event 重新设置 _pressed
-
-
-## 每帧轮询所有 HELD 绑定的当前状态。
-## 如果该动作没有 HELD 绑定，不修改 _pressed，保留 IMPULSE 或 ANALOG 设置的值。
-func _poll_held() -> void:
-	if not _has_held_binding():
-		return
-	var was_pressed := _pressed
-	var held: float = 0.0
-	for binding in _def.bindings:
-		if binding.mode != InputBinding.Mode.HELD:
-			continue
-		if binding.is_down():
-			held = maxf(absf(held), absf(binding.scale))
-			if binding.scale < 0.0:
-				held = -held
-			break  # 取第一个按住的 HELD 绑定
-	_held_value = held
-	_pressed = held != 0.0
-	if _pressed and not was_pressed:
-		_just_pressed = true
-	if not _pressed and was_pressed:
-		_just_released = true
-
-
-func _has_held_binding() -> bool:
-	for binding in _def.bindings:
-		if binding.mode == InputBinding.Mode.HELD:
-			return true
-	return false
+	# 5. pressed / just flags
+	pressed = absf(value) > 0.0001
+	just_pressed = pressed and not _was_pressed and _had_input_this_frame
+	just_released = not pressed and _was_pressed

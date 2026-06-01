@@ -1,52 +1,46 @@
-## InputBinding — 单条设备绑定。
-## 描述一种物理输入如何映射到动作值。每种设备源类型有各自的匹配逻辑和取值方式。
+## InputBinding — 单条设备绑定（v4.0）。
+## 描述一种物理输入如何映射到动作值。
 class_name InputBinding
 extends RefCounted
 
-## 设备源类型
 enum Source {
-	KEYBOARD,        ## InputEventKey → keycode
-	MOUSE_BUTTON,    ## InputEventMouseButton（非滚轮按钮）
-	MOUSE_WHEEL,     ## InputEventMouseButton（滚轮上/下）
-	GAMEPAD_BUTTON,  ## InputEventJoypadButton → button_index
-	GAMEPAD_AXIS,    ## InputEventJoypadMotion → axis + axis_value
-	TOUCH_PAN,       ## InputEventPanGesture → delta.y
-	TOUCH_MAGNIFY,   ## InputEventMagnifyGesture → factor
+	KEYBOARD, MOUSE_BUTTON, MOUSE_WHEEL,
+	GAMEPAD_BUTTON, GAMEPAD_AXIS,
+	TOUCH_PAN, TOUCH_MAGNIFY,
 }
+enum Mode { IMPULSE, HELD, ANALOG }
+enum Slot { PRIMARY, SECONDARY }
 
-## 输出模式
-enum Mode {
-	IMPULSE,  ## 事件触发时产出一个脉冲值，下一帧自动归零（滚轮每格、按钮点击）
-	HELD,     ## 按住时每帧轮询当前状态（键盘按键、鼠标拖拽）
-	ANALOG,   ## 映射原始模拟量到输出范围（手柄摇杆/扳机、触控手势）
-}
-
-## 设备源类型
 var source: int = Source.KEYBOARD
-## 设备码。含义取决于 source：keycode / button_index / joy_axis
 var code: int = 0
-## 输出缩放。如 KEY_E 设为 -1.0 实现反方向
 var scale: float = 1.0
-## 输出模式
 var mode: int = Mode.HELD
-## 是否为负半轴（仅 GAMEPAD_AXIS 模式，区分正负方向）
 var negative_axis: bool = false
+var device_id: int = -1
+var slot: int = Slot.PRIMARY
+var priority: int = 0
 
 
-func _init(p_source: int, p_code: int = 0, p_scale: float = 1.0, p_mode: int = Mode.HELD, p_negative: bool = false) -> void:
-	source = p_source
-	code = p_code
-	scale = p_scale
-	mode = p_mode
-	negative_axis = p_negative
+func _init(p_source: int, p_code: int = 0, p_scale: float = 1.0, p_mode: int = Mode.HELD,
+	p_negative: bool = false, p_slot: int = Slot.PRIMARY, p_device: int = -1) -> void:
+	source = p_source; code = p_code; scale = p_scale; mode = p_mode
+	negative_axis = p_negative; slot = p_slot; device_id = p_device
 
 
-## 判断给定原始事件是否匹配此绑定。
+## 匹配 RawSignal（v4.0 新主接口）。
+func matches_signal(p_signal: InputRawSignal) -> bool:
+	if source != p_signal.source or code != p_signal.code:
+		return false
+	if device_id != -1 and p_signal.device_id != -1 and device_id != p_signal.device_id:
+		return false
+	return true
+
+
+## 匹配 Godot InputEvent（向后兼容）。
 func matches(p_event: InputEvent) -> bool:
 	match source:
 		Source.KEYBOARD:
-			if p_event is InputEventKey:
-				return (p_event as InputEventKey).keycode == code
+			return p_event is InputEventKey and (p_event as InputEventKey).keycode == code
 		Source.MOUSE_BUTTON:
 			if p_event is InputEventMouseButton:
 				var mb := p_event as InputEventMouseButton
@@ -54,14 +48,11 @@ func matches(p_event: InputEvent) -> bool:
 					return false
 				return mb.button_index == code
 		Source.MOUSE_WHEEL:
-			if p_event is InputEventMouseButton:
-				return (p_event as InputEventMouseButton).button_index == code
+			return p_event is InputEventMouseButton and (p_event as InputEventMouseButton).button_index == code
 		Source.GAMEPAD_BUTTON:
-			if p_event is InputEventJoypadButton:
-				return (p_event as InputEventJoypadButton).button_index == code
+			return p_event is InputEventJoypadButton and (p_event as InputEventJoypadButton).button_index == code
 		Source.GAMEPAD_AXIS:
-			if p_event is InputEventJoypadMotion:
-				return (p_event as InputEventJoypadMotion).axis == code
+			return p_event is InputEventJoypadMotion and (p_event as InputEventJoypadMotion).axis == code
 		Source.TOUCH_PAN:
 			return p_event is InputEventPanGesture
 		Source.TOUCH_MAGNIFY:
@@ -69,48 +60,57 @@ func matches(p_event: InputEvent) -> bool:
 	return false
 
 
-## 从原始事件中提取模拟量值（ANALOG 模式用）。
 func extract_analog(p_event: InputEvent) -> float:
 	match source:
 		Source.GAMEPAD_AXIS:
 			var jm := p_event as InputEventJoypadMotion
-			if jm == null: return 0.0
-			return -jm.axis_value if negative_axis else jm.axis_value
+			return (-jm.axis_value if negative_axis else jm.axis_value) if jm != null else 0.0
 		Source.TOUCH_PAN:
 			var pan := p_event as InputEventPanGesture
-			if pan == null: return 0.0
-			return pan.delta.y
+			return pan.delta.y if pan != null else 0.0
 		Source.TOUCH_MAGNIFY:
 			var mg := p_event as InputEventMagnifyGesture
-			if mg == null: return 0.0
-			return mg.factor - 1.0
+			return (mg.factor - 1.0) if mg != null else 0.0
 	return 0.0
 
 
-## 检查事件是否为"按下"动作（IMPULSE 模式用）。
 func is_press_event(p_event: InputEvent) -> bool:
 	match source:
 		Source.KEYBOARD:
-			if p_event is InputEventKey:
-				return (p_event as InputEventKey).pressed
+			return p_event is InputEventKey and (p_event as InputEventKey).pressed
 		Source.MOUSE_BUTTON:
-			if p_event is InputEventMouseButton:
-				return (p_event as InputEventMouseButton).pressed
+			return p_event is InputEventMouseButton and (p_event as InputEventMouseButton).pressed
 		Source.MOUSE_WHEEL:
-			return true  # 滚轮事件 pressed 恒为 false，但应始终触发
+			return true
 		Source.GAMEPAD_BUTTON:
-			if p_event is InputEventJoypadButton:
-				return (p_event as InputEventJoypadButton).pressed
+			return p_event is InputEventJoypadButton and (p_event as InputEventJoypadButton).pressed
 		Source.GAMEPAD_AXIS, Source.TOUCH_PAN, Source.TOUCH_MAGNIFY:
 			return true
 	return false
 
 
-## 检查 HELD 绑定当前是否按住（HELD 模式每帧轮询用）。
 func is_down() -> bool:
 	match source:
-		Source.KEYBOARD:
-			return Input.is_key_pressed(code)
-		Source.MOUSE_BUTTON:
-			return Input.is_mouse_button_pressed(code)
+		Source.KEYBOARD:      return Input.is_key_pressed(code)
+		Source.MOUSE_BUTTON:  return Input.is_mouse_button_pressed(code)
 	return false
+
+
+## 深拷贝。
+func duplicate_binding() -> InputBinding:
+	return InputBinding.new(source, code, scale, mode, negative_axis, slot, device_id)
+
+
+## 序列化（存档用）。
+func to_dict() -> Dictionary:
+	return {"source": source, "code": code, "scale": scale, "mode": mode,
+		"negative_axis": negative_axis, "device_id": device_id, "slot": slot}
+
+
+## 反序列化。
+static func from_dict(p_data: Dictionary) -> InputBinding:
+	return InputBinding.new(
+		p_data.get("source", 0), p_data.get("code", 0),
+		p_data.get("scale", 1.0), p_data.get("mode", Mode.HELD),
+		p_data.get("negative_axis", false), p_data.get("slot", Slot.PRIMARY),
+		p_data.get("device_id", -1))

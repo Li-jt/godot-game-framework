@@ -105,6 +105,10 @@ func open(p_name: String, p_data: Dictionary = {}) -> OperationResult:
 
 	panel.panel_name = p_name
 	panel.ctx = _panel_context
+	# v4.0: 注入输入阻挡配置到面板实例
+	panel._ui_block_mode = def.game_input_block_mode
+	panel._blocked_action_ids = def.blocked_action_ids.duplicate()
+	panel._allowed_action_ids = def.blocked_action_ids.filter(func(a): return a == "cancel")
 	_active_panels[p_name] = panel
 	panel.open(p_data)
 	_on_opened(p_name)
@@ -247,6 +251,22 @@ func is_open(p_name: String) -> bool:
 
 func get_panel(p_name: String) -> UIPanel:
 	return _active_panels.get(p_name, null) as UIPanel
+
+
+## v4.0：返回所有活跃面板列表（供 InputPolicy 查询）。
+func get_active_panels() -> Array[UIPanel]:
+	var result: Array[UIPanel] = []
+	for panel in _active_panels.values():
+		result.append(panel as UIPanel)
+	return result
+
+
+## v4.0：返回所有活跃面板名称。
+func get_active_panel_names() -> Array[String]:
+	var result: Array[String] = []
+	for name in _active_panels.keys():
+		result.append(str(name))
+	return result
 
 
 ## 当前是否有可见的模态面板
