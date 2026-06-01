@@ -108,21 +108,12 @@ func _on_hide() -> void:
 ## 返回此面板的输入阻挡模式（GAME_INPUT_BLOCK_*）。
 ## 默认从 UIPanelDef 读取，子类一般不需要覆写。
 func get_game_input_block_mode() -> int:
-	return 0  # GAME_INPUT_BLOCK_NONE
+	return _ui_block_mode
 
 
-## 返回此面板阻挡的动作 ID 列表。
 func get_blocked_action_ids() -> Array[String]:
-	return []
+	return _blocked_action_ids
 
 
-## 返回此面板始终放行的动作 ID 列表。
 func get_allowed_action_ids() -> Array[String]:
-	return []
-
-
-## 检查给定屏幕坐标是否在此面板的阻挡区域内。
-## 默认：面板可见时，整个面板 rect 阻挡。
-## 子类可覆写为局部区域（如仅工具栏区域）。
-func is_pointer_over_game_input_blocking_area(p_pos: Vector2) -> bool:
-	return visible and (self is Control) and get_global_rect().has_point(p_pos)
+	return _allowed_action_ids
