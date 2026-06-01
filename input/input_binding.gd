@@ -93,9 +93,11 @@ func is_press_event(p_event: InputEvent) -> bool:
 		Source.KEYBOARD:
 			if p_event is InputEventKey:
 				return (p_event as InputEventKey).pressed
-		Source.MOUSE_BUTTON, Source.MOUSE_WHEEL:
+		Source.MOUSE_BUTTON:
 			if p_event is InputEventMouseButton:
 				return (p_event as InputEventMouseButton).pressed
+		Source.MOUSE_WHEEL:
+			return true  # 滚轮事件 pressed 恒为 false，但应始终触发
 		Source.GAMEPAD_BUTTON:
 			if p_event is InputEventJoypadButton:
 				return (p_event as InputEventJoypadButton).pressed

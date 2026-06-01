@@ -37,6 +37,7 @@ func apply_event(p_event: InputEvent, p_binding: InputBinding) -> void:
 			if p_binding.is_press_event(p_event):
 				_impulse_value += p_binding.scale
 				_just_pressed = true
+				_pressed = true
 		InputBinding.Mode.HELD:
 			pass  # HELD 由 poll_held() 每帧轮询，不在这里处理
 		InputBinding.Mode.ANALOG:
