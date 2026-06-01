@@ -50,9 +50,9 @@ func normalize(p_event: InputEvent) -> Array[InputRawSignal]:
 
 	# 设置时间戳
 	var now := Time.get_ticks_msec()
-	for signal in result:
-		signal.timestamp_msec = now
-		signal.original_event = p_event
+	for sig in result:
+		sig.timestamp_msec = now
+		sig.original_event = p_event
 
 	return result
 

@@ -65,19 +65,19 @@ func begin_frame() -> void:
 
 
 func feed_event(p_event: InputEvent) -> void:
-	var signals: Array[InputRawSignal] = _normalizer.normalize(p_event)
+	var raw_sigs: Array[InputRawSignal] = _normalizer.normalize(p_event)
 	var pointer_pos := _normalizer.extract_pointer_position(p_event)
 	var now := _get_now()
 
-	for signal in signals:
-		signal.timestamp_msec = now
+	for sig in raw_sigs:
+		sig.timestamp_msec = now
 
 		# 找所有匹配 binding 的 action
 		for action_id in _defs.keys():
 			var def: InputActionDef = _defs[action_id]
 			var matched := false
 			for binding in def.bindings:
-				if binding.matches_signal(signal):
+				if binding.matches_signal(sig):
 					matched = true
 					break
 			if not matched:
@@ -93,21 +93,21 @@ func feed_event(p_event: InputEvent) -> void:
 
 			# 按 mode 写入 state
 			for binding in def.bindings:
-				if not binding.matches_signal(signal):
+				if not binding.matches_signal(sig):
 					continue
 				match binding.mode:
 					InputBinding.Mode.IMPULSE:
-						if signal.is_press:
+						if sig.is_press:
 							state.accumulate_impulse(binding.scale)
 					InputBinding.Mode.HELD:
 						pass  # poll_held 阶段处理
 					InputBinding.Mode.ANALOG:
-						state.accumulate_analog(signal.analog_value * binding.scale)
+						state.accumulate_analog(sig.analog_value * binding.scale)
 
 			# 手势候选
 			if _gesture != null and def.gesture_profile != null and def.gesture_profile.enable_click_gesture:
-				if signal.is_press and signal.source == InputBinding.Source.MOUSE_BUTTON:
-					var gesture_results: Array[Dictionary] = _gesture.on_click_candidate(def, signal, 0)
+				if sig.is_press and sig.source == InputBinding.Source.MOUSE_BUTTON:
+					var gesture_results: Array[Dictionary] = _gesture.on_click_candidate(def, sig, 0)
 					for gr in gesture_results:
 						_pending_impulses.append(gr)
 
