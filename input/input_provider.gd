@@ -5,8 +5,8 @@ class_name InputProvider
 extends Node
 
 var _resolver: ActionResolver = null
-## 缓存的鼠标位置（随 MouseMotion 事件更新）
 var _mouse_pos: Vector2 = Vector2.ZERO
+var _last_frame: int = -1
 
 
 func configure(p_resolver: ActionResolver) -> void:
@@ -21,6 +21,13 @@ func _ready() -> void:
 func _input(p_event: InputEvent) -> void:
 	if _resolver == null:
 		return
+
+	# 帧切换时清零各动作的脉冲状态
+	var current_frame := Engine.get_process_frames()
+	if current_frame != _last_frame:
+		_last_frame = current_frame
+		for state in _resolver._states.values():
+			state.begin_frame()
 
 	# 更新鼠标位置
 	if p_event is InputEventMouse:

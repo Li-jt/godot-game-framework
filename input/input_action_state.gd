@@ -44,8 +44,21 @@ func apply_event(p_event: InputEvent, p_binding: InputBinding) -> void:
 			_analog_value = p_binding.extract_analog(p_event) * p_binding.scale
 
 
-## 每帧结束时调用：轮询 HELD → 合成 → 死区/灵敏度/平滑 → 清零脉冲。
+## 在新帧开始处理事件前调用，清零上一帧的脉冲值和释放标记。
+## _pressed 不清零：由 _poll_held 每帧覆盖，或由 end_frame 延迟清零。
+func begin_frame() -> void:
+	_impulse_value = 0.0
+	_analog_value = 0.0
+	_just_pressed = false
+	_just_released = false
+
+
+## 每帧结束时调用：轮询 HELD → 合成 → 死区/灵敏度/平滑。
 func end_frame(p_delta: float) -> void:
+	# 0. 延迟清零上一帧的 _pressed（确保本帧 is_pressed 读取后才清）
+	if not _has_held_binding():
+		_pressed = false
+
 	# 1. 轮询 HELD 绑定
 	_poll_held()
 
@@ -77,11 +90,8 @@ func end_frame(p_delta: float) -> void:
 	else:
 		smoothed_value = value
 
-	# 6. 清零脉冲值和帧标记，供下帧累积
-	_impulse_value = 0.0
-	_analog_value = 0.0
-	_just_pressed = false
-	_just_released = false
+	# 6. _pressed 延迟清零（IMPULSE 动作确保 is_pressed 在整帧有效）
+	# 下一帧 begin_frame 会通过 _poll_held/apply_event 重新设置 _pressed
 
 
 ## 每帧轮询所有 HELD 绑定的当前状态。
