@@ -27,15 +27,27 @@ func _ready() -> void:
 		set_process(true)
 
 
-var _debug_count: int = 0
+var _debug_unhandled: int = 0
+var _debug_input: int = 0
+
+## 在 GUI 处理前接收事件（调试用）。
+func _input(p_event: InputEvent) -> void:
+	if _debug_input < 10:
+		_debug_input += 1
+		if p_event is InputEventKey:
+			print("[InputProvider] _input KEY: ", (p_event as InputEventKey).keycode)
+		elif p_event is InputEventMouseButton:
+			print("[InputProvider] _input MOUSE: ", (p_event as InputEventMouseButton).button_index)
+		else:
+			print("[InputProvider] _input: ", p_event.as_text())
 
 ## 收集所有未被 GUI 消费的原始输入事件。
 func _unhandled_input(p_event: InputEvent) -> void:
 	if _resolver != null:
 		_resolver.process_event(p_event)
-		if _debug_count < 5:
-			_debug_count += 1
-			print("[InputProvider] unhandled: ", p_event.as_text())
+	if _debug_unhandled < 10:
+		_debug_unhandled += 1
+		print("[InputProvider] unhandled: ", p_event.as_text())
 
 
 ## 每帧结束所有动作的合成计算。
