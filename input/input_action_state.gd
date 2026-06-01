@@ -85,7 +85,10 @@ func end_frame(p_delta: float) -> void:
 
 
 ## 每帧轮询所有 HELD 绑定的当前状态。
+## 如果该动作没有 HELD 绑定，不修改 _pressed，保留 IMPULSE 或 ANALOG 设置的值。
 func _poll_held() -> void:
+	if not _has_held_binding():
+		return
 	var was_pressed := _pressed
 	var held: float = 0.0
 	for binding in _def.bindings:
@@ -102,3 +105,10 @@ func _poll_held() -> void:
 		_just_pressed = true
 	if not _pressed and was_pressed:
 		_just_released = true
+
+
+func _has_held_binding() -> bool:
+	for binding in _def.bindings:
+		if binding.mode == InputBinding.Mode.HELD:
+			return true
+	return false
