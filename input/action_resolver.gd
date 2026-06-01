@@ -66,8 +66,8 @@ func begin_frame() -> void:
 
 func feed_event(p_event: InputEvent) -> void:
 	var raw_sigs: Array[InputRawSignal] = _normalizer.normalize(p_event)
-	var pointer_pos := _normalizer.extract_pointer_position(p_event)
-	var now := _get_now()
+	var pointer_pos: Vector2 = _normalizer.extract_pointer_position(p_event)
+	var now: int = _get_now()
 
 	for sig in raw_sigs:
 		sig.timestamp_msec = now
@@ -143,19 +143,19 @@ func end_frame(p_delta: float) -> void:
 # ============================================================
 
 func read_axis(p_action_id: String) -> float:
-	var state := _states.get(p_action_id, null)
+	var state: InputActionState = _states.get(p_action_id, null) as InputActionState
 	return state.smoothed_value if state != null else 0.0
 
 func is_pressed(p_action_id: String) -> bool:
-	var state := _states.get(p_action_id, null)
+	var state: InputActionState = _states.get(p_action_id, null) as InputActionState
 	return state.pressed if state != null else false
 
 func is_just_pressed(p_action_id: String) -> bool:
-	var state := _states.get(p_action_id, null)
+	var state: InputActionState = _states.get(p_action_id, null) as InputActionState
 	return state.just_pressed if state != null else false
 
 func is_just_released(p_action_id: String) -> bool:
-	var state := _states.get(p_action_id, null)
+	var state: InputActionState = _states.get(p_action_id, null) as InputActionState
 	return state.just_released if state != null else false
 
 

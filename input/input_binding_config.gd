@@ -16,7 +16,7 @@ func get_action_slots(p_action_id: String) -> Dictionary:
 
 
 func save_to_file(p_path: String) -> bool:
-	var result := ResourceSaver.save(self, p_path)
+	var result: int = ResourceSaver.save(self, p_path)
 	return result == OK
 
 
@@ -28,13 +28,13 @@ static func load_from_file(p_path: String) -> InputBindingConfig:
 
 ## 从动作定义创建默认配置。
 static func from_defs(p_defs: Dictionary) -> InputBindingConfig:
-	var config := InputBindingConfig.new()
+	var config: InputBindingConfig = InputBindingConfig.new()
 	for action_id in p_defs.keys():
 		var def: InputActionDef = p_defs[action_id]
-		var primary := {}
-		var secondary := {}
+		var primary: Dictionary = {}
+		var secondary: Dictionary = {}
 		for b in def.default_bindings:
-			var d := b.to_dict()
+			var d: Dictionary = b.to_dict()
 			if b.slot == InputBinding.Slot.PRIMARY:
 				primary = d
 			else:

@@ -24,7 +24,7 @@ func _input(p_event: InputEvent) -> void:
 	if _resolver == null or not _enabled:
 		return
 
-	var frame := Engine.get_process_frames()
+	var frame: int = Engine.get_process_frames()
 	if frame != _last_frame:
 		_last_frame = frame
 		_resolver.begin_frame()

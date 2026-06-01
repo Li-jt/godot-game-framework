@@ -76,13 +76,13 @@ func is_just_released(p_action_id: String) -> bool:
 # ============================================================
 
 func push_context(p_ctx: InputContext) -> void:
-	var stack := _policy.get_context_stack()
+	var stack: Array[InputContext] = _policy.get_context_stack()
 	if stack.size() > 0 and stack.back().priority == p_ctx.priority:
 		stack.pop_back()
 	stack.append(p_ctx)
 
 func pop_context() -> void:
-	var stack := _policy.get_context_stack()
+	var stack: Array[InputContext] = _policy.get_context_stack()
 	if stack.size() > 0: stack.pop_back()
 
 func clear_contexts() -> void:
@@ -131,8 +131,8 @@ func set_move_keys(p_left: String, p_right: String, p_up: String, p_down: String
 	pass  # v4.0: move keys are registered as regular actions
 
 func get_move_vector() -> Vector2:
-	var x := read_axis("move_right") - read_axis("move_left")
-	var y := read_axis("move_down") - read_axis("move_up")
+	var x: float = read_axis("move_right") - read_axis("move_left")
+	var y: float = read_axis("move_down") - read_axis("move_up")
 	return Vector2(x, y)
 
 func mouse_position() -> Vector2:

@@ -58,12 +58,12 @@ func handle_event_for_rebind(p_event: InputEvent) -> bool:
 		return false
 
 	# 从事件创建 binding
-	var source := _event_to_source(p_event)
-	var code := _event_to_code(p_event)
-	var mode := InputBinding.Mode.IMPULSE
+	var source: int = _event_to_source(p_event)
+	var code: int = _event_to_code(p_event)
+	var mode: int = InputBinding.Mode.IMPULSE
 	if source == InputBinding.Source.KEYBOARD:
 		mode = InputBinding.Mode.HELD
-	var binding := InputBinding.new(source, code, 1.0, mode, false, _target_slot)
+	var binding: InputBinding = InputBinding.new(source, code, 1.0, mode, false, _target_slot)
 
 	# 应用
 	apply_binding(_target_action_id, _target_slot, binding)
@@ -73,7 +73,7 @@ func handle_event_for_rebind(p_event: InputEvent) -> bool:
 
 
 func can_bind_event_to_action(p_event: InputEvent, p_def: InputActionDef) -> bool:
-	var source := _event_to_source(p_event)
+	var source: int = _event_to_source(p_event)
 	match p_def.device_constraint:
 		InputActionDef.DeviceConstraint.KEYBOARD_ONLY:
 			return source == InputBinding.Source.KEYBOARD
@@ -87,10 +87,10 @@ func can_bind_event_to_action(p_event: InputEvent, p_def: InputActionDef) -> boo
 
 
 func apply_binding(p_action_id: String, p_slot: int, p_binding: InputBinding) -> bool:
-	var def := _resolver.get_def(p_action_id)
+	var def: InputActionDef = _resolver.get_def(p_action_id) as InputActionDef
 	if def == null: return false
 	# 移除同 slot 的旧绑定
-	var i := 0
+	var i: int = 0
 	while i < def.bindings.size():
 		if def.bindings[i].slot == p_slot:
 			def.bindings.remove_at(i)
@@ -101,7 +101,7 @@ func apply_binding(p_action_id: String, p_slot: int, p_binding: InputBinding) ->
 
 
 func reset_action_to_default(p_action_id: String) -> bool:
-	var def := _resolver.get_def(p_action_id)
+	var def: InputActionDef = _resolver.get_def(p_action_id) as InputActionDef
 	if def == null: return false
 	def.bindings.clear()
 	for b in def.default_bindings:
@@ -111,12 +111,12 @@ func reset_action_to_default(p_action_id: String) -> bool:
 
 
 func save(p_path: String = "user://input_bindings_v1.tres") -> bool:
-	var config := InputBindingConfig.from_defs(_resolver._defs)
+	var config: InputBindingConfig = InputBindingConfig.from_defs(_resolver._defs)
 	return config.save_to_file(p_path)
 
 
 func load(p_path: String = "user://input_bindings_v1.tres") -> bool:
-	var config := InputBindingConfig.load_from_file(p_path)
+	var config: InputBindingConfig = InputBindingConfig.load_from_file(p_path)
 	if config == null: return false
 	config.apply_to_defs(_resolver._defs)
 	return true
