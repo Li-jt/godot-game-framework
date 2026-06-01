@@ -27,10 +27,15 @@ func _ready() -> void:
 		set_process(true)
 
 
+var _debug_count: int = 0
+
 ## 收集所有未被 GUI 消费的原始输入事件。
 func _unhandled_input(p_event: InputEvent) -> void:
 	if _resolver != null:
 		_resolver.process_event(p_event)
+		if _debug_count < 5:
+			_debug_count += 1
+			print("[InputProvider] unhandled: ", p_event.as_text())
 
 
 ## 每帧结束所有动作的合成计算。
