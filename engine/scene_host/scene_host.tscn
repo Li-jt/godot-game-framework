@@ -15,6 +15,7 @@ zoom = Vector2(1.5, 1.5)
 layer = 100
 
 [node name="UIRoot" type="Control" parent="UiCanvas" unique_id=1759136672]
+mouse_filter = 2
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
