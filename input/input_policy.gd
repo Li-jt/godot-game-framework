@@ -83,7 +83,7 @@ func _ui_always_blocks(p_action_id: String) -> bool:
 	if _ui_service == null: return false
 	var panels: Array = _ui_service.get_active_panels()
 	for panel in panels:
-		var mode := panel.get_game_input_block_mode()
+		var mode: int = panel.get_game_input_block_mode()
 		if mode == 1:  # GAME_INPUT_BLOCK_ALWAYS
 			var blocked: Array[String] = panel.get_blocked_action_ids()
 			if blocked.has("*") or blocked.has(p_action_id):
@@ -94,7 +94,7 @@ func _ui_pointer_blocks(p_action_id: String, p_pos: Vector2) -> bool:
 	if _ui_service == null: return false
 	var panels: Array = _ui_service.get_active_panels()
 	for panel in panels:
-		var mode := panel.get_game_input_block_mode()
+		var mode: int = panel.get_game_input_block_mode()
 		if mode != 2: continue  # POINTER_ONLY
 		var blocked: Array[String] = panel.get_blocked_action_ids()
 		if not (blocked.has("*") or blocked.has(p_action_id)): continue
