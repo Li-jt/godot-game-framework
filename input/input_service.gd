@@ -119,7 +119,7 @@ func reset_action_to_default(p_action_id: String) -> bool:
 # 向后兼容
 # ============================================================
 
-func register_action(p_action_id: String, _p_input_map_action: String) -> void:
+func register_action(p_action_id: String, _p_input_map_action: String = "") -> void:
 	register_action_def(InputActionDef.new(p_action_id))
 
 func register_actions(p_entries: Array) -> void:
