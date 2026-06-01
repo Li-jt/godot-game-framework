@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.3.0] — 2026-06-01
+
+### 重构
+
+- **InputService v3.0**: 完全重写，底层引入 `InputProvider` (Node) + `ActionResolver` + `InputActionState` 事件驱动架构
+- **InputBinding**: 新增设备绑定类，支持 7 种设备源（键盘/鼠标按钮/滚轮/手柄按钮/手柄轴/触控板滑动/触控板捏合）+ 3 种输出模式（IMPULSE/HELD/ANALOG）
+- **InputActionDef v3.0**: 重写，支持链式 API（`.bind_key().bind_wheel().set_deadzone()`），新增 `ComposeMode`（SUM/MAX/AVERAGE）
+- **InputProvider**: 新增事件收集器 Node，`_unhandled_input` 统一收集原始事件。UI/游戏输入冲突由 Godot 引擎自动解决（GUI 消费后不触发 `_unhandled_input`）
+- **ActionResolver**: 新增动作解析器，匹配原始事件到绑定，管理所有动作状态
+- **InputActionState**: 新增运行时状态类，每帧合成 IMPULSE+HELD+ANALOG → 死区 → 灵敏度 → 平滑
+- **InputAdapter**: 功能被 InputProvider 替代，保留但不再使用
+
+### 移除
+
+- `InputService` 不再依赖 `InputAdapter.configure()`
+- `InputActionDef` 不再依赖 Godot InputMap 动作
+
+---
+
 ## [0.2.0] — 2026-05-31
 
 ### 新增
