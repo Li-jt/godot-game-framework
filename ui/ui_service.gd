@@ -82,6 +82,7 @@ func open(p_name: String, p_data: Dictionary = {}) -> OperationResult:
 	if _active_panels.has(p_name) and def.singleton:
 		var existing: UIPanel = _active_panels[p_name]
 		existing.reopen(p_data)
+		existing.set_input_block_config(def.game_input_block_mode, def.blocked_action_ids.duplicate(), def.blocked_action_ids.filter(func(a): return a == "cancel"))
 		_bring_to_front(p_name)
 		_recalculate_input_block()
 		return OperationResult.ok(existing)
