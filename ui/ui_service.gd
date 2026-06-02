@@ -106,6 +106,7 @@ func open(p_name: String, p_data: Dictionary = {}) -> OperationResult:
 	panel.panel_name = p_name
 	panel.ctx = _panel_context
 	# v4.0: 注入输入阻挡配置到面板实例
+	print("[UI] open panel=", p_name, " mode=", def.game_input_block_mode, " blocked=", def.blocked_action_ids)
 	panel.set_input_block_config(def.game_input_block_mode,
 		def.blocked_action_ids.duplicate(),
 		def.blocked_action_ids.filter(func(a): return a == "cancel"))
