@@ -356,6 +356,7 @@ func _prewarm_one(p_name: String) -> void:
 	if not is_instance_valid(self):
 		return
 
+	print("[UI] _prewarm_one ", p_name)
 	var def: UIPanelDef = _panel_defs[p_name]
 	var result = _scene_host.load_ui_panel(def.kind, def.path, {})
 	if result.is_fail(): return
