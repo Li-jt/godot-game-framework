@@ -36,6 +36,7 @@ func is_action_blocked(p_action_id: String, _p_event: InputEvent, p_pointer_pos:
 	# 4. 空间事件 + POINTER_ONLY 面板命中区域 + action 在 blocked 列表 -> 阻挡
 	if p_pointer_pos != Vector2.INF:
 		if _ui_pointer_blocks(p_action_id, p_pointer_pos):
+			print("[Policy] BLOCKED ", p_action_id, " at ", p_pointer_pos)
 			return true
 
 	return false

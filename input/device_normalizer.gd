@@ -39,14 +39,16 @@ func normalize(p_event: InputEvent) -> Array[InputRawSignal]:
 			jm.axis_value, Vector2.INF, -1))
 
 	elif p_event is InputEventPanGesture:
+		var pan := p_event as InputEventPanGesture
 		result.append(InputRawSignal.new(
 			InputBinding.Source.TOUCH_PAN, 0, true,
-			0.0, (p_event as InputEventPanGesture).position, -1))
+			pan.delta.y, pan.position, -1))
 
 	elif p_event is InputEventMagnifyGesture:
+		var mg := p_event as InputEventMagnifyGesture
 		result.append(InputRawSignal.new(
 			InputBinding.Source.TOUCH_MAGNIFY, 0, true,
-			0.0, Vector2.INF, -1))
+			mg.factor, Vector2.INF, -1))
 
 	# 设置时间戳
 	var now := Time.get_ticks_msec()
