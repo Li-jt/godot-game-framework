@@ -82,6 +82,7 @@ func open(p_name: String, p_data: Dictionary = {}) -> OperationResult:
 	if _active_panels.has(p_name) and def.singleton:
 		var existing: UIPanel = _active_panels[p_name]
 		existing.reopen(p_data)
+		existing.set_input_block_config(def.game_input_block_mode, def.blocked_action_ids.duplicate(), def.blocked_action_ids.filter(func(a): return a == "cancel"))
 		_bring_to_front(p_name)
 		_recalculate_input_block()
 		return OperationResult.ok(existing)
@@ -91,6 +92,7 @@ func open(p_name: String, p_data: Dictionary = {}) -> OperationResult:
 		_cache.erase(p_name)
 		_cache_order.erase(p_name)
 		_active_panels[p_name] = cached
+		cached.set_input_block_config(def.game_input_block_mode, def.blocked_action_ids.duplicate(), def.blocked_action_ids.filter(func(a): return a == "cancel"))
 		cached.reopen(p_data)
 		_on_opened(p_name)
 		return OperationResult.ok(cached)
@@ -105,6 +107,11 @@ func open(p_name: String, p_data: Dictionary = {}) -> OperationResult:
 
 	panel.panel_name = p_name
 	panel.ctx = _panel_context
+	# v4.0: 注入输入阻挡配置到面板实例
+	print("[UI] open panel=", p_name, " mode=", def.game_input_block_mode, " blocked=", def.blocked_action_ids)
+	panel.set_input_block_config(def.game_input_block_mode,
+		def.blocked_action_ids.duplicate(),
+		def.blocked_action_ids.filter(func(a): return a == "cancel"))
 	_active_panels[p_name] = panel
 	panel.open(p_data)
 	_on_opened(p_name)
@@ -249,6 +256,22 @@ func get_panel(p_name: String) -> UIPanel:
 	return _active_panels.get(p_name, null) as UIPanel
 
 
+## v4.0：返回所有活跃面板列表（供 InputPolicy 查询）。
+func get_active_panels() -> Array[UIPanel]:
+	var result: Array[UIPanel] = []
+	for panel in _active_panels.values():
+		result.append(panel as UIPanel)
+	return result
+
+
+## v4.0：返回所有活跃面板名称。
+func get_active_panel_names() -> Array[String]:
+	var result: Array[String] = []
+	for name in _active_panels.keys():
+		result.append(str(name))
+	return result
+
+
 ## 当前是否有可见的模态面板
 func has_modal_active() -> bool:
 	for name in _active_panels.keys():
@@ -334,6 +357,7 @@ func _prewarm_one(p_name: String) -> void:
 	if not is_instance_valid(self):
 		return
 
+	print("[UI] _prewarm_one ", p_name)
 	var def: UIPanelDef = _panel_defs[p_name]
 	var result = _scene_host.load_ui_panel(def.kind, def.path, {})
 	if result.is_fail(): return
@@ -343,6 +367,10 @@ func _prewarm_one(p_name: String) -> void:
 
 	panel.panel_name = p_name
 	panel.ctx = _panel_context
+	# v4.0: 注入输入阻挡配置
+	panel.set_input_block_config(def.game_input_block_mode,
+		def.blocked_action_ids.duplicate(),
+		def.blocked_action_ids.filter(func(a): return a == "cancel"))
 
 	if not def.preview_data.is_empty():
 		panel.open(def.preview_data)

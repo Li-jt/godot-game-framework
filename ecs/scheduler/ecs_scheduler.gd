@@ -8,6 +8,8 @@ extends IEcsScheduler
 const GROUP_INITIALIZATION: StringName = &"Initialization"
 const GROUP_SIMULATION: StringName = &"Simulation"
 const GROUP_PRESENTATION: StringName = &"Presentation"
+## 绑定到 Framework Scheduler 时使用较高优先级，保证 ECS 逻辑先于世界表现同步执行。
+const FRAMEWORK_BIND_PRIORITY: int = -100
 
 var _groups: Dictionary = {}  # StringName -> EcsSystemGroup
 var _group_order: Array[StringName] = []
@@ -113,7 +115,7 @@ func bind_to_framework_scheduler(p_scheduler: Scheduler) -> OperationResult:
 		Scheduler.TickGroup.SIMULATION,
 		"EcsScheduler",
 		_framework_tick,
-		0
+		FRAMEWORK_BIND_PRIORITY
 	)
 	return OperationResult.ok()
 
