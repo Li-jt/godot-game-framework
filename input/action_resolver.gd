@@ -172,12 +172,17 @@ func enqueue_impulse(p_action_id: String, p_value: float) -> void:
 # ============================================================
 
 func _poll_held_bindings() -> void:
+	var mouse_pos := DisplayServer.mouse_get_position()
 	for action_id in _defs.keys():
 		var def: InputActionDef = _defs[action_id]
 		var state: InputActionState = _states[action_id]
 		var held: float = 0.0
 		for binding in def.bindings:
 			if binding.mode != InputBinding.Mode.HELD: continue
+			# 空间型 HELD（鼠标按钮）：检查是否被 UI 阻挡
+			if binding.source in [InputBinding.Source.MOUSE_BUTTON]:
+				if _policy != null and _policy.is_action_blocked_raw(action_id, true, mouse_pos):
+					continue
 			if binding.is_down():
 				held += binding.scale
 		state.accumulate_held(held)
