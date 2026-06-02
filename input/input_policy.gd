@@ -20,7 +20,7 @@ func get_context_stack() -> Array[InputContext]:
 ## 判定指定动作是否被阻挡。
 ## p_event: 原始 Godot 事件
 ## p_pointer_pos: 指针位置（非空间事件为 Vector2.INF）
-func is_action_blocked(p_action_id: String, p_event: InputEvent, p_pointer_pos: Vector2) -> bool:
+func is_action_blocked(p_action_id: String, _p_event: InputEvent, p_pointer_pos: Vector2) -> bool:
 	# 1. Context allow 命中 -> 永不阻挡
 	if _context_allows(p_action_id):
 		return false
@@ -68,7 +68,7 @@ func get_block_reason(p_action_id: String, p_is_spatial: bool, p_pointer_pos: Ve
 
 func _context_allows(p_action_id: String) -> bool:
 	for ctx in _context_stack:
-		if ctx.allowed_action_ids.has(p_action_id):
+		if ctx.allowed_actions.has(p_action_id):
 			return true
 	return false
 
