@@ -91,6 +91,7 @@ func open(p_name: String, p_data: Dictionary = {}) -> OperationResult:
 		_cache.erase(p_name)
 		_cache_order.erase(p_name)
 		_active_panels[p_name] = cached
+		cached.set_input_block_config(def.game_input_block_mode, def.blocked_action_ids.duplicate(), def.blocked_action_ids.filter(func(a): return a == "cancel"))
 		cached.reopen(p_data)
 		_on_opened(p_name)
 		return OperationResult.ok(cached)
@@ -364,6 +365,10 @@ func _prewarm_one(p_name: String) -> void:
 
 	panel.panel_name = p_name
 	panel.ctx = _panel_context
+	# v4.0: 注入输入阻挡配置
+	panel.set_input_block_config(def.game_input_block_mode,
+		def.blocked_action_ids.duplicate(),
+		def.blocked_action_ids.filter(func(a): return a == "cancel"))
 
 	if not def.preview_data.is_empty():
 		panel.open(def.preview_data)
