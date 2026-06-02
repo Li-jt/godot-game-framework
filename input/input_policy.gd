@@ -103,7 +103,6 @@ func _ui_pointer_blocks(p_action_id: String, p_pos: Vector2) -> bool:
 		var blocked: Array = panel.get_blocked_action_ids()
 		if _dbg_once < 10: _dbg_once += 1; print("[Policy] panel ", panel.panel_name, " mode=", mode, " blocked=", blocked, " over=", panel.is_pointer_over_game_input_blocking_area(p_pos))
 		if mode != 2: continue  # POINTER_ONLY
-		var blocked: Array = panel.get_blocked_action_ids()
 		if not (blocked.has("*") or blocked.has(p_action_id)): continue
 		if panel.is_pointer_over_game_input_blocking_area(p_pos):
 			return true
