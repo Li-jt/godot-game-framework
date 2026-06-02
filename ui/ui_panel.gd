@@ -38,6 +38,12 @@ var _blocked_action_ids: Array[String] = []
 ## v4.0：始终放行的动作 ID 列表
 var _allowed_action_ids: Array[String] = []
 
+
+func set_input_block_config(p_mode: int, p_blocked: Array[String], p_allowed: Array[String]) -> void:
+	_ui_block_mode = p_mode
+	_blocked_action_ids = p_blocked.duplicate()
+	_allowed_action_ids = p_allowed.duplicate()
+
 ## GameServices 上下文。由 UIService 在面板实例化后自动注入。
 ## 子类在 _on_open / _on_reopen 中可直接使用。
 var ctx: UiContext = null
