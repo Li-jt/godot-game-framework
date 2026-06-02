@@ -34,12 +34,12 @@ var panel_name: String = ""
 ## v4.0：输入阻挡模式（由 UIService 从 UIPanelDef 注入）
 var _ui_block_mode: int = 0
 ## v4.0：阻挡的动作 ID 列表
-var _blocked_action_ids: Array[String] = []
+var _blocked_action_ids: Array = []
 ## v4.0：始终放行的动作 ID 列表
-var _allowed_action_ids: Array[String] = []
+var _allowed_action_ids: Array = []
 
 
-func set_input_block_config(p_mode: int, p_blocked: Array[String], p_allowed: Array[String]) -> void:
+func set_input_block_config(p_mode: int, p_blocked: Array, p_allowed: Array) -> void:
 	_ui_block_mode = p_mode
 	_blocked_action_ids = p_blocked.duplicate()
 	_allowed_action_ids = p_allowed.duplicate()
@@ -117,9 +117,9 @@ func get_game_input_block_mode() -> int:
 	return _ui_block_mode
 
 
-func get_blocked_action_ids() -> Array[String]:
+func get_blocked_action_ids() -> Array:
 	return _blocked_action_ids
 
 
-func get_allowed_action_ids() -> Array[String]:
+func get_allowed_action_ids() -> Array:
 	return _allowed_action_ids
