@@ -21,6 +21,7 @@ func _ready() -> void:
 
 ## 所有原始事件在此采集。UI 消费不影响 _input 触发。
 var _dbg: int = 0
+var _dbg_total: int = 0
 func _input(p_event: InputEvent) -> void:
 	if _resolver == null or not _enabled:
 		return
@@ -31,11 +32,11 @@ func _input(p_event: InputEvent) -> void:
 		_resolver.begin_frame()
 
 	_resolver.feed_event(p_event)
-	if _dbg < 20:
-		_dbg += 1
-		print("[Router] ", p_event.as_text())
-		if _dbg == 20:
-			print("[Router] (stopped logging after 20 events)")
+	if not (p_event is InputEventMouseMotion):
+		_dbg_total += 1
+		if _dbg < 30:
+			_dbg += 1
+			print("[Router] #", _dbg_total, " ", p_event.as_text())
 
 
 ## 每帧结算：poll → gesture → compose → finalize。
