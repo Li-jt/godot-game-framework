@@ -10,8 +10,6 @@ var _gesture: InputGestureEngine = null
 var _policy: InputPolicy = null
 var _pending_impulses: Array[Dictionary] = []
 var _now_msec_provider: Callable = Callable()
-## 最近一次空间事件的指针坐标（与 UI Rect 命中判定保持同坐标系）。
-var _last_pointer_pos: Vector2 = Vector2.INF
 
 
 func _init() -> void:
@@ -69,8 +67,6 @@ func begin_frame() -> void:
 func feed_event(p_event: InputEvent) -> void:
 	var raw_sigs: Array[InputRawSignal] = _normalizer.normalize(p_event)
 	var pointer_pos: Vector2 = _normalizer.extract_pointer_position(p_event)
-	if pointer_pos != Vector2.INF:
-		_last_pointer_pos = pointer_pos
 	var now: int = _get_now()
 
 	for sig in raw_sigs:
@@ -176,6 +172,7 @@ func enqueue_impulse(p_action_id: String, p_value: float) -> void:
 # ============================================================
 
 func _poll_held_bindings() -> void:
+	var mouse_pos := DisplayServer.mouse_get_position()
 	for action_id in _defs.keys():
 		var def: InputActionDef = _defs[action_id]
 		var state: InputActionState = _states[action_id]
@@ -184,7 +181,7 @@ func _poll_held_bindings() -> void:
 			if binding.mode != InputBinding.Mode.HELD: continue
 			# 空间型 HELD（鼠标按钮）：检查是否被 UI 阻挡
 			if binding.source in [InputBinding.Source.MOUSE_BUTTON]:
-				if _policy != null and _policy.is_action_blocked_raw(action_id, true, _last_pointer_pos):
+				if _policy != null and _policy.is_action_blocked_raw(action_id, true, mouse_pos):
 					continue
 			if binding.is_down():
 				held += binding.scale

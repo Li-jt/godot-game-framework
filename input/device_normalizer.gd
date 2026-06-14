@@ -20,11 +20,11 @@ func normalize(p_event: InputEvent) -> Array[InputRawSignal]:
 		if mb.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
 			result.append(InputRawSignal.new(
 				InputBinding.Source.MOUSE_WHEEL, mb.button_index, true,
-				float(mb.factor), mb.position, -1))
+				float(mb.factor), mb.global_position, -1))
 		else:
 			result.append(InputRawSignal.new(
 				InputBinding.Source.MOUSE_BUTTON, mb.button_index, mb.pressed,
-				0.0, mb.position, -1))
+				0.0, mb.global_position, -1))
 
 	elif p_event is InputEventJoypadButton:
 		var jb := p_event as InputEventJoypadButton
@@ -67,7 +67,7 @@ func is_pointer_event(p_event: InputEvent) -> bool:
 ## 从事件中提取指针位置。无位置时返回 Vector2.INF。
 func extract_pointer_position(p_event: InputEvent) -> Vector2:
 	if p_event is InputEventMouse:
-		return (p_event as InputEventMouse).position
+		return (p_event as InputEventMouse).global_position
 	if p_event is InputEventPanGesture:
 		return (p_event as InputEventPanGesture).position
 	return Vector2.INF
