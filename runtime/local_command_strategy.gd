@@ -4,7 +4,7 @@ class_name LocalCommandStrategy
 extends CommandStrategy
 
 var _handler: Callable
-var _command_bus = null
+var _command_bus: Variant = null
 
 
 ## p_handler: func(command, context: Dictionary) -> OperationResult

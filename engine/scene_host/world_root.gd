@@ -21,3 +21,8 @@ var ctx: GameServices = null
 ## SceneHost 注入 ctx 后调用。子类重写此方法做初始化。
 func _on_world_setup() -> void:
 	pass
+
+
+## 世界退出时调用。子类在此清理订阅、注销 tick、释放资源。
+func _on_world_exit() -> void:
+	pass

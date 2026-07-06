@@ -36,7 +36,7 @@ func _input(p_event: InputEvent) -> void:
 		_dbg_total += 1
 		if _dbg < 30:
 			_dbg += 1
-			print("[Router] #", _dbg_total, " ", p_event.as_text())
+			# DEBUG: print("[Router] #", _dbg_total, " ", p_event.as_text())
 
 
 ## 每帧结算：poll → gesture → compose → finalize。

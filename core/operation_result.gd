@@ -68,14 +68,14 @@ var success: bool = true
 var error: ErrorInfo = null
 
 ## 成功时附带的返回数据
-var data = null
+var data: Variant = null
 
 # ============================================================
 # 静态工厂方法
 # ============================================================
 
 ## 创建成功结果（默认 200），可选附带数据
-static func ok(p_data = null) -> OperationResult:
+static func ok(p_data: Variant = null) -> OperationResult:
 	var r := OperationResult.new()
 	r.status_code = OK
 	r.success = true
@@ -83,7 +83,7 @@ static func ok(p_data = null) -> OperationResult:
 	return r
 
 ## 创建成功结果，指定成功状态码
-static func created(p_data = null) -> OperationResult:
+static func created(p_data: Variant = null) -> OperationResult:
 	var r := OperationResult.new()
 	r.status_code = CREATED
 	r.success = true
@@ -114,7 +114,7 @@ func is_fail() -> bool:
 	return not success
 
 ## 追加错误上下文，返回自身以支持链式调用
-func with_context(p_key: String, p_value) -> OperationResult:
+func with_context(p_key: String, p_value: Variant) -> OperationResult:
 	if error != null:
 		error.context[p_key] = p_value
 	return self

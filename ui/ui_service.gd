@@ -80,21 +80,23 @@ func open(p_name: String, p_data: Dictionary = {}) -> OperationResult:
 		return OperationResult.fail(OperationResult.ERR_NOT_FOUND, "面板未注册: %s" % p_name, module_name)
 
 	if _active_panels.has(p_name) and def.singleton:
-		var existing: UIPanel = _active_panels[p_name]
-		existing.reopen(p_data)
+		var existing := _get_panel_safe(p_name)
+		if existing != null:
+			existing.reopen(p_data)
 		existing.set_input_block_config(def.game_input_block_mode, def.blocked_action_ids.duplicate(), def.blocked_action_ids.filter(func(a): return a == "cancel"))
 		_bring_to_front(p_name)
 		_recalculate_input_block()
 		return OperationResult.ok(existing)
 
 	if _cache.has(p_name):
-		var cached: UIPanel = _cache[p_name]
-		_cache.erase(p_name)
-		_cache_order.erase(p_name)
-		_active_panels[p_name] = cached
-		cached.set_input_block_config(def.game_input_block_mode, def.blocked_action_ids.duplicate(), def.blocked_action_ids.filter(func(a): return a == "cancel"))
-		cached.reopen(p_data)
-		_on_opened(p_name)
+		var cached := _get_cached_safe(p_name)
+		if cached != null:
+				_cache.erase(p_name)
+				_cache_order.erase(p_name)
+				_active_panels[p_name] = cached
+				cached.set_input_block_config(def.game_input_block_mode, def.blocked_action_ids.duplicate(), def.blocked_action_ids.filter(func(a): return a == "cancel"))
+				cached.reopen(p_data)
+				_on_opened(p_name)
 		return OperationResult.ok(cached)
 
 	var result = _scene_host.load_ui_panel(def.kind, def.path, {})
@@ -108,7 +110,7 @@ func open(p_name: String, p_data: Dictionary = {}) -> OperationResult:
 	panel.panel_name = p_name
 	panel.ctx = _panel_context
 	# v4.0: 注入输入阻挡配置到面板实例
-	print("[UI] open panel=", p_name, " mode=", def.game_input_block_mode, " blocked=", def.blocked_action_ids)
+	_log.debug("UIService", "open panel: %s mode=%d blocked=%s" % [p_name, def.game_input_block_mode, str(def.blocked_action_ids)])
 	panel.set_input_block_config(def.game_input_block_mode,
 		def.blocked_action_ids.duplicate(),
 		def.blocked_action_ids.filter(func(a): return a == "cancel"))
@@ -259,9 +261,30 @@ func get_panel(p_name: String) -> UIPanel:
 ## v4.0：返回所有活跃面板列表（供 InputPolicy 查询）。
 func get_active_panels() -> Array[UIPanel]:
 	var result: Array[UIPanel] = []
-	for panel in _active_panels.values():
-		result.append(panel as UIPanel)
+	for name in _active_panels.keys():
+		var panel_obj = _active_panels[str(name)]
+		if is_instance_valid(panel_obj):
+			result.append(panel_obj as UIPanel)
 	return result
+
+func _get_panel_safe(p_name: String) -> UIPanel:
+	if not _active_panels.has(p_name):
+		return null
+	var panel_obj = _active_panels[p_name]
+	if not is_instance_valid(panel_obj):
+		_active_panels.erase(p_name)
+		return null
+	return panel_obj as UIPanel
+
+
+func _get_cached_safe(p_name: String) -> UIPanel:
+	if not _cache.has(p_name):
+		return null
+	var panel_obj = _cache[p_name]
+	if not is_instance_valid(panel_obj):
+		_cache.erase(p_name)
+		return null
+	return panel_obj as UIPanel
 
 
 ## v4.0：返回所有活跃面板名称。
@@ -298,7 +321,8 @@ func _do_close(p_name: String, p_def: UIPanelDef, p_suppress_recalc: bool = fals
 	if not _active_panels.has(p_name):
 		return
 
-	var panel: UIPanel = _active_panels[p_name]
+	var panel := _get_panel_safe(p_name)
+	if panel == null: return
 	_active_panels.erase(p_name)
 	_remove_from_order(p_name)
 
@@ -334,7 +358,7 @@ func _cached_store(p_name: String, p_panel: UIPanel) -> void:
 		var evict_name := _cache_order[0] if _cache_order.size() > 0 else ""
 		if evict_name.is_empty(): break
 		_cache_order.pop_front()
-		var evict_panel: UIPanel = _cache.get(evict_name)
+		var evict_panel := _get_cached_safe(evict_name)
 		_cache.erase(evict_name)
 		if evict_panel != null: evict_panel.close()
 
@@ -357,7 +381,7 @@ func _prewarm_one(p_name: String) -> void:
 	if not is_instance_valid(self):
 		return
 
-	print("[UI] _prewarm_one ", p_name)
+	_log.debug("UIService", "_prewarm_one: %s" % p_name)
 	var def: UIPanelDef = _panel_defs[p_name]
 	var result = _scene_host.load_ui_panel(def.kind, def.path, {})
 	if result.is_fail(): return
@@ -394,7 +418,7 @@ func _recalculate_input_block() -> void:
 
 	for name in _active_panels.keys():
 		var def := _get_def(name)
-		var panel: UIPanel = _active_panels[name]
+		var panel := _get_panel_safe(name)
 		if def == null or not _uses_always_game_input_block(def) or not panel.visible:
 			continue
 		for action_id in def.blocked_action_ids:
@@ -434,7 +458,7 @@ func _recalculate_input_block() -> void:
 func _should_block_game_action(p_action_id: String) -> bool:
 	for name in _active_panels.keys():
 		var def := _get_def(name)
-		var panel: UIPanel = _active_panels[name]
+		var panel := _get_panel_safe(name)
 		if def == null or panel == null or not panel.visible:
 			continue
 		if def.game_input_block_mode != GAME_INPUT_BLOCK_POINTER_ONLY:

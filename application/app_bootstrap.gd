@@ -86,7 +86,7 @@ func _on_post_boot(context: GameServices) -> OperationResult: return OperationRe
 
 func _fail_boot(p_source: String, p_result: OperationResult) -> void:
 	state = BootState.FAILED
-	printerr("FATAL [%s]: %s" % [p_source, p_result.error.message])
+	push_error("FATAL [%s]: %s" % [p_source, p_result.error.message])
 	_cleanup_on_fail()
 
 func _init_or_fail(p_module: ModuleLifecycle) -> bool:

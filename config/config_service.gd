@@ -80,7 +80,7 @@ func load_json(p_type_key: String, p_path: String) -> OperationResult:
 # ============================================================
 
 ## 按 ID 获取单条定义，不存在返回 null
-func get_def(p_type_key: String, p_id: String):
+func get_def(p_type_key: String, p_id: String) -> Variant:
 	var type_defs: Dictionary = _defs.get(p_type_key, {})
 	return type_defs.get(p_id, null)
 

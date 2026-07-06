@@ -40,7 +40,7 @@ var scheduler: Scheduler = null
 ## 运行时模式服务（Local/Remote/Hybrid 命令与存档策略入口）
 var runtime: RuntimeService = null
 ## 线程任务服务（后台计算任务提交与主线程回收）
-var threading = null
+var threading: Variant = null
 ## ECS 世界（实体管理与组件存储）
 var ecs_world: EcsWorld = null
 ## ECS 调度器（系统分组与 tick 驱动）

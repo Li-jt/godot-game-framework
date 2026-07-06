@@ -16,7 +16,7 @@ extends ModuleLifecycle
 var _mode: RuntimeMode.Mode = RuntimeMode.Mode.LOCAL
 var _prediction_enabled: bool = false
 var _rollback_enabled: bool = false
-var _command_bus = null
+var _command_bus: Variant = null
 
 
 func _on_init() -> OperationResult:
