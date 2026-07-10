@@ -11,6 +11,7 @@ func despawn(p_entity: int) -> void: _ni()
 func apply_to(p_world: EcsWorld) -> OperationResult: _ni(); return OperationResult.fail(500, "NI", "IEcsCommandBuffer")
 func count() -> int: _ni(); return 0
 func clear() -> void: _ni()
+func debug_get_commands() -> Array: _ni(); return []
 
 func _ni() -> void:
 	push_error("IEcsCommandBuffer: 方法未实现")

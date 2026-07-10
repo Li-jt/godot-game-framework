@@ -22,8 +22,12 @@ func _ready() -> void: _run_boot_sequence()
 func _run_boot_sequence() -> void:
 	state = BootState.LOADING
 
+	# 创建 AppConfig。Game 层可覆写 _create_app_config() 来注入自定义配置。
+	# 默认行为：从 config/app_config.json 加载。
+	var config := _create_app_config()
+
 	# Phase 1: Core
-	var core_result := CoreInstaller.new().install({"_bootstrap": self})
+	var core_result := CoreInstaller.new().install({"_bootstrap": self, "_app_config": config})
 	if core_result.is_fail(): return
 
 	# Phase 2: Engine
@@ -78,6 +82,15 @@ func _run_boot_sequence() -> void:
 func is_ready() -> bool: return state == BootState.READY
 func is_failed() -> bool: return state == BootState.FAILED
 func _on_post_boot(context: GameServices) -> OperationResult: return OperationResult.ok()
+
+
+## 创建 AppConfig。Game 层可覆写此方法注入自定义配置。
+## 默认行为：从 config/app_config.json 加载（向后兼容）。
+func _create_app_config() -> AppConfig:
+	var r := AppConfigLoader.new().load("res://")
+	if r.is_fail():
+		printerr("FATAL: 配置加载失败: " + r.error.message)
+	return r.data if r.is_ok() else AppConfig.new()
 
 
 # ============================================================

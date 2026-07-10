@@ -89,6 +89,19 @@ func clear() -> void:
 	_spawned_temps.clear()
 
 
+## 返回当前缓冲中所有命令的调试信息（只读，供外部调试工具使用）。
+func debug_get_commands() -> Array:
+	var result: Array = []
+	for cmd in _commands:
+		result.append({
+			"type": cmd.type,
+			"entity": cmd.entity,
+			"component_type": str(cmd.component_type),
+			"data": str(cmd.data) if cmd.data is Object else cmd.data
+		})
+	return result
+
+
 ## 预校验阶段：检查所有临时实体引用是否合法。
 func _validate_all() -> OperationResult:
 	for cmd in _commands:

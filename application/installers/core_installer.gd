@@ -7,11 +7,13 @@ extends ServiceInstaller
 func install(p_deps: Dictionary) -> OperationResult:
 	var bs: AppBootstrap = p_deps.get("_bootstrap")
 
-	# Config
-	var loader := AppConfigLoader.new()
-	var r := loader.load("res://")
-	if r.is_fail(): bs._fail_boot("ConfigLoader", r); return r
-	var config: AppConfig = r.data
+	# Config — 优先使用注入的 AppConfig（_app_config），否则从文件加载（向后兼容）
+	var config: AppConfig = p_deps.get("_app_config", null)
+	if config == null:
+		var loader := AppConfigLoader.new()
+		var r := loader.load("res://")
+		if r.is_fail(): bs._fail_boot("ConfigLoader", r); return r
+		config = r.data
 
 	# Runtime
 	var runtime_svc := RuntimeService.new()
