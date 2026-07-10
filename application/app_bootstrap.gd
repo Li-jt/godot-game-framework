@@ -62,7 +62,7 @@ func _run_boot_sequence() -> void:
 		deps.input_service, deps.ui_service, deps.audio_service, deps.config_svc,
 		deps.resource_svc, deps.event_bus, deps.loc_service, deps.debug_service,
 		deps.app_flow, deps.scheduler, deps.runtime_svc, deps.threading_svc,
-		deps.ecs_world, deps.ecs_scheduler
+		deps.ecs_world, deps.ecs_scheduler, core_result.data.file_system
 	)
 
 	_print_banner(deps.config, log)
@@ -168,7 +168,7 @@ func _build_registry_entries(p_deps: Dictionary) -> Array:
 func _build_game_services(
 	p_config, p_log, p_scene_host, p_save_service, p_input, p_ui, p_audio,
 	p_config_service, p_resource, p_event_bus, p_loc, p_debug, p_app_flow, p_scheduler, p_runtime, p_threading,
-	p_ecs_world, p_ecs_scheduler
+	p_ecs_world, p_ecs_scheduler, p_file_system
 ) -> GameServices:
 	var s := GameServices.new()
 	s.config = p_config; s.log = p_log; s.scene_host = p_scene_host
@@ -177,6 +177,7 @@ func _build_game_services(
 	s.event_bus = p_event_bus; s.loc = p_loc; s.debug = p_debug; s.app_flow = p_app_flow
 	s.scheduler = p_scheduler; s.runtime = p_runtime; s.threading = p_threading
 	s.ecs_world = p_ecs_world; s.ecs_scheduler = p_ecs_scheduler
+	s.file_system = p_file_system
 	return s
 
 func _print_banner(p_config: AppConfig, p_log: LogService) -> void:

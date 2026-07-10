@@ -21,6 +21,8 @@ var input: InputService = null
 var ui: UIService = null
 ## 音频服务（高层播放入口）
 var audio: AudioService = null
+## 统一文件系统服务（文本/JSON 读写、目录操作）
+var file_system: FileSystemService = null
 ## 资源服务（高层资源访问入口）
 var resource: ResourceService = null
 ## 事件总线（跨模块事件通知）
