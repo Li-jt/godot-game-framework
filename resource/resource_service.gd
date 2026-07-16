@@ -4,8 +4,8 @@
 ## 使用方式：
 ##   [codeblock]
 ##   var res := context.resource
-##   var r := res.load_texture("textures/icon.png", ResourceService.ResourceGroup.UI_COMMON)
-##   res.release_group(ResourceService.ResourceGroup.LEVEL_01)
+##   var r := res.load_texture("textures/icon.png", ResourceService.GROUP_UI_COMMON)
+##   res.release_group(ResourceService.GROUP_LEVEL_01)
 ##   [/codeblock]
 class_name ResourceService
 extends ModuleLifecycle
