@@ -23,14 +23,14 @@ var _display_names: Dictionary = {}         ## {int: String}
 func load_ids_json(p_path: String, p_owner: String = "game") -> OperationResult:
 	var file := FileAccess.open(p_path, FileAccess.READ)
 	if file == null:
-		return OperationResult.fail(OperationResult.ERR_FILE_NOT_FOUND, "DefIdRegistry", "文件不存在: %s" % p_path)
+		return OperationResult.fail(OperationResult.ERR_NOT_FOUND, "DefIdRegistry", "文件不存在: %s" % p_path)
 	var text := file.get_as_text()
 	file.close()
 
 	var json := JSON.new()
 	var err := json.parse(text)
 	if err != OK:
-		return OperationResult.fail(OperationResult.ERR_PARSE_ERROR, "DefIdRegistry", "JSON 解析失败: %s" % p_path)
+		return OperationResult.fail(OperationResult.ERR_IO, "DefIdRegistry", "JSON 解析失败: %s" % p_path)
 
 	var data: Dictionary = json.data
 	var category: String = data.get("category", "")

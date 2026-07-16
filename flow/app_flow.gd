@@ -56,7 +56,7 @@ func transition_to(p_target: StringName, p_payload: Dictionary = {}) -> Operatio
 
 	if not _transitions.has(p_target):
 		return OperationResult.fail(
-			OperationResult.ERR_INVALID_ARGUMENT,
+			OperationResult.ERR_BAD_REQUEST,
 			"未知状态: %s" % p_target,
 			module_name
 		)

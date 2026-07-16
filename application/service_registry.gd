@@ -106,7 +106,7 @@ func unregister(p_key: String, p_owner: String = "") -> OperationResult:
 	if not _services.has(p_key):
 		return OperationResult.fail(OperationResult.ERR_NOT_FOUND, "ServiceRegistry", "服务 '%s' 不存在" % p_key)
 	if not p_owner.is_empty() and _owners.get(p_key, "") != p_owner:
-		return OperationResult.fail(OperationResult.ERR_PERMISSION_DENIED, "ServiceRegistry", "'%s' 无权卸载 '%s' 的服务" % [p_owner, p_key])
+		return OperationResult.fail(OperationResult.ERR_FORBIDDEN, "ServiceRegistry", "'%s' 无权卸载 '%s' 的服务" % [p_owner, p_key])
 	_services.erase(p_key)
 	_owners.erase(p_key)
 	_priorities.erase(p_key)
