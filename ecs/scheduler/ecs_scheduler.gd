@@ -54,6 +54,45 @@ func register_system(p_system: EcsSystem, p_group_name: StringName, p_descriptor
 	return OperationResult.ok()
 
 
+## 注销一个 ECS 系统。按系统实例引用查找并移除。
+## p_call_shutdown: 是否在移除前调用 on_shutdown()。
+func unregister_system(p_system: EcsSystem, p_call_shutdown: bool = true) -> OperationResult:
+	for group_name in _groups:
+		var group: EcsSystemGroup = _groups[group_name]
+		if group.has_system(p_system):
+			if p_call_shutdown:
+				p_system.on_shutdown()
+			group.remove_system(p_system)
+			return OperationResult.ok()
+	return OperationResult.fail(OperationResult.ERR_NOT_FOUND, "EcsScheduler", "系统未找到: %s" % p_system.system_name())
+
+
+## 按名称注销系统。
+func unregister_system_by_name(p_name: String, p_group_name: StringName = &"", p_call_shutdown: bool = true) -> OperationResult:
+	if not p_group_name.is_empty():
+		var group: EcsSystemGroup = _groups.get(p_group_name)
+		if group == null:
+			return OperationResult.fail(OperationResult.ERR_NOT_FOUND, "EcsScheduler", "组不存在: %s" % p_group_name)
+		return group.remove_by_name(p_name)
+
+	for group_name in _groups:
+		var group: EcsSystemGroup = _groups[group_name]
+		var result := group.remove_by_name(p_name)
+		if result.is_ok():
+			return result
+	return OperationResult.fail(OperationResult.ERR_NOT_FOUND, "EcsScheduler", "系统未找到: %s" % p_name)
+
+
+## 注销指定 owner 的所有系统。Mod 卸载时使用。
+func unregister_by_owner(p_owner: String) -> int:
+	var count := 0
+	for group_name in _groups:
+		var group: EcsSystemGroup = _groups[group_name]
+		var removed := group.remove_by_owner(p_owner)
+		count += removed.size()
+	return count
+
+
 ## 启动调度器（初始化所有系统）。
 func start() -> void:
 	if _world == null:

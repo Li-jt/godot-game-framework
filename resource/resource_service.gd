@@ -10,13 +10,12 @@
 class_name ResourceService
 extends ModuleLifecycle
 
-enum ResourceGroup {
-	UI_COMMON,   # UI 通用资源（一直保留）
-	GAMEPLAY,    # 游戏玩法通用（一直保留）
-	LEVEL_01,    # 关卡1
-	LEVEL_02,    # 关卡2
-	AUDIO,       # 音频资源
-}
+## 资源分组——StringName 常量。Framework 提供默认值，Mod 使用自己的标识。
+const GROUP_UI_COMMON: StringName = &"ui_common"
+const GROUP_GAMEPLAY: StringName = &"gameplay"
+const GROUP_LEVEL_01: StringName = &"level_01"
+const GROUP_LEVEL_02: StringName = &"level_02"
+const GROUP_AUDIO: StringName = &"audio"
 
 enum ReleasePolicy {
 	LRU_ONLY,         # 仅 LRU 回收（默认）
@@ -25,7 +24,7 @@ enum ReleasePolicy {
 
 class CacheEntry:
 	var resource: Resource
-	var group: ResourceGroup
+	var group: StringName
 
 
 var _asset_loading: AssetLoadingService = null
@@ -55,19 +54,19 @@ func configure(p_asset_loading: AssetLoadingService, p_log: LogService) -> Opera
 # 加载
 # ============================================================
 
-func load_scene(p_path: String, p_group: ResourceGroup = ResourceGroup.GAMEPLAY) -> OperationResult:
+func load_scene(p_path: String, p_group: StringName = GROUP_GAMEPLAY) -> OperationResult:
 	return _cached_load(p_path, p_group, func(p): return _asset_loading.load_scene(p))
 
 
-func load_texture(p_path: String, p_group: ResourceGroup = ResourceGroup.GAMEPLAY) -> OperationResult:
+func load_texture(p_path: String, p_group: StringName = GROUP_GAMEPLAY) -> OperationResult:
 	return _cached_load(p_path, p_group, func(p): return _asset_loading.load_texture(p))
 
 
-func load_audio(p_path: String, p_group: ResourceGroup = ResourceGroup.AUDIO) -> OperationResult:
+func load_audio(p_path: String, p_group: StringName = GROUP_AUDIO) -> OperationResult:
 	return _cached_load(p_path, p_group, func(p): return _asset_loading.load_audio(p))
 
 
-func load_resource(p_path: String, p_group: ResourceGroup = ResourceGroup.GAMEPLAY) -> OperationResult:
+func load_resource(p_path: String, p_group: StringName = GROUP_GAMEPLAY) -> OperationResult:
 	return _cached_load(p_path, p_group, func(p): return _asset_loading.load_resource(p))
 
 
@@ -77,7 +76,7 @@ func load_resource(p_path: String, p_group: ResourceGroup = ResourceGroup.GAMEPL
 
 ## 释放指定资源组。场景切换时调用。
 ## 保留 UI_COMMON / GAMEPLAY / AUDIO 组资源。
-func release_group(p_group: ResourceGroup) -> void:
+func release_group(p_group: StringName) -> void:
 	var to_remove: Array[String] = []
 	for path in _cache.keys():
 		var entry: CacheEntry = _cache[path]
@@ -115,7 +114,7 @@ func cache_size() -> int:
 # 内部
 # ============================================================
 
-func _cached_load(p_path: String, p_group: ResourceGroup, p_loader: Callable) -> OperationResult:
+func _cached_load(p_path: String, p_group: StringName, p_loader: Callable) -> OperationResult:
 	if _cache.has(p_path):
 		var entry: CacheEntry = _cache[p_path]
 		_touch_order(p_path)

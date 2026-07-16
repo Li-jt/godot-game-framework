@@ -24,12 +24,14 @@ var resource_root: String = ""   # res://content/
 var save_root: String = ""       # user://saves/
 var log_root: String = ""        # user://logs/
 var cache_root: String = ""      # user://cache/
+var _app_config: AppConfig = null  ## 保留 AppConfig 引用用于路径覆盖解析
 
 
 ## 从 AppConfig 配置所有路径
 func configure_from_app_config(p_config: AppConfig) -> OperationResult:
 	if p_config == null:
 		return OperationResult.fail(OperationResult.ERR_BAD_REQUEST, "configure: config 不能为 null", "PathResolver")
+	_app_config = p_config
 	return configure(
 		p_config.resource.base_path,
 		p_config.save.local_save_root,
@@ -77,6 +79,43 @@ func get_log_root() -> String:
 
 func get_cache_root() -> String:
 	return cache_root
+
+
+# ============================================================
+# 路径覆盖解析（支持 AppConfig.path_overrides 配置覆盖）
+# ============================================================
+
+## 解析 SceneHost 场景路径。优先取配置覆盖值，否则返回默认路径。
+func resolve_scene_host_path(p_default: String = "res://src/framework/engine/scene_host/scene_host.tscn") -> String:
+	if _app_config != null:
+		var override := _app_config.path_overrides.scene_host
+		if not override.is_empty():
+			return override
+	return p_default
+
+## 解析世界场景路径。
+func resolve_world_scene(p_default: String = "res://content/scenes/world/world_root.tscn") -> String:
+	if _app_config != null:
+		var override := _app_config.path_overrides.world_scene
+		if not override.is_empty():
+			return override
+	return p_default
+
+## 解析本地化文件根目录。
+func resolve_localization_root(p_default: String = "res://content/localization") -> String:
+	if _app_config != null:
+		var override := _app_config.path_overrides.localization_root
+		if not override.is_empty():
+			return override
+	return p_default
+
+## 解析输入重绑文件路径。
+func resolve_input_bindings_path(p_default: String = "user://input_bindings_v1.tres") -> String:
+	if _app_config != null:
+		var override := _app_config.path_overrides.input_bindings_path
+		if not override.is_empty():
+			return override
+	return p_default
 
 
 # ============================================================

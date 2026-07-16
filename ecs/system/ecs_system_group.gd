@@ -63,6 +63,48 @@ func is_initialized() -> bool:
 	return _initialized
 
 
+## 检查系统是否在组内。
+func has_system(p_system: EcsSystem) -> bool:
+	return _systems.has(p_system)
+
+
+## 移除系统。
+func remove_system(p_system: EcsSystem) -> void:
+	var idx := _systems.find(p_system)
+	if idx >= 0:
+		_systems.remove_at(idx)
+		_descriptors.remove_at(idx)
+		_accumulators.remove_at(idx)
+
+
+## 按名称移除。
+func remove_by_name(p_name: String) -> OperationResult:
+	for i in range(_systems.size()):
+		var desc: EcsSystemDescriptor = _descriptors[i]
+		if desc.system_name == p_name:
+			_systems.remove_at(i)
+			_descriptors.remove_at(i)
+			_accumulators.remove_at(i)
+			return OperationResult.ok()
+	return OperationResult.fail(OperationResult.ERR_NOT_FOUND, "EcsSystemGroup", "系统未找到: %s" % p_name)
+
+
+## 按 owner 移除。返回被移除的系统名称列表。
+func remove_by_owner(p_owner: String) -> Array[String]:
+	var removed: Array[String] = []
+	var i := _systems.size() - 1
+	while i >= 0:
+		var desc: EcsSystemDescriptor = _descriptors[i]
+		if desc.owner == p_owner:
+			_systems[i].on_shutdown()
+			removed.append(desc.system_name)
+			_systems.remove_at(i)
+			_descriptors.remove_at(i)
+			_accumulators.remove_at(i)
+		i -= 1
+	return removed
+
+
 func _sort_by_priority() -> void:
 	var pairs: Array = []
 	for i in range(_systems.size()):

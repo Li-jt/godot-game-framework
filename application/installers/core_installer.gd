@@ -6,6 +6,7 @@ extends ServiceInstaller
 ## 返回 Dictionary：{config, runtime_svc, path_resolver, file_system, log, event_bus, loc_service, app_flow}
 func install(p_deps: Dictionary) -> OperationResult:
 	var bs: AppBootstrap = p_deps.get("_bootstrap")
+	var registry: ServiceRegistry = p_deps.get("_registry")
 
 	# Config — 优先使用注入的 AppConfig（_app_config），否则从文件加载（向后兼容）
 	var config: AppConfig = p_deps.get("_app_config", null)
@@ -61,6 +62,17 @@ func install(p_deps: Dictionary) -> OperationResult:
 	if not bs._init_or_fail(app_flow): return _fail()
 	bs._track_module(app_flow)
 	if not bs._cfg_or_fail("AppFlow", app_flow.configure(event_bus), app_flow): return _fail()
+
+	# 声明产出——各 Installer 自声明必需 key
+	if registry != null:
+		registry.add_required(ServiceRegistry.KEY_RUNTIME)
+		registry.add_required(ServiceRegistry.KEY_PATH_RESOLVER)
+		registry.add_required(ServiceRegistry.KEY_FILE_SYSTEM)
+		registry.add_required(ServiceRegistry.KEY_LOG)
+		registry.add_required(ServiceRegistry.KEY_EVENT_BUS)
+		registry.add_required(ServiceRegistry.KEY_LOCALIZATION)
+		registry.add_required(ServiceRegistry.KEY_FLOW)
+		registry.add_required(ServiceRegistry.KEY_CONFIG)
 
 	var deps: Dictionary = {
 		"config": config, "runtime_svc": runtime_svc, "path_resolver": path_resolver,

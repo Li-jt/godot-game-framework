@@ -10,6 +10,7 @@ extends ServiceInstaller
 func install(p_deps: Dictionary) -> OperationResult:
 	var engine: Dictionary = p_deps.get("_engine_deps", {})
 	var scheduler: Scheduler = engine.get("scheduler", null)
+	var registry: ServiceRegistry = p_deps.get("_registry")
 	if scheduler == null:
 		return OperationResult.fail(OperationResult.ERR_PRECONDITION, "缺少 Framework Scheduler", "EcsInstaller")
 
@@ -26,6 +27,11 @@ func install(p_deps: Dictionary) -> OperationResult:
 
 	# 启动 ECS 调度器
 	ecs_scheduler.start_ecs_scheduler()
+
+	# 声明产出
+	if registry != null:
+		registry.add_required(ServiceRegistry.KEY_ECS_WORLD)
+		registry.add_required(ServiceRegistry.KEY_ECS_SCHEDULER)
 
 	return OperationResult.ok({
 		"ecs_world": ecs_world,

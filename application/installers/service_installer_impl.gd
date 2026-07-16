@@ -14,6 +14,7 @@ func install(p_deps: Dictionary) -> OperationResult:
 	var sh = deps.scene_host
 	var ia = deps.input_adapter
 	var sch = deps.scheduler
+	var registry: ServiceRegistry = p_deps.get("_registry")
 
 	# Resource
 	var resource_svc := ResourceService.new()
@@ -85,6 +86,17 @@ func install(p_deps: Dictionary) -> OperationResult:
 	if not bs._init_or_fail(ui_service): return _fail()
 	bs._track_module(ui_service)
 	if not bs._cfg_or_fail("UIService", ui_service.configure(ui_context), ui_service): return _fail()
+
+	# 声明产出
+	if registry != null:
+		registry.add_required(ServiceRegistry.KEY_RESOURCE)
+		registry.add_required(ServiceRegistry.KEY_CONFIG_SERVICE)
+		registry.add_required(ServiceRegistry.KEY_SAVE)
+		registry.add_required(ServiceRegistry.KEY_INPUT)
+		registry.add_required(ServiceRegistry.KEY_AUDIO)
+		registry.add_required(ServiceRegistry.KEY_AUDIO_RUNTIME)
+		registry.add_required(ServiceRegistry.KEY_UI)
+		registry.add_required(ServiceRegistry.KEY_DEBUG)
 
 	deps.merge({
 		"resource_svc": resource_svc, "config_svc": config_svc, "save_service": save_service,

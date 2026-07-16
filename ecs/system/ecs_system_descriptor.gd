@@ -15,3 +15,5 @@ var before_systems: Array[String] = []
 var after_systems: Array[String] = []
 ## 优先级，越小越先执行
 var priority: int = 0
+## 系统注册者（如 "game" 或 "mod:fishing"），用于卸载时批量清理
+var owner: String = ""

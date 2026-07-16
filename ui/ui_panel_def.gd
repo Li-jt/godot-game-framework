@@ -4,14 +4,13 @@
 class_name UIPanelDef
 extends RefCounted
 
-enum PanelKind {
-	HUD,      # 常驻 HUD：用户信息、资源栏、小地图
-	SCREEN,   # 游戏内主面板：背包、商城、角色面板
-	POPUP,    # 弹窗：确认框、奖励弹窗
-	TOOLTIP,  # 提示：物品说明、技能说明
-	SYSTEM,   # 系统：Loading、黑幕、断线重连
-	DEBUG,    # 调试面板
-}
+## 面板类型——StringName 常量。Mod 可自定义。
+const KIND_HUD: StringName = &"hud"
+const KIND_SCREEN: StringName = &"screen"
+const KIND_POPUP: StringName = &"popup"
+const KIND_TOOLTIP: StringName = &"tooltip"
+const KIND_SYSTEM: StringName = &"system"
+const KIND_DEBUG: StringName = &"debug"
 
 enum Lifecycle {
 	DESTROY_ON_CLOSE,  # 关闭时销毁（确认框、弹窗）
@@ -28,7 +27,7 @@ enum GameInputBlockMode {
 
 var name: String = ""
 var path: String = ""
-var kind: PanelKind = PanelKind.SCREEN
+var kind: StringName = KIND_SCREEN
 var lifecycle: Lifecycle = Lifecycle.DESTROY_ON_CLOSE
 
 var prewarm: bool = false

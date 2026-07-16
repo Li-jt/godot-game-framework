@@ -53,3 +53,23 @@ func set_save_version(p_version: int) -> void:
 ## 获取当前存档版本号。
 func get_save_version() -> int:
 	return _current_save_version
+
+
+## 获取当前存档版本号（别名）。
+func get_current_save_version() -> int:
+	return _current_save_version
+
+
+## 向 ECS 存档迁移链注册一个迁移步骤。
+## p_from: 迁移前的存档版本号
+## p_to: 迁移后的存档版本号
+## p_fn: 迁移回调，签名: func(p_data: Dictionary) -> Dictionary
+## p_owner: 注册者标识（用于 Mod 卸载时清理）
+func register_migration(p_from: int, p_to: int, p_fn: Callable, p_owner: String = "") -> OperationResult:
+	_migrator.register_migration(p_from, p_to, p_fn, p_owner)
+	return OperationResult.ok()
+
+
+## 注销指定 owner 的所有迁移步骤。Mod 卸载时使用。
+func unregister_migrations_by_owner(p_owner: String) -> int:
+	return _migrator.unregister_by_owner(p_owner)

@@ -47,6 +47,10 @@ var threading: Variant = null
 var ecs_world: EcsWorld = null
 ## ECS 调度器（系统分组与 tick 驱动）
 var ecs_scheduler: EcsScheduler = null
+## 内容定义注册表（游戏物品/建筑/配方等 DataService 统一注册入口）
+var content_def: ContentDefRegistry = null
+## 内容定义 ID 注册表（Economy/Resource/Building/WorkJob 等 ID 统一注册和查询）
+var def_id: DefIdRegistry = null
 
 
 # ============================================================

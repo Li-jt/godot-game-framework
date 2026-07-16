@@ -1,6 +1,13 @@
-## UnitOfWork
-## 工作单元。将一组相关变更作为一个原子操作提交。
-## 要么全部成功（commit），要么全部丢弃（rollback）。
+## UnitOfWork — 工作单元。将一组相关变更作为一个原子操作提交。
+##
+## ⚠️ 预留接口：多人/网络模式（Remote / Hybrid Authority）。
+## 当前 Local 模式不使用此接口。
+##
+## 计划用途：
+##   - Remote Authority：服务端确保一组操作原子提交
+##   - Hybrid Authority：客户端预测批量操作时使用
+##
+## 注意：此接口当前无实现，不要继承或使用。
 ##
 ## 使用方式：
 ##   [codeblock]

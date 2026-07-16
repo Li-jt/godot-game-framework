@@ -1,6 +1,13 @@
-## IWorldRepository
-## 世界状态数据访问抽象。管理世界的完整快照存取。
-## Game 层通过此接口保存/恢复世界，不关心底层存储方式。
+## IWorldRepository — 世界状态数据访问抽象。
+##
+## ⚠️ 预留接口：多人/网络模式（Remote / Hybrid Authority）。
+## 当前 Local 模式不使用此接口，ECS World 直接通过 SaveService 持久化。
+##
+## 计划用途：
+##   - Remote Authority：服务端通过此接口管理世界快照存取
+##   - Hybrid Authority：客户端预测使用此接口做本地世界缓存
+##
+## 注意：此接口当前无实现，不要继承或使用。
 class_name IWorldRepository
 extends RefCounted
 

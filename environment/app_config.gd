@@ -14,6 +14,7 @@ var logging: LoggingSection = LoggingSection.new()
 var threading: ThreadingSection = ThreadingSection.new()
 var debug: DebugSection = DebugSection.new()
 var feature_flags: FeatureFlagsSection = FeatureFlagsSection.new()
+var path_overrides: PathOverridesSection = PathOverridesSection.new()
 
 
 # ============================================================
@@ -105,3 +106,13 @@ class FeatureFlagsSection:
 	var enable_network_stats: bool = false
 	var enable_auto_save: bool = false
 	var enable_tutorial: bool = false
+
+
+## 路径覆盖配置。允许在不修改代码的情况下覆盖关键路径。
+class PathOverridesSection:
+	extends RefCounted
+	var scene_host: String = ""           ## 覆盖 SceneHost 场景路径
+	var localization_root: String = ""    ## 本地化文件根目录
+	var world_scene: String = ""          ## 世界场景路径
+	var input_bindings_path: String = ""  ## 输入重绑文件路径
+	var save_slot_pattern: String = ""    ## 存档槽文件命名模式

@@ -1,19 +1,65 @@
 ## AppBootstrap（Application 层启动基类）
 ## 使用 Installer 模式装配 Framework 服务。
+## 提供 10 个可重写的生命周期 Hook，允许 Game 层和 Mod 在各安装阶段之间注入逻辑。
 class_name AppBootstrap
 extends Node
-
-const REQUIRED_KEYS: Array[String] = [
-	"Runtime", "PathResolver", "FileSystem", "EventBus", "Localization", "Debug",
-	"Flow", "Save", "ConfigService", "Resource", "AssetLoading", "SceneFactory",
-	"UI", "SceneHost", "Scheduler", "Input", "InputAdapter", "Audio", ServiceRegistry.KEY_THREADING,
-	"AudioRuntime", "Config", "Log",
-]
 
 enum BootState { COLD, LOADING, READY, FAILED }
 var state: BootState = BootState.COLD
 var _boot_modules: Array[ModuleLifecycle] = []
 var _boot_nodes: Array[Node] = []
+
+# ============================================================
+# 生命周期 Hook 方法（按执行顺序，子类可覆写）
+# ============================================================
+
+## 在任何 Installer 运行之前调用。
+func _on_before_any_install() -> void:
+	pass
+
+## CoreInstaller 运行前调用。
+func _on_before_core_install() -> void:
+	pass
+
+## CoreInstaller 运行后调用。可以在此注册 Mod 的基础服务。
+func _on_after_core_install(p_deps: Dictionary) -> void:
+	pass
+
+## EngineInstaller 运行前调用。
+func _on_before_engine_install(p_deps: Dictionary) -> void:
+	pass
+
+## EngineInstaller 运行后调用。可以在此注册 Mod 的引擎级依赖。
+func _on_after_engine_install(p_deps: Dictionary) -> void:
+	pass
+
+## EcsInstaller 运行前调用。
+func _on_before_ecs_install(p_deps: Dictionary) -> void:
+	pass
+
+## EcsInstaller 运行后调用。可以在此注册 Mod 的 ECS 系统/组件。
+func _on_after_ecs_install(p_deps: Dictionary) -> void:
+	pass
+
+## ServiceInstaller 运行前调用。
+func _on_before_service_install(p_deps: Dictionary) -> void:
+	pass
+
+## ServiceInstaller 运行后调用。可以在此注册 Mod 的高级服务（UI/Audio/Input）。
+func _on_after_service_install(p_deps: Dictionary) -> void:
+	pass
+
+## 所有 Installer + verify 完成后调用。Game 层初始化入口。
+func _on_post_boot(context: GameServices) -> OperationResult:
+	return OperationResult.ok()
+
+## 应用完全就绪后调用（AppFlow 已切换到 MAIN_MENU）。Mod 初始化入口。
+func _on_app_ready(p_context: GameServices) -> void:
+	pass
+
+# ============================================================
+# 启动流程
+# ============================================================
 
 
 func _ready() -> void: _run_boot_sequence()
@@ -22,34 +68,46 @@ func _ready() -> void: _run_boot_sequence()
 func _run_boot_sequence() -> void:
 	state = BootState.LOADING
 
+	_on_before_any_install()
+
 	# 创建 AppConfig。Game 层可覆写 _create_app_config() 来注入自定义配置。
-	# 默认行为：从 config/app_config.json 加载。
 	var config := _create_app_config()
 
+	# 创建 Registry 提前（各 Installer 通过 deps 传递引用用于 add_required）
+	var registry := ServiceRegistry.new()
+
 	# Phase 1: Core
-	var core_result := CoreInstaller.new().install({"_bootstrap": self, "_app_config": config})
+	_on_before_core_install()
+	var core_result := CoreInstaller.new().install({"_bootstrap": self, "_app_config": config, "_registry": registry})
 	if core_result.is_fail(): return
+	_on_after_core_install(core_result.data)
 
 	# Phase 2: Engine
-	var engine_result := EngineInstaller.new().install({"_bootstrap": self, "_core_deps": core_result.data})
+	_on_before_engine_install(core_result.data)
+	var engine_result := EngineInstaller.new().install({"_bootstrap": self, "_core_deps": core_result.data, "_registry": registry})
 	if engine_result.is_fail(): return
+	_on_after_engine_install(engine_result.data)
 
 	# Phase 2.5: ECS
-	var ecs_result := EcsInstaller.new().install({"_bootstrap": self, "_engine_deps": engine_result.data})
+	_on_before_ecs_install(engine_result.data)
+	var ecs_result := EcsInstaller.new().install({"_bootstrap": self, "_engine_deps": engine_result.data, "_registry": registry})
 	if ecs_result.is_fail(): return
+	_on_after_ecs_install(ecs_result.data)
 
 	# Phase 3: Services
-	var svc_result := ServiceInstallerImpl.new().install({"_bootstrap": self, "_engine_deps": engine_result.data, "_ecs_deps": ecs_result.data})
+	_on_before_service_install(engine_result.data)
+	var svc_result := ServiceInstallerImpl.new().install({"_bootstrap": self, "_engine_deps": engine_result.data, "_ecs_deps": ecs_result.data, "_registry": registry})
 	if svc_result.is_fail(): return
+	_on_after_service_install(svc_result.data)
 	var deps: Dictionary = svc_result.data
 	deps.merge(ecs_result.data)
 
-	# Registry
-	var registry := ServiceRegistry.new()
+	# Registry — 注册所有服务
 	var reg_result := registry.register_all(_build_registry_entries(deps))
 	if reg_result.is_fail(): _fail_boot("Registry", reg_result); return
 
-	var verify_result := registry.verify_required(REQUIRED_KEYS)
+	# 校验 — 此时 Mod 已通过 Hook 完成注册
+	var verify_result := registry.verify_pending()
 	if verify_result.is_fail(): _fail_boot("ServiceRegistry.verify", verify_result); return
 
 	ServiceRegistry.instance = registry
@@ -72,16 +130,18 @@ func _run_boot_sequence() -> void:
 	if post_result.is_fail(): _fail_boot("GameBootstrap", post_result); return
 
 	var app_flow: AppFlow = deps.app_flow
-	var fr := app_flow.transition_to(AppFlow.State.MAIN_MENU)
+	var fr := app_flow.transition_to(AppFlow.STATE_MAIN_MENU)
 	if fr.is_fail(): _fail_boot("AppFlow.transition", fr); return
 
 	state = BootState.READY
 	log.info("Bootstrap", "启动完成")
 
+	# Mod 加载 / 应用就绪
+	_on_app_ready(context)
+
 
 func is_ready() -> bool: return state == BootState.READY
 func is_failed() -> bool: return state == BootState.FAILED
-func _on_post_boot(context: GameServices) -> OperationResult: return OperationResult.ok()
 
 
 ## 创建 AppConfig。Game 层可覆写此方法注入自定义配置。

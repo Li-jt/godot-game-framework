@@ -63,6 +63,36 @@ func unregister_saveable(p_key: String) -> void:
 	_saveables.erase(p_key)
 
 
+## 从一组 ISaveable 实例中批量注册。
+## 每个实例的 save_key() 必须唯一且非空。
+func collect_from(p_saveables: Array) -> OperationResult:
+	var errors: Array[String] = []
+	for obj in p_saveables:
+		if not obj is ISaveable:
+			continue
+		var key := (obj as ISaveable).save_key()
+		if key.is_empty():
+			errors.append("ISaveable %s 的 save_key() 返回空字符串" % str(obj))
+			continue
+		register_saveable(obj)
+	if not errors.is_empty():
+		return OperationResult.fail(OperationResult.ERR_BAD_REQUEST, "SaveService", ", ".join(errors))
+	return OperationResult.ok()
+
+
+## 按 owner 注销所有 ISaveable（按 save_key 前缀匹配，如 "mod:xxx:"）。
+func unregister_saveables_by_owner(p_owner: String) -> int:
+	var removed := 0
+	var keys_to_remove: Array[String] = []
+	for key in _saveables:
+		if key.begins_with(p_owner):
+			keys_to_remove.append(key)
+	for key in keys_to_remove:
+		_saveables.erase(key)
+		removed += 1
+	return removed
+
+
 # ============================================================
 # 公开方法
 # ============================================================
@@ -154,12 +184,26 @@ func _build_save_data() -> Dictionary:
 
 
 func _restore_save_data(p_data: Dictionary) -> void:
-	var restored := 0
+	# 按恢复优先级排序所有 saveable
+	var sorted: Array = []
 	for key in p_data.keys():
 		if _saveables.has(key):
 			var saveable: ISaveable = _saveables[key]
-			saveable.on_load(p_data[key])
-			restored += 1
-		else:
+			sorted.append({"key": key, "saveable": saveable, "priority": saveable.restore_priority()})
+
+	sorted.sort_custom(func(a, b): return a["priority"] < b["priority"])
+
+	var restored := 0
+	var skipped := 0
+	for entry in sorted:
+		var key: String = entry["key"]
+		var saveable: ISaveable = entry["saveable"]
+		saveable.on_load(p_data[key])
+		restored += 1
+
+	# 处理存档中存在但未注册的 key（按原始顺序遍历）
+	for key in p_data.keys():
+		if not _saveables.has(key):
 			_log.warning("Save", "存档中存在未注册模块: %s（已跳过）" % key)
-	_log.info("Save", "恢复存档数据完成，恢复模块数: %d" % restored)
+			skipped += 1
+	_log.info("Save", "恢复存档数据完成，恢复模块数: %d，跳过: %d" % [restored, skipped])

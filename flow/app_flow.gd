@@ -11,18 +11,26 @@
 class_name AppFlow
 extends ModuleLifecycle
 
-enum State {
-	BOOT,         # 启动中
-	MAIN_MENU,    # 主菜单
-	LOADING,      # 加载中（读档/创建世界）
-	IN_GAME,      # 游戏中
-	PAUSE,        # 暂停
-}
+## 流程状态——StringName 常量 + 动态注册。
+const STATE_BOOT: StringName = &"boot"
+const STATE_MAIN_MENU: StringName = &"main_menu"
+const STATE_LOADING: StringName = &"loading"
+const STATE_IN_GAME: StringName = &"in_game"
+const STATE_PAUSE: StringName = &"pause"
 
-var current_state: State = State.BOOT
-var previous_state: State = State.BOOT
+var current_state: StringName = STATE_BOOT
+var previous_state: StringName = STATE_BOOT
 var current_payload: Dictionary = {}
 var _event_bus: EventBus = null
+
+## 状态转换表——基于 StringName 的字典。
+var _transitions: Dictionary = {
+	STATE_BOOT:       { "from": ["*"],           "to": [STATE_MAIN_MENU] },
+	STATE_MAIN_MENU:  { "from": [STATE_BOOT],     "to": [STATE_LOADING] },
+	STATE_LOADING:    { "from": [STATE_MAIN_MENU, STATE_IN_GAME], "to": [STATE_IN_GAME] },
+	STATE_IN_GAME:    { "from": [STATE_LOADING, STATE_PAUSE], "to": [STATE_PAUSE, STATE_LOADING, STATE_MAIN_MENU] },
+	STATE_PAUSE:      { "from": [STATE_IN_GAME],  "to": [STATE_IN_GAME] },
+}
 
 
 func _on_init() -> OperationResult:
@@ -42,14 +50,22 @@ func configure(p_event_bus: EventBus) -> OperationResult:
 
 ## 切换到指定状态。无效状态或同状态切换会被拒绝。
 ## p_payload 可选，携带 slot_id / world_id 等上下文数据。
-func transition_to(p_target: State, p_payload: Dictionary = {}) -> OperationResult:
+func transition_to(p_target: StringName, p_payload: Dictionary = {}) -> OperationResult:
 	if p_target == current_state:
 		return OperationResult.ok()
 
-	if not _is_valid_transition(current_state, p_target):
+	if not _transitions.has(p_target):
+		return OperationResult.fail(
+			OperationResult.ERR_INVALID_ARGUMENT,
+			"未知状态: %s" % p_target,
+			module_name
+		)
+
+	var allowed_from: Array = _transitions[p_target]["from"]
+	if not allowed_from.has(current_state) and allowed_from[0] != "*":
 		return OperationResult.fail(
 			OperationResult.ERR_PRECONDITION,
-			"无效的状态切换: %s → %s" % [_state_name(current_state), _state_name(p_target)],
+			"无效的状态切换: %s → %s" % [current_state, p_target],
 			module_name
 		)
 
@@ -67,23 +83,28 @@ func transition_to(p_target: State, p_payload: Dictionary = {}) -> OperationResu
 	return OperationResult.ok()
 
 
+## 动态注册新的流程状态。Mod 使用。
+func register_state(p_state: StringName, p_valid_from: Array[StringName], p_valid_to: Array[StringName]) -> void:
+	_transitions[p_state] = {"from": p_valid_from, "to": p_valid_to}
+
+
 ## 获取当前状态携带的 payload
 func get_current_payload() -> Dictionary:
 	return current_payload
 
 
 ## 当前状态
-func get_state() -> State:
+func get_state() -> StringName:
 	return current_state
 
 
 ## 是否在指定状态
-func is_in_state(p_state: State) -> bool:
+func is_in_state(p_state: StringName) -> bool:
 	return current_state == p_state
 
 
 ## 上一状态
-func get_previous_state() -> State:
+func get_previous_state() -> StringName:
 	return previous_state
 
 
@@ -92,52 +113,22 @@ func get_previous_state() -> State:
 # ============================================================
 
 func to_main_menu() -> OperationResult:
-	return transition_to(State.MAIN_MENU)
+	return transition_to(STATE_MAIN_MENU)
 
 
 func to_loading() -> OperationResult:
-	return transition_to(State.LOADING)
+	return transition_to(STATE_LOADING)
 
 
 func to_in_game() -> OperationResult:
-	return transition_to(State.IN_GAME)
+	return transition_to(STATE_IN_GAME)
 
 
 func to_pause() -> OperationResult:
-	return transition_to(State.PAUSE)
+	return transition_to(STATE_PAUSE)
 
 
 func resume_from_pause() -> OperationResult:
-	if current_state != State.PAUSE:
+	if current_state != STATE_PAUSE:
 		return OperationResult.fail(OperationResult.ERR_PRECONDITION, "当前不在暂停状态", module_name)
-	return transition_to(State.IN_GAME)
-
-
-# ============================================================
-# 内部
-# ============================================================
-
-func _is_valid_transition(p_from: State, p_to: State) -> bool:
-	match p_from:
-		State.BOOT:
-			return p_to == State.MAIN_MENU 
-		State.MAIN_MENU:
-			return p_to == State.LOADING
-		State.LOADING:
-			return p_to == State.IN_GAME
-		State.IN_GAME:
-			return p_to == State.PAUSE or p_to == State.LOADING or p_to == State.MAIN_MENU
-		State.PAUSE:
-			return p_to == State.IN_GAME
-		_:
-			return false
-
-
-func _state_name(p_state: State) -> String:
-	match p_state:
-		State.BOOT:       return "BOOT"
-		State.MAIN_MENU:  return "MAIN_MENU"
-		State.LOADING:    return "LOADING"
-		State.IN_GAME:    return "IN_GAME"
-		State.PAUSE:      return "PAUSE"
-		_: return "UNKNOWN"
+	return transition_to(STATE_IN_GAME)
