@@ -9,6 +9,8 @@ var _registry: EcsComponentTypeRegistry = null
 var _storage_index: EcsStorageIndex = null
 var _version: int = 0
 var _next_entity_id: int = 1
+## 内容定义注册表（由 GameBootstrap 注入，供 ECS 系统查询物品/建筑/工作等 Def 数据）
+var content_def: ContentDefRegistry = null
 
 
 func _init() -> void:

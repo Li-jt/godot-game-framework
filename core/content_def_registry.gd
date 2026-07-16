@@ -5,17 +5,9 @@
 ## 使用方式：
 ##   1. GameBootstrap 中创建 ContentDefRegistry 实例
 ##   2. 调用 register_module("terrain", terrain_module) 注册模块
-##   3. ECS 系统通过 module("terrain") 获取模块数据
-##   4. 通过 ContentDefRegistry.instance() 静态桥接访问（过渡期，逐步迁移到 DI）
+##   3. ECS 系统通过 p_world.content_def.module("terrain") 获取模块数据
 class_name ContentDefRegistry
 extends RefCounted
-
-## 全局单例引用（过渡期桥接，由 GameBootstrap 在启动时赋值）
-static var instance: ContentDefRegistry = null
-
-## 获取全局实例（过渡期桥接方法）
-static func get_instance() -> ContentDefRegistry:
-	return instance
 
 ## {StringName: Variant} 已注册的模块映射
 var _modules: Dictionary = {}
