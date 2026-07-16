@@ -97,14 +97,14 @@ func get_ui_canvas() -> CanvasLayer:
 	return ui_canvas
 
 
-func get_ui_layer(p_kind: UIPanelDef.PanelKind) -> Control:
+func get_ui_layer(p_kind: StringName) -> Control:
 	match p_kind:
-		UIPanelDef.PanelKind.HUD:     return hud_layer
-		UIPanelDef.PanelKind.SCREEN:  return screen_layer
-		UIPanelDef.PanelKind.POPUP:   return popup_layer
-		UIPanelDef.PanelKind.TOOLTIP: return tooltip_layer
-		UIPanelDef.PanelKind.SYSTEM:  return system_layer
-		UIPanelDef.PanelKind.DEBUG:   return debug_layer
+		UIPanelDef.KIND_HUD:     return hud_layer
+		UIPanelDef.KIND_SCREEN:  return screen_layer
+		UIPanelDef.KIND_POPUP:   return popup_layer
+		UIPanelDef.KIND_TOOLTIP: return tooltip_layer
+		UIPanelDef.KIND_SYSTEM:  return system_layer
+		UIPanelDef.KIND_DEBUG:   return debug_layer
 		_: return screen_layer
 
 
@@ -117,7 +117,7 @@ func load_world(p_scene_path: String, p_data: Dictionary = {}) -> OperationResul
 	return _load_into(world_root, p_scene_path, p_data)
 
 
-func load_ui_panel(p_kind: UIPanelDef.PanelKind, p_scene_path: String, p_data: Dictionary = {}) -> OperationResult:
+func load_ui_panel(p_kind: StringName, p_scene_path: String, p_data: Dictionary = {}) -> OperationResult:
 	return _load_into(get_ui_layer(p_kind), p_scene_path, p_data)
 
 
@@ -151,7 +151,7 @@ func clear_world() -> void:
 	_clear_children(world_root)
 
 
-func clear_layer(p_kind: UIPanelDef.PanelKind) -> void:
+func clear_layer(p_kind: StringName) -> void:
 	_clear_children(get_ui_layer(p_kind))
 
 

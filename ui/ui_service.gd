@@ -1,5 +1,5 @@
 ## UIService
-## UI 管理服务。根据 PanelKind 路由到对应 UI 层，根据 Lifecycle 控制关闭行为。
+## UI 管理服务。根据面板 kind 路由到对应 UI 层，根据 Lifecycle 控制关闭行为。
 class_name UIService
 extends ModuleLifecycle
 
@@ -199,7 +199,7 @@ func close_all() -> void:
 
 
 ## 关闭指定 UI 层的全部面板
-func clear_layer(p_kind: UIPanelDef.PanelKind) -> void:
+func clear_layer(p_kind: StringName) -> void:
 	for name in _active_panels.keys():
 		var def := _get_def(name)
 		if def != null and def.kind == p_kind:
@@ -209,7 +209,7 @@ func clear_layer(p_kind: UIPanelDef.PanelKind) -> void:
 
 ## 关闭游戏内面板（SCREEN/POPUP/TOOLTIP），保留 HUD/系统
 func clear_gameplay_ui() -> void:
-	for kind in [UIPanelDef.PanelKind.SCREEN, UIPanelDef.PanelKind.POPUP, UIPanelDef.PanelKind.TOOLTIP]:
+	for kind in [UIPanelDef.KIND_SCREEN, UIPanelDef.KIND_POPUP, UIPanelDef.KIND_TOOLTIP]:
 		_clear_layer_suppressed(kind)
 	_recalculate_input_block()
 
@@ -227,7 +227,7 @@ func clear_all_ui() -> void:
 func hide_hud() -> void:
 	for name in _active_panels.keys():
 		var def := _get_def(name)
-		if def != null and def.kind == UIPanelDef.PanelKind.HUD:
+		if def != null and def.kind == UIPanelDef.KIND_HUD:
 			hide(name)
 
 
@@ -235,14 +235,14 @@ func hide_hud() -> void:
 func show_hud() -> void:
 	for name in _panel_defs.keys():
 		var def: UIPanelDef = _panel_defs[name]
-		if def.kind == UIPanelDef.PanelKind.HUD and def.lifecycle == UIPanelDef.Lifecycle.PERSISTENT:
+		if def.kind == UIPanelDef.KIND_HUD and def.lifecycle == UIPanelDef.Lifecycle.PERSISTENT:
 			if not _active_panels.has(name):
 				var r := open(name)
 				if r.is_fail():
 					_log.error("UIService", "show_hud 打开失败: %s — %s" % [name, r.error.message])
 	for name in _active_panels.keys():
 		var def := _get_def(name)
-		if def != null and def.kind == UIPanelDef.PanelKind.HUD:
+		if def != null and def.kind == UIPanelDef.KIND_HUD:
 			show(name)
 
 
@@ -339,7 +339,7 @@ func _do_close_quiet(p_name: String, p_def: UIPanelDef) -> void:
 	_do_close(p_name, p_def, true)
 
 
-func _clear_layer_suppressed(p_kind: UIPanelDef.PanelKind) -> void:
+func _clear_layer_suppressed(p_kind: StringName) -> void:
 	for name in _active_panels.keys():
 		var def := _get_def(name)
 		if def != null and def.kind == p_kind:
@@ -502,7 +502,7 @@ func _remove_from_order(p_name: String) -> void:
 	_open_order.erase(p_name)
 
 
-func _apply_layer_order(p_kind: UIPanelDef.PanelKind) -> void:
+func _apply_layer_order(p_kind: StringName) -> void:
 	var layer = _scene_host.get_ui_layer(p_kind)
 	var children = layer.get_children()
 	if children.size() <= 1:
