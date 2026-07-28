@@ -87,6 +87,12 @@ func install(p_deps: Dictionary) -> OperationResult:
 	bs._track_module(ui_service)
 	if not bs._cfg_or_fail("UIService", ui_service.configure(ui_context), ui_service): return _fail()
 
+	# UIDragManager — 挂到场景树接收 _input 事件
+	var drag_manager := ui_service.get_drag_manager()
+	if drag_manager != null:
+		bs.add_child(drag_manager)
+		bs._track_node(drag_manager)
+
 	# 声明产出
 	if registry != null:
 		registry.add_required(ServiceRegistry.KEY_RESOURCE)

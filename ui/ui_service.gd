@@ -20,6 +20,14 @@ var _open_order: Array[String] = []
 ## 面板上下文。configure 时由上层传入，每次面板实例化后自动设置到 panel.ctx。
 var _panel_context: UiContext = null
 
+# ============================================================
+# 拖拽
+# ============================================================
+
+var _drag_manager: UIDragManager = null
+var _drop_targets: Array[UIDropTarget] = []
+var _last_hovered: UIDropTarget = null
+
 
 func _on_init() -> OperationResult:
 	return OperationResult.ok()
@@ -44,6 +52,12 @@ func configure(p_ui_context: UiContext) -> OperationResult:
 	_input_service = p_ui_context.input
 	_input_service.set_game_input_blocker(_should_block_game_action)
 	_log = p_ui_context.log
+
+	# 初始化 UIDragManager
+	_drag_manager = UIDragManager.new()
+	_drag_manager.name = "UIDragManager"
+	_drag_manager.configure(self)
+
 	return OperationResult.ok()
 
 
@@ -173,7 +187,13 @@ func hide(p_name: String) -> OperationResult:
 # ============================================================
 
 ## 关闭栈顶可关闭面板（ESC 键逻辑）。
+## 拖拽中 ESC → 取消拖拽，不关面板。
 func close_top() -> OperationResult:
+	# 拖拽中 ESC → 取消拖拽
+	if is_dragging():
+		cancel_drag()
+		return OperationResult.ok()
+
 	for i in range(_open_order.size() - 1, -1, -1):
 		var name: String = _open_order[i]
 		var def := _get_def(name)
@@ -314,6 +334,161 @@ func has_ui_blocker_active() -> bool:
 
 
 # ============================================================
+# 拖拽 API
+# ============================================================
+
+## 开始拖拽。p_handler 为游戏层实现的 UIDragHandler 子类。
+## 如果有旧拖拽未结束，先 cancel 旧的再开始新的。
+func begin_drag(p_handler: UIDragHandler, p_screen_pos: Vector2, p_source: UIPanel = null) -> OperationResult:
+	if _drag_manager == null:
+		return OperationResult.fail(OperationResult.ERR_INTERNAL, "UIDragManager 未初始化", module_name)
+	if p_handler == null:
+		return OperationResult.fail(OperationResult.ERR_BAD_REQUEST, "handler 不能为 null", module_name)
+	if _drag_manager._event != null:
+		cancel_drag()
+	_drag_manager.begin(p_handler, p_screen_pos, MOUSE_BUTTON_LEFT, p_source)
+	return OperationResult.ok()
+
+
+## 取消当前拖拽。触发 handler.on_end_drag(event) 且 event.drop_receiver = null。
+func cancel_drag() -> void:
+	if _drag_manager == null:
+		return
+	if _drag_manager._event != null:
+		var event := _drag_manager._event
+		event.drop_receiver = null
+
+		if is_instance_valid(_drag_manager._handler):
+			_drag_manager._handler.on_end_drag(event)
+
+		if _last_hovered != null:
+			if _last_hovered.on_leave.is_valid():
+				_last_hovered.on_leave.call()
+			_last_hovered = null
+
+		_drag_manager._clear()
+
+
+## 当前是否有活跃拖拽（供 InputPolicy 查询）
+func is_dragging() -> bool:
+	return _drag_manager != null and _drag_manager._event != null
+
+
+## 获取当前拖拽位置（游戏层在 on_drop 中用来计算世界坐标）
+func get_drag_position() -> Vector2:
+	if _drag_manager != null and _drag_manager._event != null:
+		return _drag_manager._event.position
+	return Vector2.ZERO
+
+
+## 注册放置目标（面板在 _on_open 中调用）
+func register_drop_target(p_target: UIDropTarget) -> OperationResult:
+	if p_target == null:
+		return OperationResult.fail(OperationResult.ERR_BAD_REQUEST, "target 不能为 null", module_name)
+	if p_target.panel == null:
+		return OperationResult.fail(OperationResult.ERR_BAD_REQUEST, "target.panel 不能为 null", module_name)
+	_drop_targets.append(p_target)
+	return OperationResult.ok()
+
+
+## 注销属于某面板的所有放置目标（框架在面板关闭时自动调用）
+func unregister_panel_targets(p_panel: UIPanel) -> void:
+	var filtered: Array[UIDropTarget] = []
+	for t in _drop_targets:
+		if is_instance_valid(t) and t.panel != p_panel:
+			filtered.append(t)
+	_drop_targets = filtered
+
+
+## 获取 UIDragManager Node（供 ServiceInstallerImpl 挂到场景树）
+func get_drag_manager() -> UIDragManager:
+	return _drag_manager
+
+
+## [L2] 简化拖拽：给 data + icon，框架全管。返回 UIDragHandler 供连接信号。
+## p_data 放入 event.drag_data，p_icon 自动创建 UIDragGhost。
+func begin_simple_drag(p_data: Dictionary, p_icon: Texture2D, p_offset: Vector2 = Vector2(-24, -24), p_source: UIPanel = null) -> UIDragHandler:
+	var handler := _DefaultDragHandler.new(p_data, p_icon, p_offset)
+	begin_drag(handler, _get_global_mouse_pos(), p_source)
+	return handler
+
+
+# ============================================================
+# 内部：拖拽（UIDragManager 回调）
+# ============================================================
+
+func _on_drag_motion(p_mouse_pos: Vector2) -> void:
+	var hovered := _hit_test_target(p_mouse_pos)
+	if hovered != _last_hovered:
+		if _last_hovered != null and _last_hovered.on_leave.is_valid():
+			_last_hovered.on_leave.call()
+		_last_hovered = hovered
+		if hovered != null and hovered.on_hover.is_valid():
+			hovered.on_hover.call(_drag_manager._event.drag_data)
+
+
+func _on_drag_drop(p_mouse_pos: Vector2) -> void:
+	var event := _drag_manager._event
+	var hit_target := _hit_test_target(p_mouse_pos)
+
+	# 1. 调 DropTarget.on_drop
+	var accepted := false
+	if hit_target != null and hit_target.on_drop.is_valid():
+		event.drop_receiver = hit_target.panel
+		accepted = hit_target.on_drop.call(event.drag_data)
+		if not accepted:
+			event.drop_receiver = null
+
+	# 2. 调 handler.on_drop（拖拽源处理）
+	if is_instance_valid(_drag_manager._handler):
+		_drag_manager._handler.on_drop(event)
+
+	# 3. 调 handler.on_end_drag（无论如何）
+	if is_instance_valid(_drag_manager._handler):
+		_drag_manager._handler.on_end_drag(event)
+
+	# 4. 清理 hover
+	if _last_hovered != null:
+		if _last_hovered.on_leave.is_valid():
+			_last_hovered.on_leave.call()
+		_last_hovered = null
+
+	_drag_manager._clear()
+
+
+func _hit_test_target(p_mouse_pos: Vector2) -> UIDropTarget:
+	# 从 _open_order 栈顶向下遍历（后打开的面板优先拦截）
+	for i in range(_open_order.size() - 1, -1, -1):
+		var panel := _get_panel_safe(_open_order[i])
+		if panel == null or not panel.visible:
+			continue
+
+		for target in _drop_targets:
+			if not is_instance_valid(target):
+				continue
+			if target.panel != panel:
+				continue
+
+			# 先调业务判断（可能非常轻量，如字符串比较）
+			if target.accept_filter.is_valid():
+				if not target.accept_filter.call(_drag_manager._event.drag_data):
+					continue
+
+			# 再算几何
+			var global_rect := Rect2(panel.global_position + target.rect.position, target.rect.size)
+			if global_rect.has_point(p_mouse_pos):
+				return target
+
+	return null
+
+
+func _get_global_mouse_pos() -> Vector2:
+	if _scene_host != null and is_instance_valid(_scene_host):
+		return _scene_host.get_viewport().get_mouse_position()
+	return Vector2.ZERO
+
+
+# ============================================================
 # 内部：关闭
 # ============================================================
 
@@ -323,6 +498,10 @@ func _do_close(p_name: String, p_def: UIPanelDef, p_suppress_recalc: bool = fals
 
 	var panel := _get_panel_safe(p_name)
 	if panel == null: return
+
+	# 清理该面板的所有 DropTarget（不取消拖拽）
+	unregister_panel_targets(panel)
+
 	_active_panels.erase(p_name)
 	_remove_from_order(p_name)
 
@@ -527,3 +706,28 @@ func _get_layer_order(p_node: Node) -> int:
 
 func _get_def(p_name: String) -> UIPanelDef:
 	return _panel_defs.get(p_name, null) as UIPanelDef
+
+
+# ============================================================
+# 内部：L2 默认 DragHandler
+# ============================================================
+
+class _DefaultDragHandler
+extends UIDragHandler
+
+var _data: Dictionary = {}
+var _icon: Texture2D = null
+var _offset: Vector2 = Vector2.ZERO
+var _ghost: UIDragGhost = null
+
+
+func _init(p_data: Dictionary, p_icon: Texture2D, p_offset: Vector2) -> void:
+	_data = p_data
+	_icon = p_icon
+	_offset = p_offset
+
+
+func on_begin_drag(event: UIDragEvent) -> void:
+	event.drag_data = _data
+	if _icon != null:
+		_ghost = event.show_ghost_texture(_icon, _offset)

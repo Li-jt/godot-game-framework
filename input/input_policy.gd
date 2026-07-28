@@ -83,6 +83,7 @@ func _context_blocks(p_action_id: String) -> bool:
 
 func _ui_always_blocks(p_action_id: String) -> bool:
 	if _ui_service == null: return false
+	if _ui_service.is_dragging(): return false
 	var panels: Array = _ui_service.get_active_panels()
 	for panel in panels:
 		var mode: int = panel.get_game_input_block_mode()
@@ -96,6 +97,7 @@ func _ui_pointer_blocks(p_action_id: String, p_pos: Vector2) -> bool:
 	if _ui_service == null:
 		if _dbg_once == 0: _dbg_once = 1; print("[Policy] _ui_service is NULL!")
 		return false
+	if _ui_service.is_dragging(): return false
 	var panels: Array = _ui_service.get_active_panels()
 	if panels.is_empty() and _dbg_once == 1: _dbg_once = 2; print("[Policy] get_active_panels() is empty!")
 	for panel in panels:
