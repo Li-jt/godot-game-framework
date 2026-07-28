@@ -2,9 +2,10 @@
 ## 运行时模式服务。根据 AppConfig 确定当前运行模式，
 ## Framework 各模块（Command、Save、Network）通过此服务判断行为分支。
 ##
+## RuntimeService 通过 Installer 注入到 ServiceRegistry，Game 层通过 GameServices.runtime 访问。
+##
 ## 使用方式：
 ##   [codeblock]
-##   # RuntimeService 由 Framework 内部通过 ServiceRegistry.instance 获取
 ##   if runtime.is_local():
 ##       execute_locally(command)
 ##   elif runtime.is_hybrid():

@@ -41,13 +41,6 @@ const KEY_ECS_SCHEDULER: String = "EcsScheduler"
 const KEY_ECS_DEBUG: String = "EcsDebug"
 const KEY_ECS_SAVE_ADAPTER: String = "EcsSaveAdapter"
 
-# 全局单例引用（由 AppBootstrap 在启动时赋值）
-static var instance: ServiceRegistry = null
-
-## Framework 内部获取实例（ISaveable 自注册等场景使用）
-static func get_instance() -> ServiceRegistry:
-	return instance
-
 var _services: Dictionary = {}          ## {String: Object}
 var _owners: Dictionary = {}            ## {String: String}  key → owner_name
 var _priorities: Dictionary = {}        ## {String: int}     key → priority

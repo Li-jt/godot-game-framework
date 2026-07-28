@@ -135,13 +135,19 @@ func replace_world(p_scene_path: String, p_data: Dictionary = {}) -> OperationRe
 		return node_result
 
 	var new_node: Node = node_result.data
+	var old_root: Node = world_root.get_child(0) if world_root.get_child_count() > 0 else null
 
 	if new_node is WorldRoot and _world_context != null:
 		var wr := new_node as WorldRoot
 		wr.ctx = _world_context
 		wr._on_world_setup()
 
+	# 存档系统：注销旧世界 ISaveable，收集新世界 ISaveable
+	if _world_context != null and _world_context.save_service != null:
+		_world_context.save_service.on_world_switch(old_root, new_node)
+
 	unload_world()
+
 	world_root.add_child(new_node)
 	_log.info("SceneHost", "世界已切换: %s" % p_scene_path)
 	return OperationResult.ok(new_node)

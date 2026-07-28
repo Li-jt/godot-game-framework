@@ -110,7 +110,6 @@ func _run_boot_sequence() -> void:
 	var verify_result := registry.verify_pending()
 	if verify_result.is_fail(): _fail_boot("ServiceRegistry.verify", verify_result); return
 
-	ServiceRegistry.instance = registry
 	var log: LogService = deps.log
 	log.info("Bootstrap", "服务注册中心已创建，当前注册 %d 个服务" % registry.count())
 

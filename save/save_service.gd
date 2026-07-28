@@ -6,6 +6,11 @@
 ## 读取流程：
 ##   Provider 读取 → 版本迁移 → _restore_save_data() 自动分发
 ##
+## ISaveable 注册路径：
+##   1. collect_from_node(root) — 场景树自动扫描（Node-based ISaveable）
+##   2. child_entering_tree 信号 — 增量注册（collect 之后挂入的新节点）
+##   3. register_saveable() — 手动注册（纯数据、Service、Mod ISaveable）
+##
 ## 网络兼容：
 ##   on_save() 产出的模块级字典可直接作为网络 delta 发送；
 ##   服务端收到后按 save_key 合并或校验。
@@ -50,6 +55,9 @@ func register_migrator(p_migrator: SaveVersionMigrator) -> void:
 # ISaveable 注册
 # ============================================================
 
+## 注册 ISaveable 实例。存盘时 save_all() 自动收集其 on_save() 数据。
+## 适用于非 Node 的纯数据 ISaveable、Service 持有的全局 ISaveable、Mod 注册的 ISaveable。
+## Node-based ISaveable 推荐使用 collect_from_node() 自动扫描注册。
 func register_saveable(p_saveable: ISaveable) -> void:
 	var key := p_saveable.save_key()
 	if key.is_empty():
@@ -61,6 +69,61 @@ func register_saveable(p_saveable: ISaveable) -> void:
 
 func unregister_saveable(p_key: String) -> void:
 	_saveables.erase(p_key)
+
+
+## 从节点树一次性扫描 ISaveable 后代节点并注册。
+## 之后通过 child_entering_tree/child_exiting_tree 信号做增量注册，无需重复调用。
+## 调用时机：WorldRoot._on_world_setup() 中，场景树构建完成后。
+## [br]
+## [param root] 要扫描的根节点
+## [br]
+## [return] 收集到的 ISaveable 数量
+func collect_from_node(p_root: Node) -> int:
+	if p_root == null:
+		return 0
+	var count := 0
+	_collect_recursive(p_root, count)
+	_log.info("Save", "collect_from_node(%s) → 收集 %d 个 ISaveable" % [p_root.name, count])
+
+	# 从此之后增量注册
+	if not p_root.child_entering_tree.is_connected(_on_saveable_child_entered):
+		p_root.child_entering_tree.connect(_on_saveable_child_entered)
+	if not p_root.child_exiting_tree.is_connected(_on_saveable_child_exited):
+		p_root.child_exiting_tree.connect(_on_saveable_child_exited)
+
+	return count
+
+
+## 按 key 前缀批量注销（世界切换、Mod 卸载时使用）。
+## [br]
+## [return] 被注销的数量
+func unregister_by_prefix(p_prefix: String) -> int:
+	var removed := 0
+	var keys_to_remove: Array[String] = []
+	for key in _saveables:
+		if key.begins_with(p_prefix):
+			keys_to_remove.append(key)
+	for key in keys_to_remove:
+		_saveables.erase(key)
+		removed += 1
+	if removed > 0:
+		_log.info("Save", "unregister_by_prefix(%s) → 注销 %d 个" % [p_prefix, removed])
+	return removed
+
+
+## 世界切换时调用：注销旧世界 ISaveable，扫描新世界后代并注册。
+## p_old_root 传 null 表示首次加载（跳过注销步骤）。
+## p_prefix 默认为 "world."，区分世界数据与 Profile 级数据。
+func on_world_switch(p_old_root: Node, p_new_root: Node, p_prefix: String = "world.") -> void:
+	if p_old_root != null:
+		if p_old_root.child_entering_tree.is_connected(_on_saveable_child_entered):
+			p_old_root.child_entering_tree.disconnect(_on_saveable_child_entered)
+		if p_old_root.child_exiting_tree.is_connected(_on_saveable_child_exited):
+			p_old_root.child_exiting_tree.disconnect(_on_saveable_child_exited)
+		unregister_by_prefix(p_prefix)
+
+	if p_new_root != null:
+		collect_from_node(p_new_root)
 
 
 ## 从一组 ISaveable 实例中批量注册。
@@ -76,7 +139,7 @@ func collect_from(p_saveables: Array) -> OperationResult:
 			continue
 		register_saveable(obj)
 	if not errors.is_empty():
-		return OperationResult.fail(OperationResult.ERR_BAD_REQUEST, "SaveService", ", ".join(errors))
+		return OperationResult.fail(OperationResult.ERR_BAD_REQUEST, ", ".join(errors), module_name)
 	return OperationResult.ok()
 
 
@@ -207,3 +270,26 @@ func _restore_save_data(p_data: Dictionary) -> void:
 			_log.warning("Save", "存档中存在未注册模块: %s（已跳过）" % key)
 			skipped += 1
 	_log.info("Save", "恢复存档数据完成，恢复模块数: %d，跳过: %d" % [restored, skipped])
+
+
+## 递归扫描节点树，收集 ISaveable 后代节点。
+## p_count 为 int 引用：GDScript 中基础类型非引用传递，调用方用返回值替代。
+func _collect_recursive(p_node: Node, p_count: int) -> void:
+	if p_node is ISaveable:
+		register_saveable(p_node as ISaveable)
+		p_count += 1
+	for child in p_node.get_children():
+		_collect_recursive(child, p_count)
+
+
+## child_entering_tree 回调：新节点挂入时自动注册。
+func _on_saveable_child_entered(p_child: Node) -> void:
+	if p_child is ISaveable:
+		register_saveable(p_child as ISaveable)
+
+
+## child_exiting_tree 回调：节点移出时自动注销。
+func _on_saveable_child_exited(p_child: Node) -> void:
+	if p_child is ISaveable:
+		var key := (p_child as ISaveable).save_key()
+		unregister_saveable(key)
