@@ -1,18 +1,27 @@
 ## DeviceNormalizer — 设备归一化器（v4.0）。
 ## 将 Godot InputEvent 转为 InputRawSignal 列表，消除下游对 Godot 事件类型的依赖。
+##
+## Godot 4.7 兼容：键盘/鼠标的 device 值从 0 变为专用常量。
+## 本归一化器从 InputEvent 中提取真实 device 值，并通过常量暴露 4.7 语义。
 class_name DeviceNormalizer
 extends RefCounted
+
+## Godot 4.7+ 键盘设备固定 ID（4.6 及以前为 0）。
+const DEVICE_ID_KEYBOARD: int = 16
+## Godot 4.7+ 鼠标设备固定 ID（4.6 及以前为 0）。
+const DEVICE_ID_MOUSE: int = 32
 
 
 ## 将单个 InputEvent 转为 0..N 个 InputRawSignal。
 func normalize(p_event: InputEvent) -> Array[InputRawSignal]:
 	var result: Array[InputRawSignal] = []
+	var dev: int = p_event.device
 
 	if p_event is InputEventKey:
 		var ke := p_event as InputEventKey
 		result.append(InputRawSignal.new(
 			InputBinding.Source.KEYBOARD, ke.keycode, ke.pressed,
-			0.0, Vector2.INF, -1))
+			0.0, Vector2.INF, dev))
 
 	elif p_event is InputEventMouseButton:
 		var mb := p_event as InputEventMouseButton
@@ -20,35 +29,35 @@ func normalize(p_event: InputEvent) -> Array[InputRawSignal]:
 		if mb.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
 			result.append(InputRawSignal.new(
 				InputBinding.Source.MOUSE_WHEEL, mb.button_index, true,
-				float(mb.factor), mb.global_position, -1))
+				float(mb.factor), mb.global_position, dev))
 		else:
 			result.append(InputRawSignal.new(
 				InputBinding.Source.MOUSE_BUTTON, mb.button_index, mb.pressed,
-				0.0, mb.global_position, -1))
+				0.0, mb.global_position, dev))
 
 	elif p_event is InputEventJoypadButton:
 		var jb := p_event as InputEventJoypadButton
 		result.append(InputRawSignal.new(
 			InputBinding.Source.GAMEPAD_BUTTON, jb.button_index, jb.pressed,
-			0.0, Vector2.INF, -1))
+			0.0, Vector2.INF, dev))
 
 	elif p_event is InputEventJoypadMotion:
 		var jm := p_event as InputEventJoypadMotion
 		result.append(InputRawSignal.new(
 			InputBinding.Source.GAMEPAD_AXIS, jm.axis, true,
-			jm.axis_value, Vector2.INF, -1))
+			jm.axis_value, Vector2.INF, dev))
 
 	elif p_event is InputEventPanGesture:
 		var pan := p_event as InputEventPanGesture
 		result.append(InputRawSignal.new(
 			InputBinding.Source.TOUCH_PAN, 0, true,
-			pan.delta.y, pan.position, -1))
+			pan.delta.y, pan.position, dev))
 
 	elif p_event is InputEventMagnifyGesture:
 		var mg := p_event as InputEventMagnifyGesture
 		result.append(InputRawSignal.new(
 			InputBinding.Source.TOUCH_MAGNIFY, 0, true,
-			mg.factor, Vector2.INF, -1))
+			mg.factor, Vector2.INF, dev))
 
 	# 设置时间戳
 	var now := Time.get_ticks_msec()

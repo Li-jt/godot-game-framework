@@ -9,6 +9,9 @@
 ##   UI     — UI 交互音效
 ##   VOICE  — 语音/对话
 ##
+## Godot 4.7 兼容：AudioStreamPlayer2D/3D 的 area_mask 默认值从 1 变为 0。
+## _apply_player_defaults() 统一设置新建播放器的兼容默认值，避免静音问题。
+##
 ## 使用方式：
 ##   [codeblock]
 ##   var audio: AudioRuntime = injected_audio_runtime
@@ -134,6 +137,7 @@ func _setup() -> void:
 		var p := AudioStreamPlayer.new()
 		p.name = "SFX_%d" % i
 		p.bus = "SFX"
+		_apply_player_defaults(p)
 		add_child(p)
 		_sfx_pool.append(p)
 
@@ -154,6 +158,7 @@ func _create_player(p_channel: Channel) -> void:
 	var p := AudioStreamPlayer.new()
 	p.name = _channel_name(p_channel)
 	p.bus = _bus_name(p_channel)
+	_apply_player_defaults(p)
 	add_child(p)
 	_players[p_channel] = p
 
@@ -175,6 +180,16 @@ func _apply_mute(p_channel: Channel) -> void:
 			p.volume_db = db
 	else:
 		_get_player(p_channel).volume_db = db
+
+
+## 对新创建的 AudioStreamPlayer 设置跨版本兼容默认值。
+## Godot 4.7 中 AudioStreamPlayer2D/3D 的 area_mask 默认值从 1 变为 0，
+## 如果不显式设置会导致 2D/3D 音频无法被任何 Area2D/3D 监听到。
+func _apply_player_defaults(p_player: AudioStreamPlayer) -> void:
+	if p_player is AudioStreamPlayer2D:
+		(p_player as AudioStreamPlayer2D).area_mask = 1
+	elif p_player is AudioStreamPlayer3D:
+		(p_player as AudioStreamPlayer3D).area_mask = 1
 
 
 func _channel_name(p_channel: Channel) -> String:

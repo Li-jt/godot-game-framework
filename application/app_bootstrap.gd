@@ -245,10 +245,12 @@ func _print_banner(p_config: AppConfig, p_log: LogService) -> void:
 	var T := "[color=#ffd740]"
 	var W := "[color=#ffffff]"
 	var X := "[/color]"
+	var ver := Engine.get_version_info()
+	var ver_str := "%d.%d" % [ver.major, ver.minor]
 	p_log.info("Bootstrap", C + "╔══════════════════════════════════════════╗" + X)
 	p_log.info("Bootstrap", C + "║" + X + "  " + T + p_config.app.name + X + "  " + C + "║" + X)
 	p_log.info("Bootstrap", C + "║" + X + "  " + W + "v" + p_config.app.version + X + "  " + C + "║" + X)
-	p_log.info("Bootstrap", C + "║" + X + "  " + W + "Godot 4.6  |  GDScript" + X + "                " + C + "║" + X)
+	p_log.info("Bootstrap", C + "║" + X + "  " + W + "Godot %s  |  GDScript" % ver_str + X + "                " + C + "║" + X)
 	p_log.info("Bootstrap", C + "╚══════════════════════════════════════════╝" + X)
 
 func _print_config_summary(p_config: AppConfig, p_log: LogService) -> void:
