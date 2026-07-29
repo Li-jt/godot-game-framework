@@ -16,7 +16,7 @@ var _now_msec_provider: Callable = Callable()
 var _is_recording: bool = false
 var _recorded_frames: Array[Dictionary] = []
 var _is_replaying: bool = false
-var _replay_frames: Array[Dictionary] = []
+var _replay_frames: Array = []
 var _replay_index: int = 0
 
 
@@ -73,7 +73,7 @@ func begin_frame() -> void:
 
 	# 回放模式：注入录制的信号
 	if _is_replaying and _replay_index < _replay_frames.size():
-		var frame_data: Dictionary = _replay_frames[_replay_index]
+		var frame_data: Dictionary = _replay_frames[_replay_index] as Dictionary
 		_replay_index += 1
 		for sig_dict in frame_data.get("signals", []):
 			var sig := GF_InputRawSignal.new(
