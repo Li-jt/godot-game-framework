@@ -1,5 +1,6 @@
-## GF_ActionResolver — 动作解析器（v4.0 重写）。
+## GF_ActionResolver — 动作解析器（v4.0）。
 ## 核心：接收 RawSignal，匹配 binding，应用 policy，写入 ActionState，合成输出。
+## 支持录制/回放：录制归一化后的信号，回放时注入替代真实事件。
 class_name GF_ActionResolver
 extends RefCounted
 
@@ -10,6 +11,13 @@ var _gesture: GF_InputGestureEngine = null
 var _policy: GF_InputPolicy = null
 var _pending_impulses: Array[Dictionary] = []
 var _now_msec_provider: Callable = Callable()
+
+# 录制/回放
+var _is_recording: bool = false
+var _recorded_frames: Array[Dictionary] = []
+var _is_replaying: bool = false
+var _replay_frames: Array[Dictionary] = []
+var _replay_index: int = 0
 
 
 func _init() -> void:
@@ -63,53 +71,33 @@ func begin_frame() -> void:
 		state.begin_frame()
 	_pending_impulses.clear()
 
+	# 回放模式：注入录制的信号
+	if _is_replaying and _replay_index < _replay_frames.size():
+		var frame_data: Dictionary = _replay_frames[_replay_index]
+		_replay_index += 1
+		for sig_dict in frame_data.get("signals", []):
+			var sig := GF_InputRawSignal.new(
+				sig_dict["source"], sig_dict["code"], sig_dict.get("is_press", false),
+				sig_dict.get("analog", 0.0), sig_dict.get("pointer_pos", Vector2.INF),
+				sig_dict.get("device", -1))
+			sig.timestamp_msec = _get_now()
+			_process_raw_signal(sig, Vector2.INF)
+
 
 func feed_event(p_event: InputEvent) -> void:
+	if _is_replaying:
+		return  # 回放模式下忽略真实事件
+
 	var raw_sigs: Array[GF_InputRawSignal] = _normalizer.normalize(p_event)
 	var pointer_pos: Vector2 = _normalizer.extract_pointer_position(p_event)
 	var now: int = _get_now()
 
+	if _is_recording:
+		_record_frame_signals(raw_sigs)
+
 	for sig in raw_sigs:
 		sig.timestamp_msec = now
-
-		# 找所有匹配 binding 的 action
-		for action_id in _defs.keys():
-			var def: GF_InputActionDef = _defs[action_id]
-			var matched := false
-			for binding in def.bindings:
-				if binding.matches_signal(sig):
-					matched = true
-					break
-			if not matched:
-				continue
-
-			# policy 检查
-			if _policy != null and _policy.is_action_blocked(action_id, p_event, pointer_pos):
-				continue
-
-			var state: GF_InputActionState = _states[action_id]
-			if state == null:
-				continue
-
-			# 按 mode 写入 state
-			for binding in def.bindings:
-				if not binding.matches_signal(sig):
-					continue
-				match binding.mode:
-					GF_InputBinding.Mode.IMPULSE:
-						if sig.is_press:
-							state.accumulate_impulse(binding.scale)
-					GF_InputBinding.Mode.HELD:
-						pass  # poll_held 阶段处理
-					GF_InputBinding.Mode.ANALOG:
-						state.accumulate_analog(sig.analog_value * binding.scale)
-
-			# 手势候选
-			if _gesture != null and def.gesture_profile != null and def.gesture_profile.enable_click_gesture:
-				if sig.is_press and sig.source == GF_InputBinding.Source.MOUSE_BUTTON:
-					var gesture_results: Array[Dictionary] = _gesture.on_click_candidate(def, sig, 0)
-					for gr in gesture_results:
-						_pending_impulses.append(gr)
+		_process_raw_signal(sig, pointer_pos)
 
 
 func end_frame(p_delta: float) -> void:
@@ -136,6 +124,58 @@ func end_frame(p_delta: float) -> void:
 		state.finalize(def, p_delta)
 
 	_pending_impulses.clear()
+
+
+# ============================================================
+# 录制/回放
+# ============================================================
+
+## 开始录制。
+func start_recording() -> void:
+	_is_recording = true
+	_recorded_frames.clear()
+
+
+## 停止录制，返回录制数据。
+func stop_recording() -> Dictionary:
+	_is_recording = false
+	return {"frames": _recorded_frames.duplicate(true)}
+
+
+## 是否正在录制。
+func is_recording() -> bool:
+	return _is_recording
+
+
+## 加载录制数据并开始回放。
+func load_recording(p_data: Dictionary) -> void:
+	_replay_frames = p_data.get("frames", [])
+	_replay_index = 0
+	_is_replaying = true
+
+
+## 停止回放。
+func stop_replay() -> void:
+	_is_replaying = false
+	_replay_frames.clear()
+	_replay_index = 0
+
+
+## 是否正在回放。
+func is_replaying() -> bool:
+	return _is_replaying
+
+
+func _record_frame_signals(p_signals: Array[GF_InputRawSignal]) -> void:
+	var signal_dicts: Array[Dictionary] = []
+	for sig in p_signals:
+		signal_dicts.append({
+			"source": sig.source, "code": sig.code,
+			"is_press": sig.is_press, "analog": sig.analog_value,
+			"pointer_pos": sig.pointer_pos, "device": sig.device_id,
+		})
+	if not signal_dicts.is_empty():
+		_recorded_frames.append({"signals": signal_dicts})
 
 
 # ============================================================
@@ -171,7 +211,49 @@ func enqueue_impulse(p_action_id: String, p_value: float) -> void:
 # 内部
 # ============================================================
 
+func _process_raw_signal(p_sig: GF_InputRawSignal, p_pointer_pos: Vector2) -> void:
+	for action_id in _defs.keys():
+		var def: GF_InputActionDef = _defs[action_id]
+		var matched := false
+		for binding in def.bindings:
+			if binding.matches_signal(p_sig):
+				matched = true
+				break
+		if not matched:
+			continue
+
+		# policy 检查
+		if _policy != null and _policy.is_action_blocked_raw(action_id, p_sig.is_spatial(), p_pointer_pos):
+			continue
+
+		var state: GF_InputActionState = _states[action_id]
+		if state == null:
+			continue
+
+		for binding in def.bindings:
+			if not binding.matches_signal(p_sig):
+				continue
+			match binding.mode:
+				GF_InputBinding.Mode.IMPULSE:
+					if p_sig.is_press:
+						state.accumulate_impulse(binding.scale)
+				GF_InputBinding.Mode.HELD:
+					pass
+				GF_InputBinding.Mode.ANALOG:
+					state.accumulate_analog(p_sig.analog_value * binding.scale)
+
+		# 手势候选
+		if _gesture != null and def.gesture_profile != null and def.gesture_profile.enable_click_gesture:
+			if p_sig.is_press and p_sig.source == GF_InputBinding.Source.MOUSE_BUTTON:
+				var gesture_results: Array[Dictionary] = _gesture.on_click_candidate(def, p_sig, 0)
+				for gr in gesture_results:
+					_pending_impulses.append(gr)
+
+
 func _poll_held_bindings() -> void:
+	if _is_replaying:
+		return  # 回放不 poll
+
 	var mouse_pos := DisplayServer.mouse_get_position()
 	for action_id in _defs.keys():
 		var def: GF_InputActionDef = _defs[action_id]
@@ -179,7 +261,6 @@ func _poll_held_bindings() -> void:
 		var held: float = 0.0
 		for binding in def.bindings:
 			if binding.mode != GF_InputBinding.Mode.HELD: continue
-			# 空间型 HELD（鼠标按钮）：检查是否被 UI 阻挡
 			if binding.source in [GF_InputBinding.Source.MOUSE_BUTTON]:
 				if _policy != null and _policy.is_action_blocked_raw(action_id, true, mouse_pos):
 					continue
