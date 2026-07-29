@@ -1,21 +1,21 @@
-## EcsWorld — ECS 世界核心。
+## GF_EcsWorld — ECS 世界核心。
 ## 管理实体生命周期、组件存储、ID 分配和世界版本号。
 ## 所有 ECS 操作均通过此对象完成，不直接操作存储层。
-class_name EcsWorld
-extends IEcsWorld
+class_name GF_EcsWorld
+extends GF_IEcsWorld
 
 var _entities: Dictionary = {}  # int entity_id -> bool
-var _registry: EcsComponentTypeRegistry = null
-var _storage_index: EcsStorageIndex = null
+var _registry: GF_EcsComponentTypeRegistry = null
+var _storage_index: GF_EcsStorageIndex = null
 var _version: int = 0
 var _next_entity_id: int = 1
 ## 内容定义注册表（由 GameBootstrap 注入，供 ECS 系统查询物品/建筑/工作等 Def 数据）
-var content_def: ContentDefRegistry = null
+var content_def: GF_ContentDefRegistry = null
 
 
 func _init() -> void:
-	_registry = EcsComponentTypeRegistry.new()
-	_storage_index = EcsStorageIndex.new()
+	_registry = GF_EcsComponentTypeRegistry.new()
+	_storage_index = GF_EcsStorageIndex.new()
 
 
 # ============================================================
@@ -36,7 +36,7 @@ func despawn(p_entity: int) -> bool:
 		return false
 	_entities.erase(p_entity)
 	for type_id in _storage_index.all_type_ids():
-		var storage: IEcsStorage = _storage_index.get_storage(type_id)
+		var storage: GF_IEcsStorage = _storage_index.get_storage(type_id)
 		if storage != null and storage.contains(p_entity):
 			storage.erase(p_entity)
 	_version += 1
@@ -63,32 +63,32 @@ func entity_count() -> int:
 # ============================================================
 
 
-func add_component(p_entity: int, p_type: StringName, p_data: Variant) -> OperationResult:
+func add_component(p_entity: int, p_type: StringName, p_data: Variant) -> GF_OperationResult:
 	if not _entities.has(p_entity):
-		return OperationResult.fail(OperationResult.ERR_NOT_FOUND, "实体不存在: %d" % p_entity, "EcsWorld")
-	var reg_result: OperationResult = _registry.register_type(p_type)
+		return GF_OperationResult.fail(GF_OperationResult.ERR_NOT_FOUND, "实体不存在: %d" % p_entity, "GF_EcsWorld")
+	var reg_result: GF_OperationResult = _registry.register_type(p_type)
 	if reg_result.is_fail():
 		return reg_result
 	var type_id: int = reg_result.data
 	var storage := _storage_index.get_or_create_storage(type_id)
 	if storage.contains(p_entity):
-		return OperationResult.fail(OperationResult.ERR_CONFLICT, "实体 %d 已拥有组件 %s" % [p_entity, p_type], "EcsWorld")
+		return GF_OperationResult.fail(GF_OperationResult.ERR_CONFLICT, "实体 %d 已拥有组件 %s" % [p_entity, p_type], "GF_EcsWorld")
 	storage.insert(p_entity, p_data)
 	_version += 1
-	return OperationResult.ok()
+	return GF_OperationResult.ok()
 
 
-func set_component(p_entity: int, p_type: StringName, p_data: Variant) -> OperationResult:
+func set_component(p_entity: int, p_type: StringName, p_data: Variant) -> GF_OperationResult:
 	if not _entities.has(p_entity):
-		return OperationResult.fail(OperationResult.ERR_NOT_FOUND, "实体不存在: %d" % p_entity, "EcsWorld")
-	var reg_result: OperationResult = _registry.register_type(p_type)
+		return GF_OperationResult.fail(GF_OperationResult.ERR_NOT_FOUND, "实体不存在: %d" % p_entity, "GF_EcsWorld")
+	var reg_result: GF_OperationResult = _registry.register_type(p_type)
 	if reg_result.is_fail():
 		return reg_result
 	var type_id: int = reg_result.data
 	var storage := _storage_index.get_or_create_storage(type_id)
 	storage.insert(p_entity, p_data)
 	_version += 1
-	return OperationResult.ok()
+	return GF_OperationResult.ok()
 
 
 func get_component(p_entity: int, p_type: StringName) -> Variant:
@@ -149,20 +149,20 @@ func all_entities() -> PackedInt64Array:
 func reset() -> void:
 	_entities.clear()
 	_storage_index.clear()
-	_registry = EcsComponentTypeRegistry.new()
-	_storage_index = EcsStorageIndex.new()
+	_registry = GF_EcsComponentTypeRegistry.new()
+	_storage_index = GF_EcsStorageIndex.new()
 	_next_entity_id = 1
 	_version = 0
 
 
 # ============================================================
-# 内部（仅供 EcsQueryPlan 等框架内部使用）
+# 内部（仅供 GF_EcsQueryPlan 等框架内部使用）
 # ============================================================
 
 
-func _get_registry() -> EcsComponentTypeRegistry:
+func _get_registry() -> GF_EcsComponentTypeRegistry:
 	return _registry
 
 
-func _get_storage_index() -> EcsStorageIndex:
+func _get_storage_index() -> GF_EcsStorageIndex:
 	return _storage_index

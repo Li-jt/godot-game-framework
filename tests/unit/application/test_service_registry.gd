@@ -1,13 +1,13 @@
 # tests/unit/application/test_service_registry.gd
-## ServiceRegistry 单元测试。
+## GF_ServiceRegistry 单元测试。
 ## 服务注册中心：优先级覆盖、owner 跟踪、必需 key 校验。
 extends GutTest
 
-var _registry: ServiceRegistry
+var _registry: GF_ServiceRegistry
 
 
 func before_each() -> void:
-	_registry = ServiceRegistry.new()
+	_registry = GF_ServiceRegistry.new()
 
 
 func after_each() -> void:
@@ -27,13 +27,13 @@ func test_register_stores_service() -> void:
 func test_register_empty_key_fails() -> void:
 	var result := _registry.register("", RefCounted.new())
 	assert_true(result.is_fail())
-	assert_eq(result.status_code, OperationResult.ERR_BAD_REQUEST)
+	assert_eq(result.status_code, GF_OperationResult.ERR_BAD_REQUEST)
 
 
 func test_register_null_service_fails() -> void:
 	var result := _registry.register("TestSvc", null)
 	assert_true(result.is_fail())
-	assert_eq(result.status_code, OperationResult.ERR_BAD_REQUEST)
+	assert_eq(result.status_code, GF_OperationResult.ERR_BAD_REQUEST)
 
 
 func test_register_all_stores_multiple() -> void:
@@ -70,7 +70,7 @@ func test_lower_priority_cannot_override() -> void:
 	_registry.register_with_priority("TestSvc", RefCounted.new(), "owner_a", 30)
 	var result := _registry.register_with_priority("TestSvc", RefCounted.new(), "owner_b", 50)
 	assert_true(result.is_fail())
-	assert_eq(result.status_code, OperationResult.ERR_CONFLICT)
+	assert_eq(result.status_code, GF_OperationResult.ERR_CONFLICT)
 
 
 func test_same_priority_cannot_override() -> void:

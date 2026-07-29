@@ -1,19 +1,19 @@
 # tests/unit/save/test_save_service.gd
 extends GutTest
 
-var _service: SaveService
-var _provider: FakeSaveProvider
-var _log: FakeLogService
-var _path_resolver: PathResolver
+var _service: GF_SaveService
+var _provider: GF_FakeSaveProvider
+var _log: GF_FakeLogService
+var _path_resolver: GF_PathResolver
 
 
 func before_each() -> void:
-	_provider = FakeSaveProvider.new()
-	_log = FakeLogService.new()
+	_provider = GF_FakeSaveProvider.new()
+	_log = GF_FakeLogService.new()
 	_log.module_name = "FakeLog"
 	_log.init_module()
-	_path_resolver = PathResolver.new()
-	_service = SaveService.new()
+	_path_resolver = GF_PathResolver.new()
+	_service = GF_SaveService.new()
 	_service.module_name = "SaveService"
 	_service.init_module()
 	_service.configure(_provider, _path_resolver, _log)
@@ -52,7 +52,7 @@ func test_collect_from_registers_array() -> void:
 func test_save_all_and_load_roundtrip() -> void:
 	_service.register_saveable(_make_saveable("hero", {"hp": 80}))
 	_service.register_saveable(_make_saveable("map", {"seed": 42}))
-	var meta := SaveMeta.new()
+	var meta := GF_SaveMeta.new()
 	meta.slot_id = 1
 	var result := _service.save_all(1, meta)
 	assert_true(result.is_ok())
@@ -65,16 +65,16 @@ func test_save_all_and_load_roundtrip() -> void:
 
 func test_save_sets_correct_version() -> void:
 	_service.register_saveable(_make_saveable("hero", {"hp": 100}))
-	var meta := SaveMeta.new()
+	var meta := GF_SaveMeta.new()
 	_service.save_all(1, meta)
 	var load_result := _provider.load_full(1)
 	var wrapper: Dictionary = load_result.data
-	assert_eq(wrapper.meta.save_version, SaveVersion.CURRENT)
+	assert_eq(wrapper.meta.save_version, GF_SaveVersion.CURRENT)
 
 
 func test_load_slot_returns_data() -> void:
 	_service.register_saveable(_make_saveable("hero", {"hp": 100}))
-	var meta := SaveMeta.new()
+	var meta := GF_SaveMeta.new()
 	_service.save_all(1, meta)
 	var result := _service.load_slot(1)
 	assert_true(result.is_ok())
@@ -83,7 +83,7 @@ func test_load_slot_returns_data() -> void:
 
 func test_load_slot_fails_if_version_too_high() -> void:
 	var wrapper := {
-		"meta": {"save_version": SaveVersion.CURRENT + 99},
+		"meta": {"save_version": GF_SaveVersion.CURRENT + 99},
 		"data": {"hero": {"hp": 100}},
 	}
 	_provider._store[1] = wrapper
@@ -96,7 +96,7 @@ func test_load_and_restore_distributes_correctly() -> void:
 	var map_sv = _make_saveable("map", {"seed": 42})
 	_service.register_saveable(hero)
 	_service.register_saveable(map_sv)
-	var meta := SaveMeta.new()
+	var meta := GF_SaveMeta.new()
 	_service.save_all(1, meta)
 
 	var h_loaded := false
@@ -113,7 +113,7 @@ func test_load_and_restore_orders_by_priority() -> void:
 	_service.register_saveable(_make_saveable_cb("late", {}, func(_d): order.append("late"), 100))
 	_service.register_saveable(_make_saveable_cb("early", {}, func(_d): order.append("early"), 1))
 	_service.register_saveable(_make_saveable_cb("mid", {}, func(_d): order.append("mid"), 50))
-	var meta := SaveMeta.new()
+	var meta := GF_SaveMeta.new()
 	_service.save_all(1, meta)
 	_service.load_and_restore(1)
 	assert_eq(order[0], "early")
@@ -123,7 +123,7 @@ func test_load_and_restore_orders_by_priority() -> void:
 
 func test_load_and_restore_skips_unregistered_keys() -> void:
 	var wrapper := {
-		"meta": {"save_version": SaveVersion.CURRENT},
+		"meta": {"save_version": GF_SaveVersion.CURRENT},
 		"data": {"registered": {"x": 1}, "unregistered": {"y": 2}},
 	}
 	_provider._store[1] = wrapper
@@ -144,7 +144,7 @@ func _make_saveable(p_key: String, p_data: Dictionary, p_priority: int = 100):
 func _make_saveable_cb(p_key: String, p_data: Dictionary, p_on_load, p_priority: int = 100):
 	var s := GDScript.new()
 	s.source_code = """
-extends ISaveable
+extends GF_ISaveable
 var _key: String
 var _data: Dictionary
 var _priority: int

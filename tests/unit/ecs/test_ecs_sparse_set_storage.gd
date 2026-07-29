@@ -1,13 +1,13 @@
 # tests/unit/ecs/test_ecs_sparse_set_storage.gd
-## EcsSparseSetStorage 单元测试。
+## GF_EcsSparseSetStorage 单元测试。
 ## SparseSet 存储后端：insert、erase、contains、count、clear。
 extends GutTest
 
-var _storage: EcsSparseSetStorage
+var _storage: GF_EcsSparseSetStorage
 
 
 func before_each() -> void:
-	_storage = EcsSparseSetStorage.new()
+	_storage = GF_EcsSparseSetStorage.new()
 
 
 func after_each() -> void:

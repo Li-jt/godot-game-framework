@@ -1,5 +1,5 @@
-## EcsQueryRow — 单行查询结果，包含实体 ID 和所有组件数据。
-class_name EcsQueryRow
+## GF_EcsQueryRow — 单行查询结果，包含实体 ID 和所有组件数据。
+class_name GF_EcsQueryRow
 extends RefCounted
 
 var entity: int = 0

@@ -1,6 +1,6 @@
-## InputBinding — 单条设备绑定（v4.0）。
+## GF_InputBinding — 单条设备绑定（v4.0）。
 ## 描述一种物理输入如何映射到动作值。
-class_name InputBinding
+class_name GF_InputBinding
 extends RefCounted
 
 enum Source {
@@ -28,7 +28,7 @@ func _init(p_source: int, p_code: int = 0, p_scale: float = 1.0, p_mode: int = M
 
 
 ## 匹配 RawSignal（v4.0 新主接口）。
-func matches_signal(p_signal: InputRawSignal) -> bool:
+func matches_signal(p_signal: GF_InputRawSignal) -> bool:
 	if source != p_signal.source or code != p_signal.code:
 		return false
 	if device_id != -1 and p_signal.device_id != -1 and device_id != p_signal.device_id:
@@ -97,8 +97,8 @@ func is_down() -> bool:
 
 
 ## 深拷贝。
-func duplicate_binding() -> InputBinding:
-	return InputBinding.new(source, code, scale, mode, negative_axis, slot, device_id)
+func duplicate_binding() -> GF_InputBinding:
+	return GF_InputBinding.new(source, code, scale, mode, negative_axis, slot, device_id)
 
 
 ## 序列化（存档用）。
@@ -108,8 +108,8 @@ func to_dict() -> Dictionary:
 
 
 ## 反序列化。
-static func from_dict(p_data: Dictionary) -> InputBinding:
-	return InputBinding.new(
+static func from_dict(p_data: Dictionary) -> GF_InputBinding:
+	return GF_InputBinding.new(
 		p_data.get("source", 0), p_data.get("code", 0),
 		p_data.get("scale", 1.0), p_data.get("mode", Mode.HELD),
 		p_data.get("negative_axis", false), p_data.get("slot", Slot.PRIMARY),

@@ -1,12 +1,12 @@
-## ContentDefRegistry — 内容定义注册表（Framework 层）。
+## GF_ContentDefRegistry — 内容定义注册表（Framework 层）。
 ## 通用模块注册与查询机制，不含任何具体业务语义。
 ## 替代 GameDefService 单例，由 GameBootstrap 在启动时注册各内容模块。
 ##
 ## 使用方式：
-##   1. GameBootstrap 中创建 ContentDefRegistry 实例
+##   1. GameBootstrap 中创建 GF_ContentDefRegistry 实例
 ##   2. 调用 register_module("terrain", terrain_module) 注册模块
 ##   3. ECS 系统通过 p_world.content_def.module("terrain") 获取模块数据
-class_name ContentDefRegistry
+class_name GF_ContentDefRegistry
 extends RefCounted
 
 ## {StringName: Variant} 已注册的模块映射
@@ -18,7 +18,7 @@ var _modules: Dictionary = {}
 ## p_module: 模块实例，通常是加载 JSON 数据后的数据持有对象
 func register_module(p_name: StringName, p_module: Variant) -> void:
 	if _modules.has(p_name):
-		push_warning("[ContentDefRegistry] 模块 '%s' 被覆盖注册" % p_name)
+		push_warning("[GF_ContentDefRegistry] 模块 '%s' 被覆盖注册" % p_name)
 	_modules[p_name] = p_module
 
 

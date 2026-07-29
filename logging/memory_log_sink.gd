@@ -1,10 +1,10 @@
-## MemoryLogSink
+## GF_MemoryLogSink
 ## 内存日志 Sink。保留最近 N 条日志，供 Debug 面板查看。
-class_name MemoryLogSink
-extends LogSink
+class_name GF_MemoryLogSink
+extends GF_LogSink
 
 class Entry:
-	var level: LogLevel.Level
+	var level: GF_LogLevel.Level
 	var tag: String
 	var message: String
 	var context: Dictionary
@@ -19,7 +19,7 @@ func _init(p_max: int = 500):
 	max_entries = p_max
 
 
-func write(p_level: LogLevel.Level, p_tag: String, p_message: String, p_context: Dictionary) -> void:
+func write(p_level: GF_LogLevel.Level, p_tag: String, p_message: String, p_context: Dictionary) -> void:
 	if p_level < min_level:
 		return
 

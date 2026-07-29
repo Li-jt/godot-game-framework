@@ -1,13 +1,13 @@
 # tests/unit/logging/test_log_service.gd
 extends GutTest
 
-var _log: LogService
-var _sink: MemoryLogSink
+var _log: GF_LogService
+var _sink: GF_MemoryLogSink
 
 
 func before_each() -> void:
-	_sink = MemoryLogSink.new(100)
-	_log = LogService.new()
+	_sink = GF_MemoryLogSink.new(100)
+	_log = GF_LogService.new()
 	_log.module_name = "TestLog"
 	_log.init_module()
 	_log.register_sink(_sink)
@@ -43,7 +43,7 @@ func test_error_logs_to_sink() -> void:
 
 
 func test_multiple_sinks_all_receive() -> void:
-	var sink2 := MemoryLogSink.new(100)
+	var sink2 := GF_MemoryLogSink.new(100)
 	_log.register_sink(sink2)
 	_log.info("Test", "broadcast message")
 	assert_true(_sink.get_entries().size() > 0)

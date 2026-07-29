@@ -1,28 +1,28 @@
-## ActionResolver — 动作解析器（v4.0 重写）。
+## GF_ActionResolver — 动作解析器（v4.0 重写）。
 ## 核心：接收 RawSignal，匹配 binding，应用 policy，写入 ActionState，合成输出。
-class_name ActionResolver
+class_name GF_ActionResolver
 extends RefCounted
 
 var _defs: Dictionary = {}
 var _states: Dictionary = {}
-var _normalizer: DeviceNormalizer = null
-var _gesture: InputGestureEngine = null
-var _policy: InputPolicy = null
+var _normalizer: GF_DeviceNormalizer = null
+var _gesture: GF_InputGestureEngine = null
+var _policy: GF_InputPolicy = null
 var _pending_impulses: Array[Dictionary] = []
 var _now_msec_provider: Callable = Callable()
 
 
 func _init() -> void:
-	_normalizer = DeviceNormalizer.new()
+	_normalizer = GF_DeviceNormalizer.new()
 
 
 ## 注入策略层。
-func set_policy(p_policy: InputPolicy) -> void:
+func set_policy(p_policy: GF_InputPolicy) -> void:
 	_policy = p_policy
 
 
 ## 注入手势引擎。
-func set_gesture(p_gesture: InputGestureEngine) -> void:
+func set_gesture(p_gesture: GF_InputGestureEngine) -> void:
 	_gesture = p_gesture
 
 
@@ -35,17 +35,17 @@ func set_clock(p_provider: Callable) -> void:
 # 注册
 # ============================================================
 
-func register_action_def(p_def: InputActionDef) -> void:
+func register_action_def(p_def: GF_InputActionDef) -> void:
 	_defs[p_def.action_id] = p_def
-	_states[p_def.action_id] = InputActionState.new()
+	_states[p_def.action_id] = GF_InputActionState.new()
 
 func unregister_action(p_action_id: String) -> void:
 	_defs.erase(p_action_id); _states.erase(p_action_id)
 
-func get_def(p_action_id: String) -> InputActionDef:
+func get_def(p_action_id: String) -> GF_InputActionDef:
 	return _defs.get(p_action_id, null)
 
-func get_state(p_action_id: String) -> InputActionState:
+func get_state(p_action_id: String) -> GF_InputActionState:
 	return _states.get(p_action_id, null)
 
 func get_all_action_ids() -> Array[String]:
@@ -65,7 +65,7 @@ func begin_frame() -> void:
 
 
 func feed_event(p_event: InputEvent) -> void:
-	var raw_sigs: Array[InputRawSignal] = _normalizer.normalize(p_event)
+	var raw_sigs: Array[GF_InputRawSignal] = _normalizer.normalize(p_event)
 	var pointer_pos: Vector2 = _normalizer.extract_pointer_position(p_event)
 	var now: int = _get_now()
 
@@ -74,7 +74,7 @@ func feed_event(p_event: InputEvent) -> void:
 
 		# 找所有匹配 binding 的 action
 		for action_id in _defs.keys():
-			var def: InputActionDef = _defs[action_id]
+			var def: GF_InputActionDef = _defs[action_id]
 			var matched := false
 			for binding in def.bindings:
 				if binding.matches_signal(sig):
@@ -87,7 +87,7 @@ func feed_event(p_event: InputEvent) -> void:
 			if _policy != null and _policy.is_action_blocked(action_id, p_event, pointer_pos):
 				continue
 
-			var state: InputActionState = _states[action_id]
+			var state: GF_InputActionState = _states[action_id]
 			if state == null:
 				continue
 
@@ -96,17 +96,17 @@ func feed_event(p_event: InputEvent) -> void:
 				if not binding.matches_signal(sig):
 					continue
 				match binding.mode:
-					InputBinding.Mode.IMPULSE:
+					GF_InputBinding.Mode.IMPULSE:
 						if sig.is_press:
 							state.accumulate_impulse(binding.scale)
-					InputBinding.Mode.HELD:
+					GF_InputBinding.Mode.HELD:
 						pass  # poll_held 阶段处理
-					InputBinding.Mode.ANALOG:
+					GF_InputBinding.Mode.ANALOG:
 						state.accumulate_analog(sig.analog_value * binding.scale)
 
 			# 手势候选
 			if _gesture != null and def.gesture_profile != null and def.gesture_profile.enable_click_gesture:
-				if sig.is_press and sig.source == InputBinding.Source.MOUSE_BUTTON:
+				if sig.is_press and sig.source == GF_InputBinding.Source.MOUSE_BUTTON:
 					var gesture_results: Array[Dictionary] = _gesture.on_click_candidate(def, sig, 0)
 					for gr in gesture_results:
 						_pending_impulses.append(gr)
@@ -125,14 +125,14 @@ func end_frame(p_delta: float) -> void:
 	for pi in _pending_impulses:
 		var aid: String = pi.get("action_id", "")
 		var val: float = pi.get("value", 0.0)
-		var state: InputActionState = _states.get(aid, null)
+		var state: GF_InputActionState = _states.get(aid, null)
 		if state != null:
 			state.accumulate_impulse(val)
 
 	# 所有 state finalize
 	for action_id in _defs.keys():
-		var def: InputActionDef = _defs[action_id]
-		var state: InputActionState = _states[action_id]
+		var def: GF_InputActionDef = _defs[action_id]
+		var state: GF_InputActionState = _states[action_id]
 		state.finalize(def, p_delta)
 
 	_pending_impulses.clear()
@@ -143,19 +143,19 @@ func end_frame(p_delta: float) -> void:
 # ============================================================
 
 func read_axis(p_action_id: String) -> float:
-	var state: InputActionState = _states.get(p_action_id, null) as InputActionState
+	var state: GF_InputActionState = _states.get(p_action_id, null) as GF_InputActionState
 	return state.smoothed_value if state != null else 0.0
 
 func is_pressed(p_action_id: String) -> bool:
-	var state: InputActionState = _states.get(p_action_id, null) as InputActionState
+	var state: GF_InputActionState = _states.get(p_action_id, null) as GF_InputActionState
 	return state.pressed if state != null else false
 
 func is_just_pressed(p_action_id: String) -> bool:
-	var state: InputActionState = _states.get(p_action_id, null) as InputActionState
+	var state: GF_InputActionState = _states.get(p_action_id, null) as GF_InputActionState
 	return state.just_pressed if state != null else false
 
 func is_just_released(p_action_id: String) -> bool:
-	var state: InputActionState = _states.get(p_action_id, null) as InputActionState
+	var state: GF_InputActionState = _states.get(p_action_id, null) as GF_InputActionState
 	return state.just_released if state != null else false
 
 
@@ -174,13 +174,13 @@ func enqueue_impulse(p_action_id: String, p_value: float) -> void:
 func _poll_held_bindings() -> void:
 	var mouse_pos := DisplayServer.mouse_get_position()
 	for action_id in _defs.keys():
-		var def: InputActionDef = _defs[action_id]
-		var state: InputActionState = _states[action_id]
+		var def: GF_InputActionDef = _defs[action_id]
+		var state: GF_InputActionState = _states[action_id]
 		var held: float = 0.0
 		for binding in def.bindings:
-			if binding.mode != InputBinding.Mode.HELD: continue
+			if binding.mode != GF_InputBinding.Mode.HELD: continue
 			# 空间型 HELD（鼠标按钮）：检查是否被 UI 阻挡
-			if binding.source in [InputBinding.Source.MOUSE_BUTTON]:
+			if binding.source in [GF_InputBinding.Source.MOUSE_BUTTON]:
 				if _policy != null and _policy.is_action_blocked_raw(action_id, true, mouse_pos):
 					continue
 			if binding.is_down():

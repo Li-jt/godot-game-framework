@@ -1,15 +1,15 @@
 # tests/unit/ecs/test_ecs_snapshot.gd
 extends GutTest
 
-var _world: EcsWorld
-var _builder: EcsSnapshotBuilder
-var _applier: EcsSnapshotApplier
+var _world: GF_EcsWorld
+var _builder: GF_EcsSnapshotBuilder
+var _applier: GF_EcsSnapshotApplier
 
 
 func before_each() -> void:
-	_world = EcsWorld.new()
-	_builder = EcsSnapshotBuilder.new()
-	_applier = EcsSnapshotApplier.new()
+	_world = GF_EcsWorld.new()
+	_builder = GF_EcsSnapshotBuilder.new()
+	_applier = GF_EcsSnapshotApplier.new()
 
 
 func after_each() -> void:
@@ -71,7 +71,7 @@ func test_to_dict_and_from_dict_roundtrip() -> void:
 	var snapshot := _builder.build(_world)
 	var snap_dict := snapshot.to_dict()
 
-	var restored := EcsWorldSnapshot.new()
+	var restored := GF_EcsWorldSnapshot.new()
 	restored.from_dict(snap_dict)
 
 	var result := _applier.apply(_world, restored)

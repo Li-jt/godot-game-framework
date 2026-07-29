@@ -1,15 +1,15 @@
 # tests/unit/ecs/test_ecs_save_adapter.gd
-## EcsSaveAdapter 单元测试。
+## GF_EcsSaveAdapter 单元测试。
 ## ECS 存档适配器：save/load 往返、版本迁移。
 extends GutTest
 
-var _world: EcsWorld
-var _adapter: EcsSaveAdapter
+var _world: GF_EcsWorld
+var _adapter: GF_EcsSaveAdapter
 
 
 func before_each() -> void:
-	_world = EcsWorld.new()
-	_adapter = EcsSaveAdapter.new(1)
+	_world = GF_EcsWorld.new()
+	_adapter = GF_EcsSaveAdapter.new(1)
 
 
 func after_each() -> void:

@@ -1,11 +1,11 @@
 # tests/unit/audio/test_audio_service.gd
 extends GutTest
 
-var _audio: AudioService
+var _audio: GF_AudioService
 
 
 func before_each() -> void:
-	_audio = AudioService.new()
+	_audio = GF_AudioService.new()
 	_audio.module_name = "AudioService"
 	_audio.init_module()
 
@@ -15,17 +15,17 @@ func after_each() -> void:
 
 
 func test_register_cue_stores_by_id() -> void:
-	var cue := AudioCueDef.new()
+	var cue := GF_AudioCueDef.new()
 	cue.id = "ui.click"
 	_audio.register_cue(cue)
 
 
 func test_register_cues_batch() -> void:
-	var c1 := AudioCueDef.new()
+	var c1 := GF_AudioCueDef.new()
 	c1.id = "sfx.a"
-	var c2 := AudioCueDef.new()
+	var c2 := GF_AudioCueDef.new()
 	c2.id = "sfx.b"
-	var cues: Array[AudioCueDef] = [c1, c2]
+	var cues: Array[GF_AudioCueDef] = [c1, c2]
 	_audio.register_cues(cues)
 
 

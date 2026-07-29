@@ -1,7 +1,7 @@
-## ThreadJobToken
+## GF_ThreadJobToken
 ## 线程任务取消令牌。用于运行中任务的协作式取消。
 ## 任务函数应周期性检查 token.is_cancel_requested() 并尽快退出。
-class_name ThreadJobToken
+class_name GF_ThreadJobToken
 extends RefCounted
 
 var _cancel_requested: bool = false

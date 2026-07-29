@@ -2,11 +2,11 @@
 ## 需要 Node 树，用 add_child_autoqfree 替代 autoq
 extends GutTest
 
-var _scheduler: Scheduler
+var _scheduler: GF_Scheduler
 
 
 func before_each() -> void:
-	_scheduler = Scheduler.new()
+	_scheduler = GF_Scheduler.new()
 	add_child_autoqfree(_scheduler)
 
 
@@ -16,14 +16,14 @@ func after_each() -> void:
 
 func test_register_adds_callback() -> void:
 	var called := false
-	_scheduler.register(Scheduler.TickGroup.FRAME, "test", func(_dt: float): called = true)
+	_scheduler.register(GF_Scheduler.TickGroup.FRAME, "test", func(_dt: float): called = true)
 	_scheduler._process(0.016)
 	assert_true(called)
 
 
 func test_interval_callback_fires_at_fixed_rate() -> void:
 	var call_count := 0
-	_scheduler.register_interval(Scheduler.TickGroup.FRAME, "test_interval", func(_dt: float): call_count += 1, 0.5)
+	_scheduler.register_interval(GF_Scheduler.TickGroup.FRAME, "test_interval", func(_dt: float): call_count += 1, 0.5)
 	_scheduler._process(0.4)
 	assert_eq(call_count, 0)
 	_scheduler._process(0.1)
@@ -34,7 +34,7 @@ func test_interval_callback_fires_at_fixed_rate() -> void:
 
 func test_pause_stops_all() -> void:
 	var called := false
-	_scheduler.register(Scheduler.TickGroup.FRAME, "test", func(_dt: float): called = true)
+	_scheduler.register(GF_Scheduler.TickGroup.FRAME, "test", func(_dt: float): called = true)
 	_scheduler.pause()
 	_scheduler._process(0.016)
 	assert_false(called)
@@ -45,7 +45,7 @@ func test_pause_stops_all() -> void:
 
 func test_unregister_removes_callback() -> void:
 	var called := false
-	_scheduler.register(Scheduler.TickGroup.FRAME, "test", func(_dt: float): called = true)
+	_scheduler.register(GF_Scheduler.TickGroup.FRAME, "test", func(_dt: float): called = true)
 	_scheduler.unregister("test")
 	_scheduler._process(0.016)
 	assert_false(called)

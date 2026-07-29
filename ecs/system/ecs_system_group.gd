@@ -1,12 +1,12 @@
-## EcsSystemGroup — 系统分组。
+## GF_EcsSystemGroup — 系统分组。
 ## 管理组内系统列表和执行顺序，按 descriptor.priority 排序，
 ## 按 descriptor.tick_interval 做节流。
-class_name EcsSystemGroup
-extends IEcsSystemGroup
+class_name GF_EcsSystemGroup
+extends GF_IEcsSystemGroup
 
 var group_name: String = ""
-var _systems: Array[EcsSystem] = []
-var _descriptors: Array[EcsSystemDescriptor] = []
+var _systems: Array[GF_EcsSystem] = []
+var _descriptors: Array[GF_EcsSystemDescriptor] = []
 var _initialized: bool = false
 var _accumulators: Array[float] = []
 var _time_since_init: float = 0.0
@@ -16,18 +16,18 @@ func _init(p_group_name: String = "") -> void:
 	group_name = p_group_name
 
 
-func add_system(p_system: EcsSystem, p_descriptor: EcsSystemDescriptor = null) -> void:
+func add_system(p_system: GF_EcsSystem, p_descriptor: GF_EcsSystemDescriptor = null) -> void:
 	if _systems.has(p_system):
 		return
 	_systems.append(p_system)
 	if p_descriptor != null:
 		_descriptors.append(p_descriptor)
 	else:
-		_descriptors.append(EcsSystemDescriptor.new())
+		_descriptors.append(GF_EcsSystemDescriptor.new())
 	_accumulators.append(0.0)
 
 
-func init_all(p_world: EcsWorld) -> void:
+func init_all(p_world: GF_EcsWorld) -> void:
 	_sort_by_priority()
 	for sys in _systems:
 		sys.on_init(p_world)
@@ -35,10 +35,10 @@ func init_all(p_world: EcsWorld) -> void:
 	_time_since_init = 0.0
 
 
-func tick(p_world: EcsWorld, p_ecb: EcsCommandBuffer, p_delta: float) -> void:
+func tick(p_world: GF_EcsWorld, p_ecb: GF_EcsCommandBuffer, p_delta: float) -> void:
 	_time_since_init += p_delta
 	for i in range(_systems.size()):
-		var desc: EcsSystemDescriptor = _descriptors[i]
+		var desc: GF_EcsSystemDescriptor = _descriptors[i]
 		if desc.tick_interval <= 0.0:
 			_systems[i].on_tick(p_world, p_ecb, p_delta)
 		else:
@@ -64,12 +64,12 @@ func is_initialized() -> bool:
 
 
 ## 检查系统是否在组内。
-func has_system(p_system: EcsSystem) -> bool:
+func has_system(p_system: GF_EcsSystem) -> bool:
 	return _systems.has(p_system)
 
 
 ## 移除系统。
-func remove_system(p_system: EcsSystem) -> void:
+func remove_system(p_system: GF_EcsSystem) -> void:
 	var idx := _systems.find(p_system)
 	if idx >= 0:
 		_systems.remove_at(idx)
@@ -78,15 +78,15 @@ func remove_system(p_system: EcsSystem) -> void:
 
 
 ## 按名称移除。
-func remove_by_name(p_name: String) -> OperationResult:
+func remove_by_name(p_name: String) -> GF_OperationResult:
 	for i in range(_systems.size()):
-		var desc: EcsSystemDescriptor = _descriptors[i]
+		var desc: GF_EcsSystemDescriptor = _descriptors[i]
 		if desc.system_name == p_name:
 			_systems.remove_at(i)
 			_descriptors.remove_at(i)
 			_accumulators.remove_at(i)
-			return OperationResult.ok()
-	return OperationResult.fail(OperationResult.ERR_NOT_FOUND, "EcsSystemGroup", "系统未找到: %s" % p_name)
+			return GF_OperationResult.ok()
+	return GF_OperationResult.fail(GF_OperationResult.ERR_NOT_FOUND, "GF_EcsSystemGroup", "系统未找到: %s" % p_name)
 
 
 ## 按 owner 移除。返回被移除的系统名称列表。
@@ -94,7 +94,7 @@ func remove_by_owner(p_owner: String) -> Array[String]:
 	var removed: Array[String] = []
 	var i := _systems.size() - 1
 	while i >= 0:
-		var desc: EcsSystemDescriptor = _descriptors[i]
+		var desc: GF_EcsSystemDescriptor = _descriptors[i]
 		if desc.owner == p_owner:
 			_systems[i].on_shutdown()
 			removed.append(desc.system_name)

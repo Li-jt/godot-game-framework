@@ -1,16 +1,16 @@
 # tests/unit/core/test_module_lifecycle.gd
-## ModuleLifecycle 单元测试。
+## GF_ModuleLifecycle 单元测试。
 ## 所有 Service 的生命周期基类，状态机必须在所有情况下正确。
 extends GutTest
 
 # 内部 test double：可控 _on_init 返回值
-class TestModule extends ModuleLifecycle:
+class TestModule extends GF_ModuleLifecycle:
 	var init_should_fail: bool = false
 
-	func _on_init() -> OperationResult:
+	func _on_init() -> GF_OperationResult:
 		if init_should_fail:
-			return OperationResult.fail(OperationResult.ERR_INTERNAL, "forced failure", "TestModule")
-		return OperationResult.ok()
+			return GF_OperationResult.fail(GF_OperationResult.ERR_INTERNAL, "forced failure", "TestModule")
+		return GF_OperationResult.ok()
 
 
 # ============================================================
@@ -21,14 +21,14 @@ func test_init_from_uninitialized_to_initialized() -> void:
 	var m := TestModule.new()
 	m.module_name = "Test"
 	m.init_module()
-	assert_eq(m.state, CoreLifecycleState.State.INITIALIZED)
+	assert_eq(m.state, GF_CoreLifecycleState.State.INITIALIZED)
 
 
 func test_on_init_default_returns_ok() -> void:
-	var m := ModuleLifecycle.new()
+	var m := GF_ModuleLifecycle.new()
 	var result := m.init_module()
 	assert_true(result.is_ok())
-	assert_eq(m.state, CoreLifecycleState.State.INITIALIZED)
+	assert_eq(m.state, GF_CoreLifecycleState.State.INITIALIZED)
 
 
 func test_init_is_idempotent_when_initialized() -> void:
@@ -37,7 +37,7 @@ func test_init_is_idempotent_when_initialized() -> void:
 	m.init_module()
 	var result := m.init_module()  # 第二次调用
 	assert_true(result.is_ok())
-	assert_eq(m.state, CoreLifecycleState.State.INITIALIZED)
+	assert_eq(m.state, GF_CoreLifecycleState.State.INITIALIZED)
 
 
 func test_init_returns_fail_when_disposed() -> void:
@@ -46,7 +46,7 @@ func test_init_returns_fail_when_disposed() -> void:
 	m.dispose_module()
 	var result := m.init_module()
 	assert_true(result.is_fail())
-	assert_eq(result.status_code, OperationResult.ERR_DISPOSED)
+	assert_eq(result.status_code, GF_OperationResult.ERR_DISPOSED)
 
 
 func test_init_failure_stays_in_failed() -> void:
@@ -54,7 +54,7 @@ func test_init_failure_stays_in_failed() -> void:
 	m.init_should_fail = true
 	var result := m.init_module()
 	assert_true(result.is_fail())
-	assert_eq(m.state, CoreLifecycleState.State.FAILED)
+	assert_eq(m.state, GF_CoreLifecycleState.State.FAILED)
 	assert_eq(result.error.message, "forced failure")
 
 
@@ -66,7 +66,7 @@ func test_dispose_sets_state() -> void:
 	var m := TestModule.new()
 	m.module_name = "Test"
 	m.dispose_module()
-	assert_eq(m.state, CoreLifecycleState.State.DISPOSED)
+	assert_eq(m.state, GF_CoreLifecycleState.State.DISPOSED)
 
 
 func test_dispose_is_idempotent() -> void:
@@ -75,7 +75,7 @@ func test_dispose_is_idempotent() -> void:
 	m.dispose_module()
 	var result := m.dispose_module()  # 第二次
 	assert_true(result.is_ok())
-	assert_eq(m.state, CoreLifecycleState.State.DISPOSED)
+	assert_eq(m.state, GF_CoreLifecycleState.State.DISPOSED)
 
 
 func test_dispose_then_init_fails() -> void:
@@ -84,7 +84,7 @@ func test_dispose_then_init_fails() -> void:
 	m.dispose_module()
 	var result := m.init_module()
 	assert_true(result.is_fail())
-	assert_eq(result.status_code, OperationResult.ERR_DISPOSED)
+	assert_eq(result.status_code, GF_OperationResult.ERR_DISPOSED)
 
 
 # ============================================================
@@ -97,7 +97,7 @@ func test_finalize_configuration_to_ready() -> void:
 	m.init_module()
 	var result := m.finalize_configuration()
 	assert_true(result.is_ok())
-	assert_eq(m.state, CoreLifecycleState.State.READY)
+	assert_eq(m.state, GF_CoreLifecycleState.State.READY)
 
 
 func test_finalize_configuration_rejects_uninitialized() -> void:
@@ -105,7 +105,7 @@ func test_finalize_configuration_rejects_uninitialized() -> void:
 	m.module_name = "Test"
 	var result := m.finalize_configuration()
 	assert_true(result.is_fail())
-	assert_eq(result.status_code, OperationResult.ERR_PRECONDITION)
+	assert_eq(result.status_code, GF_OperationResult.ERR_PRECONDITION)
 
 
 func test_finalize_configuration_rejects_disposed() -> void:
@@ -123,7 +123,7 @@ func test_finalize_configuration_idempotent_when_ready() -> void:
 	m.finalize_configuration()
 	var result := m.finalize_configuration()  # 第二次
 	assert_true(result.is_ok())
-	assert_eq(m.state, CoreLifecycleState.State.READY)
+	assert_eq(m.state, GF_CoreLifecycleState.State.READY)
 
 
 # ============================================================

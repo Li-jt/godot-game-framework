@@ -1,5 +1,5 @@
-## InputContext
-## 输入上下文。压入 InputService 的上下文栈后，限制可用动作。
+## GF_InputContext
+## 输入上下文。压入 GF_InputService 的上下文栈后，限制可用动作。
 ##
 ## allowed_actions 为空时 = 所有已注册动作放行（默认 gameplay 模式）。
 ## 非空时 = 只有列表中的动作生效。
@@ -7,13 +7,13 @@
 ## 使用示例：
 ##   [codeblock]
 ##   # UI 上下文：只允许 UI 相关动作
-##   var ui_ctx := InputContext.new()
+##   var ui_ctx := GF_InputContext.new()
 ##   ui_ctx.name = "ui"
 ##   ui_ctx.priority = 100
 ##   ui_ctx.allowed_actions = ["ui_accept", "ui_cancel"]
 ##   input_service.push_context(ui_ctx)
 ##   [/codeblock]
-class_name InputContext
+class_name GF_InputContext
 extends RefCounted
 
 var name: String = ""

@@ -1,13 +1,13 @@
 # tests/unit/ecs/test_ecs_world.gd
-## EcsWorld 单元测试。
+## GF_EcsWorld 单元测试。
 ## ECS 世界核心：实体生命周期、组件操作、版本管理。
 extends GutTest
 
-var _world: EcsWorld
+var _world: GF_EcsWorld
 
 
 func before_each() -> void:
-	_world = EcsWorld.new()
+	_world = GF_EcsWorld.new()
 
 
 func after_each() -> void:
@@ -110,7 +110,7 @@ func test_add_component_stores_data() -> void:
 func test_add_component_fails_on_nonexistent_entity() -> void:
 	var result := _world.add_component(99999, &"Position", {"x": 0, "y": 0})
 	assert_true(result.is_fail())
-	assert_eq(result.status_code, OperationResult.ERR_NOT_FOUND)
+	assert_eq(result.status_code, GF_OperationResult.ERR_NOT_FOUND)
 
 
 func test_add_component_fails_on_duplicate() -> void:
@@ -118,7 +118,7 @@ func test_add_component_fails_on_duplicate() -> void:
 	_world.add_component(id, &"Position", {"x": 0, "y": 0})
 	var result := _world.add_component(id, &"Position", {"x": 1, "y": 1})
 	assert_true(result.is_fail())
-	assert_eq(result.status_code, OperationResult.ERR_CONFLICT)
+	assert_eq(result.status_code, GF_OperationResult.ERR_CONFLICT)
 
 
 func test_set_component_overwrites() -> void:

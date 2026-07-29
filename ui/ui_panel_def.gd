@@ -1,7 +1,7 @@
-## UIPanelDef
+## GF_UIPanelDef
 ## 面板定义。描述一个 UI 面板的类型、生命周期和行为策略。
-## Game 层配置，UIService 消费。
-class_name UIPanelDef
+## Game 层配置，GF_UIService 消费。
+class_name GF_UIPanelDef
 extends RefCounted
 
 ## 面板类型——StringName 常量。Mod 可自定义。

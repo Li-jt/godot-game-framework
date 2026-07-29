@@ -1,13 +1,13 @@
 # tests/contract/test_save_provider_contract.gd
-## 契约测试：SaveProvider 接口。
-## 任何 SaveProvider 实现（Local/Fake 等）必须通过此套测试。
+## 契约测试：GF_SaveProvider 接口。
+## 任何 GF_SaveProvider 实现（Local/Fake 等）必须通过此套测试。
 extends GutTest
 
-var _provider: SaveProvider
+var _provider: GF_SaveProvider
 
 
 func before_each() -> void:
-	_provider = FakeSaveProvider.new()
+	_provider = GF_FakeSaveProvider.new()
 
 
 func after_each() -> void:
@@ -16,7 +16,7 @@ func after_each() -> void:
 
 func test_save_and_load_full_roundtrip() -> void:
 	var data := {"hero": {"hp": 100}}
-	var meta := SaveMeta.new()
+	var meta := GF_SaveMeta.new()
 	meta.save_version = 1
 	_provider.save(1, data, meta)
 
@@ -32,7 +32,7 @@ func test_load_full_fails_for_missing_slot() -> void:
 
 
 func test_list_slots_returns_valid_indices() -> void:
-	var meta := SaveMeta.new()
+	var meta := GF_SaveMeta.new()
 	_provider.save(1, {}, meta)
 	_provider.save(3, {}, meta)
 
@@ -43,7 +43,7 @@ func test_list_slots_returns_valid_indices() -> void:
 
 
 func test_delete_removes_slot() -> void:
-	var meta := SaveMeta.new()
+	var meta := GF_SaveMeta.new()
 	_provider.save(1, {}, meta)
 	_provider.delete(1)
 
@@ -52,7 +52,7 @@ func test_delete_removes_slot() -> void:
 
 
 func test_save_overwrites_existing() -> void:
-	var meta := SaveMeta.new()
+	var meta := GF_SaveMeta.new()
 	_provider.save(1, {"v": 1}, meta)
 	_provider.save(1, {"v": 2}, meta)
 

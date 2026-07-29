@@ -1,13 +1,13 @@
 # tests/unit/engine/test_file_system_service.gd
-## FileSystemService 单元测试（使用 FakeFileSystemService）。
+## GF_FileSystemService 单元测试（使用 GF_FakeFileSystemService）。
 ## 覆盖文件读写、JSON、原子写入、备份。
 extends GutTest
 
-var _fs: FakeFileSystemService
+var _fs: GF_FakeFileSystemService
 
 
 func before_each() -> void:
-	_fs = FakeFileSystemService.new()
+	_fs = GF_FakeFileSystemService.new()
 	_fs.module_name = "FakeFS"
 	_fs.init_module()
 

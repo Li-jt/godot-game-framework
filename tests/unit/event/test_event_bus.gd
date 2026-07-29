@@ -1,12 +1,12 @@
 # tests/unit/event/test_event_bus.gd
-## EventBus 单元测试。
+## GF_EventBus 单元测试。
 extends GutTest
 
-var _bus: EventBus
+var _bus: GF_EventBus
 
 
 func before_each() -> void:
-	_bus = EventBus.new()
+	_bus = GF_EventBus.new()
 	_bus.module_name = "TestEventBus"
 	_bus.init_module()
 
@@ -78,7 +78,7 @@ func test_token_unsubscribe() -> void:
 
 func test_unsubscribe_during_dispatch_does_not_break_loop() -> void:
 	var calls: Array[String] = []
-	var token_to_remove: EventToken
+	var token_to_remove: GF_EventToken
 	var a_cb := func(_d = null): calls.append("A")
 	var b_cb := func(_d = null):
 		calls.append("B")

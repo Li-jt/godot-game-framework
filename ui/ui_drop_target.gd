@@ -1,12 +1,12 @@
-## UIDropTarget
-## 放置目标。游戏层创建并注册给 UIService。
+## GF_UIDropTarget
+## 放置目标。游戏层创建并注册给 GF_UIService。
 ## 包含命中区域、接收条件和回调。
-class_name UIDropTarget
+class_name GF_UIDropTarget
 extends RefCounted
 
 ## 所属面板。框架在 _hit_test_target 中用于 Z-order 排序。
-## 面板关闭时框架自动清理其所有 UIDropTarget。
-var panel: UIPanel = null
+## 面板关闭时框架自动清理其所有 GF_UIDropTarget。
+var panel: GF_UIPanel = null
 
 ## 命中矩形 — 面板局部坐标。框架自动转为全局坐标做 hit_test。
 var rect: Rect2 = Rect2()

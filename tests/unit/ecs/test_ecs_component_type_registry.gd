@@ -1,13 +1,13 @@
 # tests/unit/ecs/test_ecs_component_type_registry.gd
-## EcsComponentTypeRegistry 单元测试。
+## GF_EcsComponentTypeRegistry 单元测试。
 ## 组件类型注册：StringName → type_id 映射。
 extends GutTest
 
-var _registry: EcsComponentTypeRegistry
+var _registry: GF_EcsComponentTypeRegistry
 
 
 func before_each() -> void:
-	_registry = EcsComponentTypeRegistry.new()
+	_registry = GF_EcsComponentTypeRegistry.new()
 
 
 func after_each() -> void:

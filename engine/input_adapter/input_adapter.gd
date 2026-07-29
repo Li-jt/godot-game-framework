@@ -1,13 +1,13 @@
-## InputAdapter
+## GF_InputAdapter
 ## 统一输入适配层。封装 Godot Input 单例，提供动作查询、轴读取和鼠标位置。
 ## 所有模块的输入读取必须通过此类，禁止直接使用 Input / _input / _unhandled_input。
 ##
 ## 使用方式：
-##   var adapter: InputAdapter = ...
+##   var adapter: GF_InputAdapter = ...
 ##   if adapter.is_action_just_pressed("ui_accept"):
 ##       do_something()
 ##   var zoom := adapter.read_axis("camera_zoom")  # 滚轮/手柄兼容
-class_name InputAdapter
+class_name GF_InputAdapter
 extends RefCounted
 
 var blocked: bool = false

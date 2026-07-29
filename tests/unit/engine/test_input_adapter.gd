@@ -1,13 +1,13 @@
 # tests/unit/engine/test_input_adapter.gd
-## InputAdapter 单元测试。
+## GF_InputAdapter 单元测试。
 ## 统一输入适配层：block/unblock、动作查询、轴读取。
 extends GutTest
 
-var _adapter: InputAdapter
+var _adapter: GF_InputAdapter
 
 
 func before_each() -> void:
-	_adapter = InputAdapter.new()
+	_adapter = GF_InputAdapter.new()
 
 
 func after_each() -> void:

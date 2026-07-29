@@ -1,8 +1,8 @@
-## EnvParser
+## GF_EnvParser
 ## .env 文件解析器。
 ## 将 .env 格式的文本解析为 Dictionary（全部为 String 值），
-## 后续由 AppConfigLoader 负责类型转换和路径映射。
-class_name EnvParser
+## 后续由 GF_AppConfigLoader 负责类型转换和路径映射。
+class_name GF_EnvParser
 extends RefCounted
 
 ## 解析 .env 文件内容，返回 Dictionary[String, String]

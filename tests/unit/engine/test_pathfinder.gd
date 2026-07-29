@@ -1,13 +1,13 @@
 # tests/unit/engine/test_pathfinder.gd
 extends GutTest
 
-var _heuristic: ManhattanHeuristic
-var _pathfinder: Pathfinder
+var _heuristic: GF_ManhattanHeuristic
+var _pathfinder: GF_Pathfinder
 
 
 func before_each() -> void:
-	_heuristic = ManhattanHeuristic.new()
-	_pathfinder = Pathfinder.new(_heuristic)
+	_heuristic = GF_ManhattanHeuristic.new()
+	_pathfinder = GF_Pathfinder.new(_heuristic)
 
 
 func after_each() -> void:
@@ -15,7 +15,7 @@ func after_each() -> void:
 
 
 func test_manhattan_heuristic_correct() -> void:
-	var h := ManhattanHeuristic.new()
+	var h := GF_ManhattanHeuristic.new()
 	assert_eq(h.estimate(Vector2i(0, 0), Vector2i(3, 4)), 7)
 
 
@@ -48,7 +48,7 @@ func test_blocked_goal_returns_empty() -> void:
 func _make_graph(p_size: int, _blocked: Array):
 	var s := GDScript.new()
 	s.source_code = """
-extends IPathGraph
+extends GF_IPathGraph
 var _size: int
 func _init(p_size: int): _size = p_size
 func get_neighbors(p_node) -> Array:
@@ -69,7 +69,7 @@ func cost(_a, _b) -> float: return 1.0
 func _make_traversal(p_blocked: Array[Vector2i]):
 	var s := GDScript.new()
 	s.source_code = """
-extends ITraversal
+extends GF_ITraversal
 var _blocked: Array = []
 func _init(p_blocked: Array): _blocked = p_blocked
 func is_walkable(p_pos) -> bool:

@@ -1,7 +1,7 @@
-## EventBus
-## 事件总线。支持 EventScope 和 EventToken。
-class_name EventBus
-extends ModuleLifecycle
+## GF_EventBus
+## 事件总线。支持 EventScope 和 GF_EventToken。
+class_name GF_EventBus
+extends GF_ModuleLifecycle
 
 class ListenerEntry:
 	var callback: Callable
@@ -16,15 +16,15 @@ var _dispatching: String = ""
 var _pending_removes: Array = []  # Array[String token_id]
 
 
-func _on_init() -> OperationResult:
-	return OperationResult.ok()
+func _on_init() -> GF_OperationResult:
+	return GF_OperationResult.ok()
 
 
-func _on_dispose() -> OperationResult:
+func _on_dispose() -> GF_OperationResult:
 	_listeners.clear()
 	_tokens.clear()
 	_pending_removes.clear()
-	return OperationResult.ok()
+	return GF_OperationResult.ok()
 
 
 # ============================================================
@@ -32,7 +32,7 @@ func _on_dispose() -> OperationResult:
 # ============================================================
 
 ## 订阅事件。p_scope 用于场景切换时一键清理。
-func subscribe(p_event: String, p_callback: Callable, p_scope: String = "global") -> EventToken:
+func subscribe(p_event: String, p_callback: Callable, p_scope: String = "global") -> GF_EventToken:
 	_token_counter += 1
 	var token_id := "%s_%d" % [p_event, _token_counter]
 
@@ -47,15 +47,15 @@ func subscribe(p_event: String, p_callback: Callable, p_scope: String = "global"
 
 	_tokens[token_id] = {"event": p_event, "entry": entry}
 
-	var token := EventToken.new()
+	var token := GF_EventToken.new()
 	token.id = token_id
 	token._bus_ref = weakref(self)
 	return token
 
 
 ## 订阅一次性事件
-func subscribe_once(p_event: String, p_callback: Callable, p_scope: String = "global") -> EventToken:
-	var token: EventToken
+func subscribe_once(p_event: String, p_callback: Callable, p_scope: String = "global") -> GF_EventToken:
+	var token: GF_EventToken
 	var wrapper := func(p_data = null):
 		unsubscribe_token(token.id)
 		p_callback.call(p_data)
@@ -67,7 +67,7 @@ func subscribe_once(p_event: String, p_callback: Callable, p_scope: String = "gl
 # 取消订阅
 # ============================================================
 
-## 通过 EventToken 取消订阅
+## 通过 GF_EventToken 取消订阅
 func unsubscribe_token(p_token_id: String) -> void:
 	if _dispatching != "":
 		_pending_removes.append(p_token_id)

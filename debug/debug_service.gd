@@ -1,11 +1,11 @@
-## DebugService
+## GF_DebugService
 ## 调试服务。管理调试面板注册、运行时统计、命令追踪。
 ## 仅在 config.debug.enable_debug_panel = true 时启用。
-class_name DebugService
-extends ModuleLifecycle
+class_name GF_DebugService
+extends GF_ModuleLifecycle
 
 var enabled: bool = false
-var _log: LogService = null
+var _log: GF_LogService = null
 
 # 面板注册: name -> factory（无参返回 Node）
 var panels: Dictionary = {}
@@ -26,19 +26,19 @@ var network_requests: int = 0
 var network_errors: int = 0
 
 
-func _on_init() -> OperationResult:
-	return OperationResult.ok()
+func _on_init() -> GF_OperationResult:
+	return GF_OperationResult.ok()
 
 
-func configure(p_config: AppConfig.DebugSection, p_log: LogService) -> OperationResult:
+func configure(p_config: GF_AppConfig.DebugSection, p_log: GF_LogService) -> GF_OperationResult:
 	if p_config == null:
-		return OperationResult.fail(OperationResult.ERR_BAD_REQUEST, "debug_config 不能为 null", module_name)
+		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "debug_config 不能为 null", module_name)
 	if p_log == null:
-		return OperationResult.fail(OperationResult.ERR_BAD_REQUEST, "log 不能为 null", module_name)
+		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "log 不能为 null", module_name)
 	enabled = p_config.enable_debug_panel
 	command_trace_enabled = p_config.show_prediction_state
 	_log = p_log
-	return OperationResult.ok()
+	return GF_OperationResult.ok()
 
 
 # ============================================================
@@ -59,7 +59,7 @@ func get_panel_names() -> Array[String]:
 # 运行时统计
 # ============================================================
 
-## 由 Scheduler TickGroup.DEBUG 每帧调用
+## 由 GF_Scheduler TickGroup.DEBUG 每帧调用
 func tick_stats(p_delta: float) -> void:
 	if not enabled:
 		return

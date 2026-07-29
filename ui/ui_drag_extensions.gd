@@ -1,7 +1,7 @@
-## UIDragExtensions
+## GF_UIDragExtensions
 ## 对任意 Control 快速添加拖拽能力的静态方法集合。
-## 游戏层无需继承 UIDragSlot 即可让任意 UI 元素参与拖拽。
-class_name UIDragExtensions
+## 游戏层无需继承 GF_UIDragSlot 即可让任意 UI 元素参与拖拽。
+class_name GF_UIDragExtensions
 extends RefCounted
 
 
@@ -61,7 +61,7 @@ static func setup_drop_target(p_control: Control, p_config: Dictionary) -> void:
 	if panel == null:
 		return
 
-	var target := UIDropTarget.new()
+	var target := GF_UIDropTarget.new()
 	target.panel = panel
 	target.rect = p_config.get("rect_override", p_control.get_rect())
 	target.accept_filter = p_config.get("accept", func(_d: Dictionary) -> bool: return true)
@@ -74,18 +74,18 @@ static func setup_drop_target(p_control: Control, p_config: Dictionary) -> void:
 		ui.register_drop_target(target)
 
 
-## 向上查找所属 UIPanel
-static func _find_panel(p_control: Control) -> UIPanel:
+## 向上查找所属 GF_UIPanel
+static func _find_panel(p_control: Control) -> GF_UIPanel:
 	var p: Node = p_control
 	while p != null:
-		if p is UIPanel:
-			return p as UIPanel
+		if p is GF_UIPanel:
+			return p as GF_UIPanel
 		p = p.get_parent()
 	return null
 
 
-## 通过面板上下文查找 UIService
-static func _find_ui_service(p_control: Control) -> UIService:
+## 通过面板上下文查找 GF_UIService
+static func _find_ui_service(p_control: Control) -> GF_UIService:
 	var panel := _find_panel(p_control)
 	if panel != null and panel.ctx != null:
 		return panel.ctx.ui
@@ -97,18 +97,18 @@ static func _find_ui_service(p_control: Control) -> UIService:
 # ═══════════════════════════════════════════════════
 
 class _QuickDragHandler
-extends UIDragHandler
+extends GF_UIDragHandler
 
 var _data: Dictionary = {}
 var _icon: Texture2D = null
 var _offset: Vector2 = Vector2.ZERO
-var _ghost: UIDragGhost = null
+var _ghost: GF_UIDragGhost = null
 var _on_begin: Callable
 var _on_end: Callable
 var _on_cancel: Callable
 
 
-func on_begin_drag(event: UIDragEvent) -> void:
+func on_begin_drag(event: GF_UIDragEvent) -> void:
 	event.drag_data = _data
 	if _icon != null:
 		_ghost = event.show_ghost_texture(_icon, _offset)
@@ -116,7 +116,7 @@ func on_begin_drag(event: UIDragEvent) -> void:
 		_on_begin.call()
 
 
-func on_end_drag(event: UIDragEvent) -> void:
+func on_end_drag(event: GF_UIDragEvent) -> void:
 	if event.drop_receiver == null:
 		if _on_cancel.is_valid():
 			_on_cancel.call()

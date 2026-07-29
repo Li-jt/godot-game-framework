@@ -1,17 +1,17 @@
-## EntityRegistry — 实体类型注册表（Framework 层）。
+## GF_EntityRegistry — 实体类型注册表（Framework 层）。
 ## 支持多态序列化：存档中每条实体数据带 "type" 字段，
 ## 读档时根据 type 查表创建正确的具体类型。
 ##
 ## 使用方式：
 ##   [codeblock]
 ##   # 注册
-##   EntityRegistry.register("unit", func(d): return Unit.from_dict(d))
-##   EntityRegistry.register("building", func(d): return Building.from_dict(d))
+##   GF_EntityRegistry.register("unit", func(d): return Unit.from_dict(d))
+##   GF_EntityRegistry.register("building", func(d): return Building.from_dict(d))
 ##
 ##   # 创建
-##   var entity = EntityRegistry.create("unit", {"id": 1, "hunger": 80})
+##   var entity = GF_EntityRegistry.create("unit", {"id": 1, "hunger": 80})
 ##   [/codeblock]
-class_name EntityRegistry
+class_name GF_EntityRegistry
 extends RefCounted
 
 static var _factories: Dictionary = {}  # String type → Callable
@@ -27,7 +27,7 @@ static func register(p_type: String, p_factory: Callable) -> void:
 static func create(p_type: String, p_data: Dictionary):
 	var factory: Callable = _factories.get(p_type, null)
 	if factory == null:
-		push_warning("EntityRegistry: 未注册的类型 '%s'" % p_type)
+		push_warning("GF_EntityRegistry: 未注册的类型 '%s'" % p_type)
 		return null
 	return factory.call(p_data)
 

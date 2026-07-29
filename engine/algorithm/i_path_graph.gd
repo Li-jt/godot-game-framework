@@ -1,11 +1,11 @@
-## IPathGraph — 寻路地图结构接口（Framework 层）。
+## GF_IPathGraph — 寻路地图结构接口（Framework 层）。
 ## 提供节点的邻居列表和移动代价。Game 层让 WorldQuery 实现此接口。
-class_name IPathGraph
+class_name GF_IPathGraph
 extends RefCounted
 
 
 func get_neighbors(p_pos: Vector2i) -> Array:
-	push_error("IPathGraph.get_neighbors() 必须由子类重写")
+	push_error("GF_IPathGraph.get_neighbors() 必须由子类重写")
 	return []
 
 

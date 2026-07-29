@@ -1,7 +1,7 @@
-## ThreadJobState
+## GF_ThreadJobState
 ## 线程任务状态枚举与文本映射工具。
-## 用于 ThreadingService、ThreadJobHandle、调试输出统一状态语义。
-class_name ThreadJobState
+## 用于 GF_ThreadingService、GF_ThreadJobHandle、调试输出统一状态语义。
+class_name GF_ThreadJobState
 extends RefCounted
 
 enum Value {

@@ -1,6 +1,6 @@
-## Scheduler
+## GF_Scheduler
 ## 统一 Tick 驱动器。按 TickGroup 分组执行，同组内按 priority 排序。
-class_name Scheduler
+class_name GF_Scheduler
 extends Node
 
 enum TickGroup {
@@ -17,7 +17,7 @@ class TickHandle:
 	var _scheduler_ref: WeakRef = null
 
 	func unregister() -> void:
-		var sched: Scheduler = _scheduler_ref.get_ref() if _scheduler_ref != null else null
+		var sched: GF_Scheduler = _scheduler_ref.get_ref() if _scheduler_ref != null else null
 		if sched != null:
 			sched.unregister_by_handle(self)
 

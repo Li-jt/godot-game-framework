@@ -1,4 +1,4 @@
-## UnitOfWork — 工作单元。将一组相关变更作为一个原子操作提交。
+## GF_UnitOfWork — 工作单元。将一组相关变更作为一个原子操作提交。
 ##
 ## ⚠️ 预留接口：多人/网络模式（Remote / Hybrid Authority）。
 ## 当前 Local 模式不使用此接口。
@@ -11,34 +11,34 @@
 ##
 ## 使用方式：
 ##   [codeblock]
-##   var uow := UnitOfWork.new()
+##   var uow := GF_UnitOfWork.new()
 ##   var result := uow.begin(repository)
 ##   if result.is_fail(): return result
 ##   uow.add_change({"type": "place_building", ...})
 ##   uow.add_change({"type": "remove_item", ...})
 ##   return uow.commit()
 ##   [/codeblock]
-class_name UnitOfWork
+class_name GF_UnitOfWork
 extends RefCounted
 
 enum State { IDLE, ACTIVE, COMMITTED, ROLLED_BACK }
 
 var state: State = State.IDLE
-var _changes: ChangeSet = null
-var _repository: IWorldRepository = null
+var _changes: GF_ChangeSet = null
+var _repository: GF_IWorldRepository = null
 
 
 ## 开始工作单元。从 Repository 读取当前 revision 作为 expected_revision。
-func begin(p_repository: IWorldRepository) -> OperationResult:
+func begin(p_repository: GF_IWorldRepository) -> GF_OperationResult:
 	var rev_result := p_repository.get_revision()
 	if rev_result.is_fail():
 		return rev_result
 
 	_repository = p_repository
-	_changes = ChangeSet.new()
-	_changes.expected_revision = (rev_result.data as Revision).value
+	_changes = GF_ChangeSet.new()
+	_changes.expected_revision = (rev_result.data as GF_Revision).value
 	state = State.ACTIVE
-	return OperationResult.ok()
+	return GF_OperationResult.ok()
 
 
 ## 添加一条变更操作
@@ -49,9 +49,9 @@ func add_change(p_operation: Dictionary) -> void:
 
 
 ## 提交所有变更。如果 revision 不匹配（并发冲突），返回 fail。
-func commit() -> OperationResult:
+func commit() -> GF_OperationResult:
 	if state != State.ACTIVE:
-		return OperationResult.fail(OperationResult.ERR_PRECONDITION, "UnitOfWork 未处于 ACTIVE 状态", "UnitOfWork")
+		return GF_OperationResult.fail(GF_OperationResult.ERR_PRECONDITION, "GF_UnitOfWork 未处于 ACTIVE 状态", "GF_UnitOfWork")
 
 	var result := _repository.commit_changes(_changes)
 	if result.is_fail():
@@ -59,13 +59,13 @@ func commit() -> OperationResult:
 		return result
 
 	state = State.COMMITTED
-	return OperationResult.ok()
+	return GF_OperationResult.ok()
 
 
 ## 丢弃所有变更
-func rollback() -> OperationResult:
+func rollback() -> GF_OperationResult:
 	if state == State.COMMITTED:
-		return OperationResult.fail(OperationResult.ERR_PRECONDITION, "已提交的 UnitOfWork 不可回滚", "UnitOfWork")
+		return GF_OperationResult.fail(GF_OperationResult.ERR_PRECONDITION, "已提交的 GF_UnitOfWork 不可回滚", "GF_UnitOfWork")
 	state = State.ROLLED_BACK
 	_changes = null
-	return OperationResult.ok()
+	return GF_OperationResult.ok()

@@ -1,21 +1,21 @@
-## InputGestureEngine — 手势引擎（v4.0）。
+## GF_InputGestureEngine — 手势引擎（v4.0）。
 ## 处理单击/双击手势，不负责拖拽（拖拽由 HELD 模式处理）。
-class_name InputGestureEngine
+class_name GF_InputGestureEngine
 extends RefCounted
 
 class ClickTrack:
 	var first_time: int = 0
 	var first_pos: Vector2 = Vector2.ZERO
 	var first_target: int = 0
-	var action_def: InputActionDef = null
+	var action_def: GF_InputActionDef = null
 	var pointer_id: int = 0
 
 var _tracks: Dictionary = {}  # key → ClickTrack
 
 
 ## 处理一个点击候选。返回可能触发的动作列表 [{action_id, value}]。
-func on_click_candidate(p_def: InputActionDef, p_signal: InputRawSignal, p_target: int = 0) -> Array[Dictionary]:
-	var profile: InputGestureProfile = p_def.gesture_profile
+func on_click_candidate(p_def: GF_InputActionDef, p_signal: GF_InputRawSignal, p_target: int = 0) -> Array[Dictionary]:
+	var profile: GF_InputGestureProfile = p_def.gesture_profile
 	if profile == null or not profile.enable_click_gesture:
 		return []
 
@@ -66,7 +66,7 @@ func on_pointer_motion(p_pointer_id: int, p_pos: Vector2) -> void:
 	for key in _tracks.keys():
 		var track: ClickTrack = _tracks[key]
 		if track.pointer_id == p_pointer_id:
-			var profile: InputGestureProfile = track.action_def.gesture_profile
+			var profile: GF_InputGestureProfile = track.action_def.gesture_profile
 			if profile != null and track.first_pos.distance_to(p_pos) > profile.drag_cancel_px:
 				to_erase.append(key)
 	for key in to_erase:
@@ -79,7 +79,7 @@ func tick_timeout(p_now_msec: int) -> Array[Dictionary]:
 	var to_erase: Array[String] = []
 	for key in _tracks.keys():
 		var track: ClickTrack = _tracks[key]
-		var profile: InputGestureProfile = track.action_def.gesture_profile
+		var profile: GF_InputGestureProfile = track.action_def.gesture_profile
 		if profile == null: continue
 		if p_now_msec - track.first_time > profile.double_click_window_ms:
 			to_erase.append(key)

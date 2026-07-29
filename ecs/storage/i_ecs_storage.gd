@@ -1,6 +1,6 @@
-## IEcsStorage — ECS 组件存储接口。
+## GF_IEcsStorage — ECS 组件存储接口。
 ## 定义组件数据的 CRUD 和实体遍历契约，SparseSet/Archetype 均需实现。
-class_name IEcsStorage
+class_name GF_IEcsStorage
 extends RefCounted
 
 func insert(p_entity: int, p_data: Variant) -> void: _ni()
@@ -12,4 +12,4 @@ func count() -> int: _ni(); return 0
 func clear() -> void: _ni()
 
 func _ni() -> void:
-	push_error("IEcsStorage: 方法未实现")
+	push_error("GF_IEcsStorage: 方法未实现")

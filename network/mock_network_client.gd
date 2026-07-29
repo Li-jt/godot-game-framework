@@ -1,19 +1,19 @@
-## MockNetworkClient
+## GF_MockNetworkClient
 ## Mock 网络客户端。返回预设数据，供阶段 6-8 本地开发使用。
 ## 不依赖真实网络，不会产生真实请求。
 ##
 ## 使用方式：
 ##   [codeblock]
-##   var client := MockNetworkClient.new()
+##   var client := GF_MockNetworkClient.new()
 ##   client.mock_get("/world/state", '{"entities": []}', 200)
 ##   client.mock_post("/command/execute", '{"ok": true}', 200)
 ##
 ##   var result := client.http_get("/world/state")
 ##   if result.is_ok():
-##       var resp: NetworkResponse = result.data
+##       var resp: GF_NetworkResponse = result.data
 ##   [/codeblock]
-class_name MockNetworkClient
-extends NetworkClient
+class_name GF_MockNetworkClient
+extends GF_NetworkClient
 
 var _mock_gets: Dictionary = {}     # path -> {status, body}
 var _mock_posts: Dictionary = {}    # path -> {status, body}
@@ -60,32 +60,32 @@ func clear_mocks() -> void:
 # 实现
 # ============================================================
 
-func http_get(p_path: String, p_headers: Dictionary = {}) -> OperationResult:
+func http_get(p_path: String, p_headers: Dictionary = {}) -> GF_OperationResult:
 	return _mock_response(p_path, _mock_gets)
 
 
-func http_post(p_path: String, p_body: String = "", p_headers: Dictionary = {}) -> OperationResult:
+func http_post(p_path: String, p_body: String = "", p_headers: Dictionary = {}) -> GF_OperationResult:
 	return _mock_response(p_path, _mock_posts)
 
 
-func http_put(p_path: String, p_body: String = "", p_headers: Dictionary = {}) -> OperationResult:
+func http_put(p_path: String, p_body: String = "", p_headers: Dictionary = {}) -> GF_OperationResult:
 	return _mock_response(p_path, _mock_puts)
 
 
-func http_delete(p_path: String, p_headers: Dictionary = {}) -> OperationResult:
+func http_delete(p_path: String, p_headers: Dictionary = {}) -> GF_OperationResult:
 	return _mock_response(p_path, _mock_deletes)
 
 
-func _mock_response(p_path: String, p_store: Dictionary) -> OperationResult:
+func _mock_response(p_path: String, p_store: Dictionary) -> GF_OperationResult:
 	if _simulate_error:
-		return OperationResult.fail(OperationResult.ERR_NETWORK, "Mock 模拟网络故障: %s" % p_path, "MockNetworkClient")
+		return GF_OperationResult.fail(GF_OperationResult.ERR_NETWORK, "Mock 模拟网络故障: %s" % p_path, "GF_MockNetworkClient")
 
 	if not p_store.has(p_path):
-		return OperationResult.fail(OperationResult.ERR_NOT_FOUND, "Mock 未预设: %s" % p_path, "MockNetworkClient")
+		return GF_OperationResult.fail(GF_OperationResult.ERR_NOT_FOUND, "Mock 未预设: %s" % p_path, "GF_MockNetworkClient")
 
 	var preset: Dictionary = p_store[p_path]
-	var resp := NetworkResponse.new()
+	var resp := GF_NetworkResponse.new()
 	resp.success = preset.status >= 200 and preset.status < 300
 	resp.status_code = preset.status
 	resp.body = preset.body
-	return OperationResult.ok(resp)
+	return GF_OperationResult.ok(resp)

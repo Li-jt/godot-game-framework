@@ -1,6 +1,6 @@
-## InputGestureProfile — 手势配置（v4.0）。
-## 定义单击/双击手势的参数，由 InputActionDef 持有，GestureEngine 读取。
-class_name InputGestureProfile
+## GF_InputGestureProfile — 手势配置（v4.0）。
+## 定义单击/双击手势的参数，由 GF_InputActionDef 持有，GestureEngine 读取。
+class_name GF_InputGestureProfile
 extends RefCounted
 
 ## 是否启用手势

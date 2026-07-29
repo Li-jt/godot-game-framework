@@ -1,12 +1,12 @@
 # tests/contract/test_command_contract.gd
-## 契约测试：ICommand + ICommandHandler 接口。
+## 契约测试：GF_ICommand + GF_ICommandHandler 接口。
 extends GutTest
 
-var _bus: CommandBus
+var _bus: GF_CommandBus
 
 
 func before_each() -> void:
-	_bus = CommandBus.new()
+	_bus = GF_CommandBus.new()
 
 
 func after_each() -> void:
@@ -23,7 +23,7 @@ func test_command_validate_before_execute() -> void:
 	var order: Array[String] = []
 	var cmd = _make_command(null, func(_ctx):
 		order.append("execute")
-		return OperationResult.ok()
+		return GF_OperationResult.ok()
 	)
 	_bus.execute(cmd, {})
 	# 简单验证执行成功
@@ -32,7 +32,7 @@ func test_command_validate_before_execute() -> void:
 
 func test_handler_receives_command() -> void:
 	var handler = _make_handler("test.type", func(_cmd, _ctx):
-		return OperationResult.ok()
+		return GF_OperationResult.ok()
 	)
 	_bus.register_handler(handler)
 	var cmd = _make_command("test.type")
@@ -47,12 +47,12 @@ func _make_command(p_key, p_execute_fn = null):
 		key_part = "func command_key() -> String: return '%s'" % p_key
 	else:
 		key_part = "func command_key() -> String: return ''"
-	var exec_body := "func execute(p_context: Dictionary) -> OperationResult:\n"
+	var exec_body := "func execute(p_context: Dictionary) -> GF_OperationResult:\n"
 	if p_execute_fn:
-		exec_body += "	if _execute_fn: return _execute_fn.call(p_context)\n	return OperationResult.ok()"
+		exec_body += "	if _execute_fn: return _execute_fn.call(p_context)\n	return GF_OperationResult.ok()"
 	else:
-		exec_body += "	return OperationResult.ok()"
-	s.source_code = "extends ICommand\nvar _execute_fn\n" + key_part + "\n" + exec_body
+		exec_body += "	return GF_OperationResult.ok()"
+	s.source_code = "extends GF_ICommand\nvar _execute_fn\n" + key_part + "\n" + exec_body
 	s.reload()
 	var cmd = s.new()
 	if p_execute_fn:
@@ -66,9 +66,9 @@ func _make_handler(p_key: String, p_handle_fn):
 extends RefCounted
 var _handle_fn
 func command_key() -> String: return '%s'
-func handle(p_command, p_context: Dictionary) -> OperationResult:
+func handle(p_command, p_context: Dictionary) -> GF_OperationResult:
 	if _handle_fn: return _handle_fn.call(p_command, p_context)
-	return OperationResult.ok()
+	return GF_OperationResult.ok()
 """ % p_key
 	s.reload()
 	var h = s.new()

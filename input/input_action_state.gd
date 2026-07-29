@@ -1,6 +1,6 @@
-## InputActionState — 单个动作的运行时状态（v4.0）。
-## 仅维护值与标记，不做跨动作调度。由 ActionResolver 驱动。
-class_name InputActionState
+## GF_InputActionState — 单个动作的运行时状态（v4.0）。
+## 仅维护值与标记，不做跨动作调度。由 GF_ActionResolver 驱动。
+class_name GF_InputActionState
 extends RefCounted
 
 ## 最终输出值
@@ -39,15 +39,15 @@ func accumulate_analog(p_value: float) -> void:
 	_had_input_this_frame = true
 
 
-func finalize(p_def: InputActionDef, p_delta: float) -> void:
+func finalize(p_def: GF_InputActionDef, p_delta: float) -> void:
 	# 1. compose
 	var raw: float
 	match p_def.compose_mode:
-		InputActionDef.ComposeMode.SUM:
+		GF_InputActionDef.ComposeMode.SUM:
 			raw = _impulse_acc + _held_acc + _analog_acc
-		InputActionDef.ComposeMode.MAX:
+		GF_InputActionDef.ComposeMode.MAX:
 			raw = maxf(maxf(_impulse_acc, _held_acc), _analog_acc)
-		InputActionDef.ComposeMode.AVERAGE:
+		GF_InputActionDef.ComposeMode.AVERAGE:
 			var count := 0
 			if absf(_held_acc) > 0.0: count += 1
 			if absf(_analog_acc) > 0.0: count += 1

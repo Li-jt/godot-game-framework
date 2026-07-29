@@ -1,4 +1,4 @@
-## OperationResult
+## GF_OperationResult
 ## 统一操作结果类型，使用 HTTP 风格的状态码。
 ## 所有可能失败的操作必须返回此类型，禁止只返回 bool 或 null。
 ##
@@ -10,12 +10,12 @@
 ## 使用示例：
 ##   [codeblock]
 ##   # 成功
-##   return OperationResult.ok()
-##   return OperationResult.ok(some_data)
+##   return GF_OperationResult.ok()
+##   return GF_OperationResult.ok(some_data)
 ##
 ##   # 失败
-##   return OperationResult.fail(OperationResult.ERR_NOT_FOUND, "实体不存在: %s" % entity_id)
-##   return OperationResult.fail(OperationResult.ERR_VALIDATION, "坐标已被占用", "CommandExecutor")
+##   return GF_OperationResult.fail(GF_OperationResult.ERR_NOT_FOUND, "实体不存在: %s" % entity_id)
+##   return GF_OperationResult.fail(GF_OperationResult.ERR_VALIDATION, "坐标已被占用", "CommandExecutor")
 ##
 ##   # 调用方
 ##   var result := some_service.do_something()
@@ -24,7 +24,7 @@
 ##   else:
 ##       printerr("[%d] %s" % [result.status_code, result.error.message])
 ##   [/codeblock]
-class_name OperationResult
+class_name GF_OperationResult
 extends RefCounted
 
 # ============================================================
@@ -65,7 +65,7 @@ var status_code: int = OK
 var success: bool = true
 
 ## 失败时的详细错误信息，成功时为 null
-var error: ErrorInfo = null
+var error: GF_ErrorInfo = null
 
 ## 成功时附带的返回数据
 var data: Variant = null
@@ -75,27 +75,27 @@ var data: Variant = null
 # ============================================================
 
 ## 创建成功结果（默认 200），可选附带数据
-static func ok(p_data: Variant = null) -> OperationResult:
-	var r := OperationResult.new()
+static func ok(p_data: Variant = null) -> GF_OperationResult:
+	var r := GF_OperationResult.new()
 	r.status_code = OK
 	r.success = true
 	r.data = p_data
 	return r
 
 ## 创建成功结果，指定成功状态码
-static func created(p_data: Variant = null) -> OperationResult:
-	var r := OperationResult.new()
+static func created(p_data: Variant = null) -> GF_OperationResult:
+	var r := GF_OperationResult.new()
 	r.status_code = CREATED
 	r.success = true
 	r.data = p_data
 	return r
 
 ## 创建失败结果，必须提供状态码和错误描述
-static func fail(p_code: int, p_message: String, p_source_module: String = "") -> OperationResult:
-	var r := OperationResult.new()
+static func fail(p_code: int, p_message: String, p_source_module: String = "") -> GF_OperationResult:
+	var r := GF_OperationResult.new()
 	r.status_code = p_code
 	r.success = false
-	r.error = ErrorInfo.new()
+	r.error = GF_ErrorInfo.new()
 	r.error.code = str(p_code)
 	r.error.message = p_message
 	r.error.source_module = p_source_module
@@ -114,18 +114,18 @@ func is_fail() -> bool:
 	return not success
 
 ## 追加错误上下文，返回自身以支持链式调用
-func with_context(p_key: String, p_value: Variant) -> OperationResult:
+func with_context(p_key: String, p_value: Variant) -> GF_OperationResult:
 	if error != null:
 		error.context[p_key] = p_value
 	return self
 
 
 ## 包装已有错误，保留原始 error 作为 cause，生成新的 fail 结果
-static func wrap(p_result: OperationResult, p_source_module: String, p_message: String) -> OperationResult:
-	var r := OperationResult.new()
+static func wrap(p_result: GF_OperationResult, p_source_module: String, p_message: String) -> GF_OperationResult:
+	var r := GF_OperationResult.new()
 	r.status_code = p_result.status_code
 	r.success = false
-	r.error = ErrorInfo.new()
+	r.error = GF_ErrorInfo.new()
 	r.error.code = str(p_result.status_code)
 	r.error.message = p_message
 	r.error.source_module = p_source_module
@@ -134,7 +134,7 @@ static func wrap(p_result: OperationResult, p_source_module: String, p_message: 
 
 
 ## 从错误链中查找根因
-func root_cause() -> ErrorInfo:
+func root_cause() -> GF_ErrorInfo:
 	if error == null or error.cause == null:
 		return error
 	var c := error.cause

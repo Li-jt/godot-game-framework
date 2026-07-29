@@ -3,11 +3,11 @@ extends GutTest
 
 
 func test_key_press_to_action_just_pressed() -> void:
-	var resolver := ActionResolver.new()
-	var policy := InputPolicy.new()
+	var resolver := GF_ActionResolver.new()
+	var policy := GF_InputPolicy.new()
 	resolver.set_policy(policy)
 
-	var def := InputActionDef.new("jump", InputActionDef.ActionType.BINARY)
+	var def := GF_InputActionDef.new("jump", GF_InputActionDef.ActionType.BINARY)
 	resolver.register_action_def(def)
 
 	# 模拟按键 — feed_event 需要 Godot InputEvent
@@ -23,14 +23,14 @@ func test_key_press_to_action_just_pressed() -> void:
 
 
 func test_axis_from_key_pair() -> void:
-	var resolver := ActionResolver.new()
-	var policy := InputPolicy.new()
+	var resolver := GF_ActionResolver.new()
+	var policy := GF_InputPolicy.new()
 	resolver.set_policy(policy)
 
-	var move_right := InputActionDef.new("move_right", InputActionDef.ActionType.AXIS_1D)
+	var move_right := GF_InputActionDef.new("move_right", GF_InputActionDef.ActionType.AXIS_1D)
 	resolver.register_action_def(move_right)
 
-	var move_left := InputActionDef.new("move_left", InputActionDef.ActionType.AXIS_1D)
+	var move_left := GF_InputActionDef.new("move_left", GF_InputActionDef.ActionType.AXIS_1D)
 	resolver.register_action_def(move_left)
 
 	resolver.begin_frame()

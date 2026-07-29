@@ -1,15 +1,15 @@
 # tests/integration/test_ecs_save_roundtrip.gd
 ## 集成测试：ECS World ↔ 存档往返。
-## EcsWorld + EcsSaveAdapter — 完整 save/load 流程。
+## GF_EcsWorld + GF_EcsSaveAdapter — 完整 save/load 流程。
 extends GutTest
 
-var _world: EcsWorld
-var _adapter: EcsSaveAdapter
+var _world: GF_EcsWorld
+var _adapter: GF_EcsSaveAdapter
 
 
 func before_each() -> void:
-	_world = EcsWorld.new()
-	_adapter = EcsSaveAdapter.new(1)
+	_world = GF_EcsWorld.new()
+	_adapter = GF_EcsSaveAdapter.new(1)
 
 
 func after_each() -> void:

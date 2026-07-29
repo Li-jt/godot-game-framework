@@ -1,11 +1,11 @@
 # tests/unit/input/test_input_policy.gd
 extends GutTest
 
-var _policy: InputPolicy
+var _policy: GF_InputPolicy
 
 
 func before_each() -> void:
-	_policy = InputPolicy.new()
+	_policy = GF_InputPolicy.new()
 
 
 func after_each() -> void:
@@ -19,7 +19,7 @@ func test_empty_stack_does_not_block() -> void:
 
 
 func test_allowlist_allows_action() -> void:
-	var ctx := InputContext.new()
+	var ctx := GF_InputContext.new()
 	ctx.allowed_actions = ["jump", "move"]
 	_policy.get_context_stack().append(ctx)
 
@@ -29,7 +29,7 @@ func test_allowlist_allows_action() -> void:
 
 
 func test_block_all_game_actions_blocks() -> void:
-	var ctx := InputContext.new()
+	var ctx := GF_InputContext.new()
 	ctx.block_all_game_actions = true
 	_policy.get_context_stack().append(ctx)
 
@@ -38,7 +38,7 @@ func test_block_all_game_actions_blocks() -> void:
 
 
 func test_blocked_action_ids_blocks_specific() -> void:
-	var ctx := InputContext.new()
+	var ctx := GF_InputContext.new()
 	ctx.blocked_action_ids = ["ui_click"]
 	_policy.get_context_stack().append(ctx)
 
@@ -48,7 +48,7 @@ func test_blocked_action_ids_blocks_specific() -> void:
 
 
 func test_wildcard_blocks_all() -> void:
-	var ctx := InputContext.new()
+	var ctx := GF_InputContext.new()
 	ctx.blocked_action_ids = ["*"]
 	_policy.get_context_stack().append(ctx)
 
@@ -58,11 +58,11 @@ func test_wildcard_blocks_all() -> void:
 
 
 func test_pop_context_restores() -> void:
-	var ctx1 := InputContext.new()
+	var ctx1 := GF_InputContext.new()
 	ctx1.blocked_action_ids = ["jump"]
 	_policy.get_context_stack().append(ctx1)
 
-	var ctx2 := InputContext.new()
+	var ctx2 := GF_InputContext.new()
 	ctx2.block_all_game_actions = true
 	_policy.get_context_stack().append(ctx2)
 

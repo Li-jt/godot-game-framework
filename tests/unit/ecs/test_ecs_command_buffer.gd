@@ -1,15 +1,15 @@
 # tests/unit/ecs/test_ecs_command_buffer.gd
-## EcsCommandBuffer 单元测试。
+## GF_EcsCommandBuffer 单元测试。
 ## 命令缓冲：批量记录 ECS 操作，apply 前预校验，帧末统一 apply。
 extends GutTest
 
-var _world: EcsWorld
-var _ecb: EcsCommandBuffer
+var _world: GF_EcsWorld
+var _ecb: GF_EcsCommandBuffer
 
 
 func before_each() -> void:
-	_world = EcsWorld.new()
-	_ecb = EcsCommandBuffer.new()
+	_world = GF_EcsWorld.new()
+	_ecb = GF_EcsCommandBuffer.new()
 
 
 func after_each() -> void:
@@ -89,4 +89,4 @@ func test_validate_rejects_unspawned_reference() -> void:
 	_ecb.add_component(-1, &"Position", {"x": 0, "y": 0})
 	var result := _ecb.apply_to(_world)
 	assert_true(result.is_fail())
-	assert_eq(result.status_code, OperationResult.ERR_PRECONDITION)
+	assert_eq(result.status_code, GF_OperationResult.ERR_PRECONDITION)

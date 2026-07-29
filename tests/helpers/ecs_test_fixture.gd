@@ -1,6 +1,6 @@
 # tests/helpers/ecs_test_fixture.gd
 ## ECS 测试 fixture — 创建预设的 World 状态，减少 Arranging 代码。
-class_name EcsTestFixture
+class_name GF_EcsTestFixture
 extends RefCounted
 
 const COMP_POSITION: StringName = &"Position"
@@ -8,7 +8,7 @@ const COMP_VELOCITY: StringName = &"Velocity"
 const COMP_HEALTH: StringName = &"Health"
 const COMP_NAME: StringName = &"Name"
 
-var world: EcsWorld = null
+var world: GF_EcsWorld = null
 var entity_fast: int = 0      ## entity with Position + Velocity
 var entity_slow: int = 0      ## entity with Position + Velocity
 var entity_static: int = 0    ## entity with Position only
@@ -16,7 +16,7 @@ var entity_dead: int = 0      ## entity with Position + Health (health=0)
 
 
 func setup() -> void:
-	world = EcsWorld.new()
+	world = GF_EcsWorld.new()
 	entity_fast = world.spawn()
 	world.add_component(entity_fast, COMP_POSITION, {"x": 0, "y": 0})
 	world.add_component(entity_fast, COMP_VELOCITY, {"vx": 10, "vy": 0})

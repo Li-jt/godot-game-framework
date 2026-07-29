@@ -1,24 +1,24 @@
-## EcsSaveAdapter — ECS 存档适配器。
-## 将 EcsWorldSnapshot 桥接到 Framework SaveService，
+## GF_EcsSaveAdapter — ECS 存档适配器。
+## 将 GF_EcsWorldSnapshot 桥接到 Framework GF_SaveService，
 ## 支持组件级序列化/反序列化与存档版本管理。
-class_name EcsSaveAdapter
+class_name GF_EcsSaveAdapter
 extends RefCounted
 
-var _snapshot_builder: EcsSnapshotBuilder = null
-var _snapshot_applier: EcsSnapshotApplier = null
-var _migrator: EcsSaveVersionMigrator = null
+var _snapshot_builder: GF_EcsSnapshotBuilder = null
+var _snapshot_applier: GF_EcsSnapshotApplier = null
+var _migrator: GF_EcsSaveVersionMigrator = null
 var _current_save_version: int = 1
 
 
 func _init(p_current_save_version: int = 1) -> void:
-	_snapshot_builder = EcsSnapshotBuilder.new()
-	_snapshot_applier = EcsSnapshotApplier.new()
-	_migrator = EcsSaveVersionMigrator.new()
+	_snapshot_builder = GF_EcsSnapshotBuilder.new()
+	_snapshot_applier = GF_EcsSnapshotApplier.new()
+	_migrator = GF_EcsSaveVersionMigrator.new()
 	_current_save_version = p_current_save_version
 
 
 ## 从世界构建存档数据。
-func save(p_world: EcsWorld) -> Dictionary:
+func save(p_world: GF_EcsWorld) -> Dictionary:
 	var snapshot := _snapshot_builder.build(p_world)
 	return {
 		"save_version": _current_save_version,
@@ -27,7 +27,7 @@ func save(p_world: EcsWorld) -> Dictionary:
 
 
 ## 从存档数据恢复到世界。
-func load(p_world: EcsWorld, p_save_data: Dictionary) -> OperationResult:
+func load(p_world: GF_EcsWorld, p_save_data: Dictionary) -> GF_OperationResult:
 	var data_version: int = p_save_data.get("save_version", 0)
 
 	# 版本迁移
@@ -39,7 +39,7 @@ func load(p_world: EcsWorld, p_save_data: Dictionary) -> OperationResult:
 		migrated_data = migrate_result.data
 
 	var snapshot_dict: Dictionary = migrated_data.get("snapshot", {})
-	var snapshot := EcsWorldSnapshot.new()
+	var snapshot := GF_EcsWorldSnapshot.new()
 	snapshot.from_dict(snapshot_dict)
 
 	return _snapshot_applier.apply(p_world, snapshot)
@@ -65,9 +65,9 @@ func get_current_save_version() -> int:
 ## p_to: 迁移后的存档版本号
 ## p_fn: 迁移回调，签名: func(p_data: Dictionary) -> Dictionary
 ## p_owner: 注册者标识（用于 Mod 卸载时清理）
-func register_migration(p_from: int, p_to: int, p_fn: Callable, p_owner: String = "") -> OperationResult:
+func register_migration(p_from: int, p_to: int, p_fn: Callable, p_owner: String = "") -> GF_OperationResult:
 	_migrator.register_migration(p_from, p_to, p_fn, p_owner)
-	return OperationResult.ok()
+	return GF_OperationResult.ok()
 
 
 ## 注销指定 owner 的所有迁移步骤。Mod 卸载时使用。

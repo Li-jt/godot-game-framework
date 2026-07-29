@@ -1,6 +1,6 @@
-## NetworkResponse
+## GF_NetworkResponse
 ## 网络请求响应模型。
-class_name NetworkResponse
+class_name GF_NetworkResponse
 extends RefCounted
 
 var success: bool = false

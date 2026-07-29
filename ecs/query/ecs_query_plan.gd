@@ -1,7 +1,7 @@
-## EcsQueryPlan — 预编译查询计划。
-## 由 EcsQuery.build() 创建，缓存查询条件，减少每帧构建开销。
+## GF_EcsQueryPlan — 预编译查询计划。
+## 由 GF_EcsQuery.build() 创建，缓存查询条件，减少每帧构建开销。
 ## 可复用：同一 plan 可多次 execute()。
-class_name EcsQueryPlan
+class_name GF_EcsQueryPlan
 extends RefCounted
 
 var _with_types: Array[StringName] = []
@@ -16,7 +16,7 @@ func _init(p_with: Array[StringName], p_without: Array[StringName], p_optional: 
 
 
 ## 对指定世界执行查询，返回匹配的实体和组件数据。
-func execute(p_world: EcsWorld) -> EcsQueryResult:
+func execute(p_world: GF_EcsWorld) -> GF_EcsQueryResult:
 	var registry := p_world._get_registry()
 	var storage_index := p_world._get_storage_index()
 
@@ -26,14 +26,14 @@ func execute(p_world: EcsWorld) -> EcsQueryResult:
 		candidates = p_world.all_entities()
 	else:
 		var with_type_ids: Array[int] = []
-		var with_storages: Array[EcsSparseSetStorage] = []
+		var with_storages: Array[GF_EcsSparseSetStorage] = []
 		for with_type in _with_types:
 			var tid := registry.type_id_of(with_type)
 			if tid == 0:
-				return EcsQueryResult.new()
+				return GF_EcsQueryResult.new()
 			var storage := storage_index.get_storage(tid)
 			if storage == null:
-				return EcsQueryResult.new()
+				return GF_EcsQueryResult.new()
 			with_type_ids.append(tid)
 			with_storages.append(storage)
 		candidates = with_storages[0].entities()
@@ -51,7 +51,7 @@ func execute(p_world: EcsWorld) -> EcsQueryResult:
 		if registry.type_id_of(opt_type) != 0:
 			optional_type_names.append(opt_type)
 
-	var result := EcsQueryResult.new()
+	var result := GF_EcsQueryResult.new()
 	result._required_types = _with_types
 	result._optional_types = optional_type_names
 
@@ -81,7 +81,7 @@ func execute(p_world: EcsWorld) -> EcsQueryResult:
 			continue
 
 		# 收集组件数据
-		var row := EcsQueryRow.new()
+		var row := GF_EcsQueryRow.new()
 		row.entity = entity
 		for wtype in _with_types:
 			var wstorage := storage_index.get_storage(registry.type_id_of(wtype))

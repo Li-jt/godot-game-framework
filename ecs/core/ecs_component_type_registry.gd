@@ -1,7 +1,7 @@
-## EcsComponentTypeRegistry — 组件类型注册中心。
+## GF_EcsComponentTypeRegistry — 组件类型注册中心。
 ## 管理 StringName -> type_id 的映射，并记录每种类型的版本号、注册者，
 ## 为 Save/Debug/Inspector 提供结构化信息，支持 Mod 冲突检测和卸载。
-class_name EcsComponentTypeRegistry
+class_name GF_EcsComponentTypeRegistry
 extends RefCounted
 
 var _type_to_id: Dictionary = {}
@@ -12,7 +12,7 @@ var _next_id: int = 1
 
 
 ## 注册组件类型。重复注册同一类型会返回已有 type_id 而不报错。
-func register_type(p_type: StringName, p_version: int = 1) -> OperationResult:
+func register_type(p_type: StringName, p_version: int = 1) -> GF_OperationResult:
 	return pre_register(p_type, p_version, "")
 
 
@@ -21,13 +21,13 @@ func register_type(p_type: StringName, p_version: int = 1) -> OperationResult:
 ## 如果 type 已注册：
 ##   - 同 owner → 幂等返回
 ##   - 不同 owner → 报错并返回已有 ID（冲突检测）
-func pre_register(p_type: StringName, p_version: int = 1, p_owner: String = "") -> OperationResult:
+func pre_register(p_type: StringName, p_version: int = 1, p_owner: String = "") -> GF_OperationResult:
 	if _type_to_id.has(p_type):
 		var tid: int = _type_to_id[p_type]
 		var existing_owner: String = _owners.get(tid, "")
 		if not existing_owner.is_empty() and existing_owner != p_owner and not p_owner.is_empty():
-			push_error("[EcsComponentTypeRegistry] 组件类型冲突: '%s' 已被 '%s' 注册, '%s' 尝试重复注册" % [p_type, existing_owner, p_owner])
-		return OperationResult.ok(tid)
+			push_error("[GF_EcsComponentTypeRegistry] 组件类型冲突: '%s' 已被 '%s' 注册, '%s' 尝试重复注册" % [p_type, existing_owner, p_owner])
+		return GF_OperationResult.ok(tid)
 
 	var tid: int = _next_id
 	_next_id += 1
@@ -35,7 +35,7 @@ func pre_register(p_type: StringName, p_version: int = 1, p_owner: String = "") 
 	_id_to_type[tid] = p_type
 	_versions[tid] = p_version
 	_owners[tid] = p_owner
-	return OperationResult.created(tid)
+	return GF_OperationResult.created(tid)
 
 
 ## 根据类型名获取 type_id，未注册时返回 0。

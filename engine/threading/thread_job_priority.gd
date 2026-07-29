@@ -1,7 +1,7 @@
-## ThreadJobPriority
+## GF_ThreadJobPriority
 ## 线程任务优先级定义。数值越小优先级越高。
-## 统一用于 ThreadingService 的任务排队与调度。
-class_name ThreadJobPriority
+## 统一用于 GF_ThreadingService 的任务排队与调度。
+class_name GF_ThreadJobPriority
 extends RefCounted
 
 enum Level {

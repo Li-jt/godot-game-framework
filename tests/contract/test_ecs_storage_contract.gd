@@ -1,14 +1,14 @@
 # tests/contract/test_ecs_storage_contract.gd
-## 契约测试：IEcsStorage 接口。
-## 任何 IEcsStorage 实现（SparseSet 等）必须通过此套测试。
+## 契约测试：GF_IEcsStorage 接口。
+## 任何 GF_IEcsStorage 实现（SparseSet 等）必须通过此套测试。
 extends GutTest
 
 # 将被不同存储实现替换
-var _storage: IEcsStorage
+var _storage: GF_IEcsStorage
 
 
 func before_each() -> void:
-	_storage = EcsSparseSetStorage.new()
+	_storage = GF_EcsSparseSetStorage.new()
 
 
 func after_each() -> void:

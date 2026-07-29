@@ -1,22 +1,22 @@
 # tests/unit/debug/test_debug_service.gd
-## DebugService 单元测试。
+## GF_DebugService 单元测试。
 ## 调试面板注册、命令追踪、网络统计。
 extends GutTest
 
-var _debug: DebugService
-var _log: FakeLogService
+var _debug: GF_DebugService
+var _log: GF_FakeLogService
 
 
 func before_each() -> void:
-	_log = FakeLogService.new()
+	_log = GF_FakeLogService.new()
 	_log.module_name = "FakeLog"
 	_log.init_module()
 
-	_debug = DebugService.new()
+	_debug = GF_DebugService.new()
 	_debug.module_name = "DebugService"
 	_debug.init_module()
 
-	var config := AppConfig.DebugSection.new()
+	var config := GF_AppConfig.DebugSection.new()
 	config.enable_debug_panel = true
 	config.show_prediction_state = true
 	_debug.configure(config, _log)
@@ -67,7 +67,7 @@ func test_trace_command_respects_max_history() -> void:
 	for i in range(250):
 		_debug.trace_command("cmd_%d" % i, "type", "executed")
 	var history := _debug.get_command_history()
-	assert_true(history.size() <= DebugService.MAX_COMMAND_HISTORY)
+	assert_true(history.size() <= GF_DebugService.MAX_COMMAND_HISTORY)
 
 
 func test_trace_command_disabled_when_flag_off() -> void:

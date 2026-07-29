@@ -1,6 +1,6 @@
 # tests/contract/test_repository_contract.gd
 ## 契约测试：Repository 接口族。
-## 验证 IEntityRepository 的 CRUD 操作约定。
+## 验证 GF_IEntityRepository 的 CRUD 操作约定。
 extends GutTest
 
 

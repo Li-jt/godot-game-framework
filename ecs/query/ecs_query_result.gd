@@ -1,14 +1,14 @@
-## EcsQueryResult — 查询结果集。
+## GF_EcsQueryResult — 查询结果集。
 ## 包含匹配的实体行列表，支持 for_each 迭代和批量提取。
-class_name EcsQueryResult
+class_name GF_EcsQueryResult
 extends RefCounted
 
-var _rows: Array = []  # Array[EcsQueryRow]
+var _rows: Array = []  # Array[GF_EcsQueryRow]
 var _required_types: Array[StringName] = []
 var _optional_types: Array[StringName] = []
 
 
-## 对每行结果调用回调函数。回调签名：func(row: EcsQueryRow) -> void。
+## 对每行结果调用回调函数。回调签名：func(row: GF_EcsQueryRow) -> void。
 func for_each(p_fn: Callable) -> void:
 	for row in _rows:
 		p_fn.call(row)
@@ -28,7 +28,7 @@ func count() -> int:
 
 
 ## 获取指定索引处的行，越界时返回 null。
-func get_row(p_index: int) -> EcsQueryRow:
+func get_row(p_index: int) -> GF_EcsQueryRow:
 	if p_index < 0 or p_index >= _rows.size():
 		return null
 	return _rows[p_index]

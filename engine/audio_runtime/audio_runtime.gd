@@ -1,6 +1,6 @@
-## AudioRuntime
+## GF_AudioRuntime
 ## 音频运行时宿主。管理音频播放节点和通道。
-## 后续由 AudioService（T3-5）在此基础上提供高层接口（资源加载、淡入淡出等）。
+## 后续由 GF_AudioService（T3-5）在此基础上提供高层接口（资源加载、淡入淡出等）。
 ##
 ## 通道设计：
 ##   MASTER — 总控
@@ -14,12 +14,12 @@
 ##
 ## 使用方式：
 ##   [codeblock]
-##   var audio: AudioRuntime = injected_audio_runtime
+##   var audio: GF_AudioRuntime = injected_audio_runtime
 ##   audio.play_bgm(some_stream)
 ##   audio.play_sfx(click_stream)
-##   audio.set_volume(AudioRuntime.Channel.SFX, 0.8)
+##   audio.set_volume(GF_AudioRuntime.Channel.SFX, 0.8)
 ##   [/codeblock]
-class_name AudioRuntime
+class_name GF_AudioRuntime
 extends Node
 
 enum Channel {
@@ -183,13 +183,11 @@ func _apply_mute(p_channel: Channel) -> void:
 
 
 ## 对新创建的 AudioStreamPlayer 设置跨版本兼容默认值。
-## Godot 4.7 中 AudioStreamPlayer2D/3D 的 area_mask 默认值从 1 变为 0，
-## 如果不显式设置会导致 2D/3D 音频无法被任何 Area2D/3D 监听到。
+## Godot 4.7 中 AudioStreamPlayer2D/3D 的 area_mask 默认值从 1 变为 0。
+## 用属性存在性检查（鸭子类型）而非 is 检查，因为 2D/3D 是 AudioStreamPlayer 的兄弟类而非子类。
 func _apply_player_defaults(p_player: AudioStreamPlayer) -> void:
-	if p_player is AudioStreamPlayer2D:
-		(p_player as AudioStreamPlayer2D).area_mask = 1
-	elif p_player is AudioStreamPlayer3D:
-		(p_player as AudioStreamPlayer3D).area_mask = 1
+	if "area_mask" in p_player:
+		p_player.area_mask = 1
 
 
 func _channel_name(p_channel: Channel) -> String:

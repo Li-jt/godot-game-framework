@@ -1,11 +1,11 @@
 # tests/unit/core/test_content_def_registry.gd
 extends GutTest
 
-var _registry: ContentDefRegistry
+var _registry: GF_ContentDefRegistry
 
 
 func before_each() -> void:
-	_registry = ContentDefRegistry.new()
+	_registry = GF_ContentDefRegistry.new()
 
 
 func after_each() -> void:

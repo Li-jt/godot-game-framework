@@ -1,9 +1,9 @@
-## AppConfigValidator
-## 配置校验器。检查合并后的 AppConfig 是否满足运行要求。
+## GF_AppConfigValidator
+## 配置校验器。检查合并后的 GF_AppConfig 是否满足运行要求。
 ## 一次校验收集全部错误，不遇第一个就返回，方便开发者一次修完。
 ##
 ## 校验规则来源：设计文档 6.10 节 / 30.3 节
-class_name AppConfigValidator
+class_name GF_AppConfigValidator
 extends RefCounted
 
 # 合法的运行时模式
@@ -12,9 +12,9 @@ const VALID_SAVE_PROVIDERS := ["Local", "Remote", "Hybrid"]
 const VALID_ENVIRONMENTS := ["dev", "test", "prod"]
 
 
-## 校验 AppConfig，通过返回 OperationResult.ok()
-## 不通过返回 OperationResult.fail()，error.context["errors"] 包含逐条错误字符串
-func validate(p_config: AppConfig) -> OperationResult:
+## 校验 GF_AppConfig，通过返回 GF_OperationResult.ok()
+## 不通过返回 GF_OperationResult.fail()，error.context["errors"] 包含逐条错误字符串
+func validate(p_config: GF_AppConfig) -> GF_OperationResult:
 	var errors: Array[String] = []
 
 	_validate_app(p_config.app, errors)
@@ -26,10 +26,10 @@ func validate(p_config: AppConfig) -> OperationResult:
 	_validate_threading(p_config.threading, errors)
 
 	if errors.is_empty():
-		return OperationResult.ok()
+		return GF_OperationResult.ok()
 
 	var msg := "配置校验失败，共 %d 个错误" % errors.size()
-	var result := OperationResult.fail(OperationResult.ERR_CONFIG, msg, "AppConfigValidator")
+	var result := GF_OperationResult.fail(GF_OperationResult.ERR_CONFIG, msg, "GF_AppConfigValidator")
 	result.error.context["errors"] = errors
 	return result
 
@@ -38,7 +38,7 @@ func validate(p_config: AppConfig) -> OperationResult:
 # 各段校验
 # ============================================================
 
-func _validate_app(p: AppConfig.AppSection, p_errors: Array[String]) -> void:
+func _validate_app(p: GF_AppConfig.AppSection, p_errors: Array[String]) -> void:
 	if p.name.is_empty():
 		p_errors.append("app.name 不能为空")
 
@@ -46,12 +46,12 @@ func _validate_app(p: AppConfig.AppSection, p_errors: Array[String]) -> void:
 		p_errors.append("app.environment 值非法: '%s'，合法值: %s" % [p.environment, str(VALID_ENVIRONMENTS)])
 
 
-func _validate_runtime(p: AppConfig.RuntimeSection, p_errors: Array[String]) -> void:
+func _validate_runtime(p: GF_AppConfig.RuntimeSection, p_errors: Array[String]) -> void:
 	if not p.mode in VALID_RUNTIME_MODES:
 		p_errors.append("runtime.mode 值非法: '%s'，合法值: %s" % [p.mode, str(VALID_RUNTIME_MODES)])
 
 
-func _validate_network(p: AppConfig.NetworkSection, p_runtime: AppConfig.RuntimeSection, p_errors: Array[String]) -> void:
+func _validate_network(p: GF_AppConfig.NetworkSection, p_runtime: GF_AppConfig.RuntimeSection, p_errors: Array[String]) -> void:
 	# 非 Mock 模式下，Remote/Hybrid 必须有真实 API 地址
 	if p.use_mock_api:
 		return
@@ -68,7 +68,7 @@ func _validate_network(p: AppConfig.NetworkSection, p_runtime: AppConfig.Runtime
 		p_errors.append("network.retryCount 不能为负数，当前值: %d" % p.retry_count)
 
 
-func _validate_save(p: AppConfig.SaveSection, p_errors: Array[String]) -> void:
+func _validate_save(p: GF_AppConfig.SaveSection, p_errors: Array[String]) -> void:
 	if not p.provider in VALID_SAVE_PROVIDERS:
 		p_errors.append("save.provider 值非法: '%s'，合法值: %s" % [p.provider, str(VALID_SAVE_PROVIDERS)])
 
@@ -84,17 +84,17 @@ func _validate_save(p: AppConfig.SaveSection, p_errors: Array[String]) -> void:
 		p_errors.append("save.autoSaveIntervalSeconds 必须大于 0，当前值: %d" % p.auto_save_interval_seconds)
 
 
-func _validate_resource(p: AppConfig.ResourceSection, p_errors: Array[String]) -> void:
+func _validate_resource(p: GF_AppConfig.ResourceSection, p_errors: Array[String]) -> void:
 	if p.base_path.is_empty():
 		p_errors.append("resource.basePath 不能为空")
 
 
-func _validate_logging(p: AppConfig.LoggingSection, p_errors: Array[String]) -> void:
+func _validate_logging(p: GF_AppConfig.LoggingSection, p_errors: Array[String]) -> void:
 	if p.write_to_file and p.log_root.is_empty():
 		p_errors.append("logging.logRoot 不能为空：logging.writeToFile 为 true")
 
 
-func _validate_threading(p: AppConfig.ThreadingSection, p_errors: Array[String]) -> void:
+func _validate_threading(p: GF_AppConfig.ThreadingSection, p_errors: Array[String]) -> void:
 	if p.max_active_jobs <= 0:
 		p_errors.append("threading.maxActiveJobs 必须大于 0，当前值: %d" % p.max_active_jobs)
 	if p.max_dispatch_per_tick <= 0:

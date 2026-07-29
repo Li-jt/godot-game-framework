@@ -1,4 +1,4 @@
-## AppFlow
+## GF_AppFlow
 ## 应用流程状态机。管理 App 级逻辑状态（非 Godot SceneTree 状态）。
 ## 所有状态切换通过此服务完成，禁止各模块自行判断"当前在哪个界面"。
 ##
@@ -7,9 +7,9 @@
 ##                ↑                    ↓
 ##                └────────────────────┘
 ##
-## 每次状态切换通过 EventBus 发布 "flow_state_changed" 事件。
-class_name AppFlow
-extends ModuleLifecycle
+## 每次状态切换通过 GF_EventBus 发布 "flow_state_changed" 事件。
+class_name GF_AppFlow
+extends GF_ModuleLifecycle
 
 ## 流程状态——StringName 常量 + 动态注册。
 const STATE_BOOT: StringName = &"boot"
@@ -21,7 +21,7 @@ const STATE_PAUSE: StringName = &"pause"
 var current_state: StringName = STATE_BOOT
 var previous_state: StringName = STATE_BOOT
 var current_payload: Dictionary = {}
-var _event_bus: EventBus = null
+var _event_bus: GF_EventBus = null
 
 ## 状态转换表——基于 StringName 的字典。
 var _transitions: Dictionary = {
@@ -33,15 +33,15 @@ var _transitions: Dictionary = {
 }
 
 
-func _on_init() -> OperationResult:
-	return OperationResult.ok()
+func _on_init() -> GF_OperationResult:
+	return GF_OperationResult.ok()
 
 
-func configure(p_event_bus: EventBus) -> OperationResult:
+func configure(p_event_bus: GF_EventBus) -> GF_OperationResult:
 	if p_event_bus == null:
-		return OperationResult.fail(OperationResult.ERR_BAD_REQUEST, "configure: event_bus 不能为 null", module_name)
+		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "configure: event_bus 不能为 null", module_name)
 	_event_bus = p_event_bus
-	return OperationResult.ok()
+	return GF_OperationResult.ok()
 
 
 # ============================================================
@@ -50,21 +50,21 @@ func configure(p_event_bus: EventBus) -> OperationResult:
 
 ## 切换到指定状态。无效状态或同状态切换会被拒绝。
 ## p_payload 可选，携带 slot_id / world_id 等上下文数据。
-func transition_to(p_target: StringName, p_payload: Dictionary = {}) -> OperationResult:
+func transition_to(p_target: StringName, p_payload: Dictionary = {}) -> GF_OperationResult:
 	if p_target == current_state:
-		return OperationResult.ok()
+		return GF_OperationResult.ok()
 
 	if not _transitions.has(p_target):
-		return OperationResult.fail(
-			OperationResult.ERR_BAD_REQUEST,
+		return GF_OperationResult.fail(
+			GF_OperationResult.ERR_BAD_REQUEST,
 			"未知状态: %s" % p_target,
 			module_name
 		)
 
 	var allowed_from: Array = _transitions[p_target]["from"]
 	if not allowed_from.has(current_state) and allowed_from[0] != "*":
-		return OperationResult.fail(
-			OperationResult.ERR_PRECONDITION,
+		return GF_OperationResult.fail(
+			GF_OperationResult.ERR_PRECONDITION,
 			"无效的状态切换: %s → %s" % [current_state, p_target],
 			module_name
 		)
@@ -80,7 +80,7 @@ func transition_to(p_target: StringName, p_payload: Dictionary = {}) -> Operatio
 			"payload": current_payload,
 		})
 
-	return OperationResult.ok()
+	return GF_OperationResult.ok()
 
 
 ## 动态注册新的流程状态。Mod 使用。
@@ -112,23 +112,23 @@ func get_previous_state() -> StringName:
 # 便捷切换方法
 # ============================================================
 
-func to_main_menu() -> OperationResult:
+func to_main_menu() -> GF_OperationResult:
 	return transition_to(STATE_MAIN_MENU)
 
 
-func to_loading() -> OperationResult:
+func to_loading() -> GF_OperationResult:
 	return transition_to(STATE_LOADING)
 
 
-func to_in_game() -> OperationResult:
+func to_in_game() -> GF_OperationResult:
 	return transition_to(STATE_IN_GAME)
 
 
-func to_pause() -> OperationResult:
+func to_pause() -> GF_OperationResult:
 	return transition_to(STATE_PAUSE)
 
 
-func resume_from_pause() -> OperationResult:
+func resume_from_pause() -> GF_OperationResult:
 	if current_state != STATE_PAUSE:
-		return OperationResult.fail(OperationResult.ERR_PRECONDITION, "当前不在暂停状态", module_name)
+		return GF_OperationResult.fail(GF_OperationResult.ERR_PRECONDITION, "当前不在暂停状态", module_name)
 	return transition_to(STATE_IN_GAME)

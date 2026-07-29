@@ -1,24 +1,24 @@
-## EcsRuntimeBridge — ECS 运行时模式桥接。
-## 根据 RuntimeMode（Local/Remote/Hybrid）选择不同的 ECS 命令执行策略，
+## GF_EcsRuntimeBridge — ECS 运行时模式桥接。
+## 根据 GF_RuntimeMode（Local/Remote/Hybrid）选择不同的 ECS 命令执行策略，
 ## 支持预测（Prediction）、确认（Confirm）和回滚（Rollback）基础流程。
-class_name EcsRuntimeBridge
+class_name GF_EcsRuntimeBridge
 extends RefCounted
 
 enum ExecuteMode { LOCAL, REMOTE, HYBRID }
 
 var _mode: int = ExecuteMode.LOCAL
-var _ecb_pool: EcsCommandBufferPool = null
-var _snapshot_builder: EcsSnapshotBuilder = null
-var _snapshot_applier: EcsSnapshotApplier = null
+var _ecb_pool: GF_EcsCommandBufferPool = null
+var _snapshot_builder: GF_EcsSnapshotBuilder = null
+var _snapshot_applier: GF_EcsSnapshotApplier = null
 ## Hybrid 模式下的预测快照栈（用于回滚）
-var _prediction_stack: Array[EcsWorldSnapshot] = []
+var _prediction_stack: Array[GF_EcsWorldSnapshot] = []
 
 
 func _init(p_mode: int = ExecuteMode.LOCAL) -> void:
 	_mode = p_mode
-	_ecb_pool = EcsCommandBufferPool.new()
-	_snapshot_builder = EcsSnapshotBuilder.new()
-	_snapshot_applier = EcsSnapshotApplier.new()
+	_ecb_pool = GF_EcsCommandBufferPool.new()
+	_snapshot_builder = GF_EcsSnapshotBuilder.new()
+	_snapshot_applier = GF_EcsSnapshotApplier.new()
 
 
 ## 设置运行时模式。
@@ -32,16 +32,16 @@ func get_mode() -> int:
 
 
 ## 为 Hybrid 模式保存预测前快照。
-func save_prediction_snapshot(p_world: EcsWorld) -> void:
+func save_prediction_snapshot(p_world: GF_EcsWorld) -> void:
 	if _mode != ExecuteMode.HYBRID:
 		return
 	_prediction_stack.append(_snapshot_builder.build(p_world))
 
 
 ## Hybrid 模式：回滚到最近一次预测前状态。
-func rollback_prediction(p_world: EcsWorld) -> OperationResult:
+func rollback_prediction(p_world: GF_EcsWorld) -> GF_OperationResult:
 	if _prediction_stack.is_empty():
-		return OperationResult.fail(OperationResult.ERR_PRECONDITION, "无可用预测快照", "EcsRuntimeBridge")
+		return GF_OperationResult.fail(GF_OperationResult.ERR_PRECONDITION, "无可用预测快照", "GF_EcsRuntimeBridge")
 	var snapshot: Variant = _prediction_stack.pop_back()
 	return _snapshot_applier.apply(p_world, snapshot)
 

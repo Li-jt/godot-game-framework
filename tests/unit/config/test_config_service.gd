@@ -1,15 +1,15 @@
 # tests/unit/config/test_config_service.gd
 extends GutTest
 
-var _service: ConfigService
-var _log: FakeLogService
+var _service: GF_ConfigService
+var _log: GF_FakeLogService
 
 
 func before_each() -> void:
-	_log = FakeLogService.new()
+	_log = GF_FakeLogService.new()
 	_log.module_name = "FakeLog"
 	_log.init_module()
-	_service = ConfigService.new()
+	_service = GF_ConfigService.new()
 	_service.module_name = "ConfigService"
 	_service.init_module()
 

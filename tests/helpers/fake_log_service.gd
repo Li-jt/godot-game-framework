@@ -1,13 +1,13 @@
 # tests/helpers/fake_log_service.gd
-## 测试用 LogService，记录所有输出供断言。
-class_name FakeLogService
-extends LogService
+## 测试用 GF_LogService，记录所有输出供断言。
+class_name GF_FakeLogService
+extends GF_LogService
 
 var messages: Array[Dictionary] = []
 
 
-func _on_init() -> OperationResult:
-	return OperationResult.ok()
+func _on_init() -> GF_OperationResult:
+	return GF_OperationResult.ok()
 
 
 func debug(p_tag: String, p_message: String, p_context: Dictionary = {}) -> void:

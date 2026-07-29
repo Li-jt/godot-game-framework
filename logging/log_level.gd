@@ -1,7 +1,7 @@
-## LogLevel
+## GF_LogLevel
 ## 日志级别枚举，按严重程度递升。
 ## 设置某个级别后，只输出该级别及更高级别的日志。
-class_name LogLevel
+class_name GF_LogLevel
 extends RefCounted
 
 enum Level {

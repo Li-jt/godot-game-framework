@@ -1,13 +1,13 @@
 # tests/unit/environment/test_app_config.gd
-## AppConfig 单元测试。
+## GF_AppConfig 单元测试。
 ## 配置加载、环境变量覆盖、校验。
 extends GutTest
 
-var _config: AppConfig
+var _config: GF_AppConfig
 
 
 func before_each() -> void:
-	_config = AppConfig.new()
+	_config = GF_AppConfig.new()
 
 
 func after_each() -> void:
