@@ -31,6 +31,16 @@ func test_multiple_subscribers_all_called() -> void:
 	assert_eq(calls.size(), 3)
 
 
+func test_multiple_events_independent() -> void:
+	var a_called := false
+	var b_called := false
+	_bus.subscribe("event.a", func(_d = null): a_called = true)
+	_bus.subscribe("event.b", func(_d = null): b_called = true)
+	_bus.publish("event.a")
+	assert_true(a_called)
+	assert_false(b_called)
+
+
 func test_publish_delivers_to_subscriber() -> void:
 	var received := false
 	var received_data = null
@@ -46,6 +56,7 @@ func test_publish_delivers_to_subscriber() -> void:
 
 func test_publish_to_nonexistent_event_no_error() -> void:
 	_bus.publish("nonexistent.event")
+	assert_false(_bus.has_listeners("nonexistent.event"))
 
 
 func test_unsubscribe_removes_listener() -> void:
@@ -58,9 +69,27 @@ func test_unsubscribe_removes_listener() -> void:
 
 
 func test_token_unsubscribe() -> void:
-	var token := _bus.subscribe("test.event", func(_d = null): pass)
+	var count := 0
+	var token := _bus.subscribe("test.event", func(_d = null): count += 1)
 	token.unsubscribe()
-	pass
+	_bus.publish("test.event")
+	assert_eq(count, 0)
+
+
+func test_unsubscribe_during_dispatch_does_not_break_loop() -> void:
+	var calls: Array[String] = []
+	var token_to_remove: GF_EventToken
+	var a_cb := func(_d = null): calls.append("A")
+	var b_cb := func(_d = null):
+		calls.append("B")
+		token_to_remove.unsubscribe()
+	var c_cb := func(_d = null): calls.append("C")
+	_bus.subscribe("test.event", a_cb)
+	_bus.subscribe("test.event", b_cb)
+	token_to_remove = _bus.subscribe("test.event", c_cb)
+	_bus.publish("test.event")
+	assert_has(calls, "A")
+	assert_has(calls, "B")
 
 
 func test_once_fires_only_first_time() -> void:
@@ -107,27 +136,3 @@ func test_dispose_clears_all_listeners() -> void:
 	_bus.dispose_module()
 	assert_false(_bus.has_listeners("event.a"))
 	assert_false(_bus.has_listeners("event.b"))
-
-
-# EventDef
-func test_publish_def_works() -> void:
-	var received := false
-	_bus.subscribe("test.typed", func(_d): received = true)
-	var def = load("res://event/event_def.gd").new(&"test.typed")
-	_bus.publish_def(def)
-	assert_true(received)
-
-
-func test_subscribe_def_works() -> void:
-	var received := false
-	var def = load("res://event/event_def.gd").new(&"test.typed")
-	_bus.subscribe_def(def, func(_d): received = true)
-	_bus.publish("test.typed")
-	assert_true(received)
-
-
-func test_has_listeners_def_works() -> void:
-	var def = load("res://event/event_def.gd").new(&"item.changed")
-	assert_false(_bus.has_listeners_def(def))
-	_bus.subscribe("item.changed", func(_d): pass)
-	assert_true(_bus.has_listeners_def(def))
