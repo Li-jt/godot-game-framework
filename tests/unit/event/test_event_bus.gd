@@ -3,12 +3,17 @@
 extends GutTest
 
 var _bus: GF_EventBus
+var _test_event
+var _count_event
 
 
 func before_each() -> void:
 	_bus = GF_EventBus.new()
 	_bus.module_name = "TestEventBus"
 	_bus.init_module()
+	_test_event = load("res://event/event_def.gd").new(&"test.typed")
+	_count_event = load("res://event/event_def.gd").new(&"count.event",
+		func(p): return p is Dictionary and p.has("count"))
 
 
 func after_each() -> void:
@@ -136,3 +141,49 @@ func test_dispose_clears_all_listeners() -> void:
 	_bus.dispose_module()
 	assert_false(_bus.has_listeners("event.a"))
 	assert_false(_bus.has_listeners("event.b"))
+
+
+# ============================================================
+# EventDef 类型化事件
+# ============================================================
+
+func test_publish_def_delivers_to_subscriber() -> void:
+	var received := false
+	_bus.subscribe_def(_test_event, func(_d): received = true)
+	_bus.publish_def(_test_event)
+	assert_true(received)
+
+
+func test_publish_def_compatible_with_string_subscribe() -> void:
+	var received := false
+	_bus.subscribe("test.typed", func(_d): received = true)
+	_bus.publish_def(_test_event)
+	assert_true(received)
+
+
+func test_subscribe_def_returns_token() -> void:
+	var token: GF_EventToken = _bus.subscribe_def(_test_event, func(_d): pass)
+	assert_not_null(token)
+	token.unsubscribe()
+	assert_false(_bus.has_listeners_def(_test_event))
+
+
+func test_has_listeners_def() -> void:
+	assert_false(_bus.has_listeners_def(_test_event))
+	_bus.subscribe_def(_test_event, func(_d): pass)
+	assert_true(_bus.has_listeners_def(_test_event))
+
+
+func test_validator_does_not_block_publish() -> void:
+	var received := false
+	_bus.subscribe_def(_count_event, func(_d): received = true)
+	_bus.publish_def(_count_event, {"wrong": "data"})
+	assert_true(received, "校验器不应阻止事件发布")
+
+
+func test_once_def_fires_only_once() -> void:
+	var count: int = 0
+	_bus.subscribe_once_def(_test_event, func(_d): count += 1)
+	_bus.publish_def(_test_event)
+	_bus.publish_def(_test_event)
+	assert_eq(count, 1)
