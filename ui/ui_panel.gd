@@ -1,10 +1,6 @@
 ## GF_UIPanel
 ## 所有游戏 UI 面板的基类。Game 层的面板脚本继承此类。
 ##
-## 字段：
-##   panel_name  — 面板名称，由 GF_UIService 在 open 时赋值
-##   ctx         — GF_GameServices 上下文，由 GF_UIService 在实例化后自动注入
-##
 ## 生命周期（由 GF_UIService 调用，子类重写带下划线的方法）：
 ##
 ##   destroy 策略（默认）：
@@ -31,22 +27,14 @@ extends Control
 
 ## 由 GF_UIService 在 open 时设置，用于反向查找面板定义
 var panel_name: String = ""
-## v4.0：输入阻挡模式（由 GF_UIService 从 GF_UIPanelDef 注入）
-var _ui_block_mode: int = 0
-## v4.0：阻挡的动作 ID 列表
-var _blocked_action_ids: Array = []
-## v4.0：始终放行的动作 ID 列表
-var _allowed_action_ids: Array = []
+
+## 面板定义引用（由 GF_UIService 在 open 时注入）。GF_InputPolicy 直接读取。
+var _panel_def: GF_UIPanelDef = null
+
 ## 焦点模式（由 GF_UIService 打开面板时注入）
 var _focus_mode: Control.FocusMode = Control.FOCUS_ALL
 ## 默认焦点控件路径（由 GF_UIService 打开面板时注入）
 var _default_focus_path: NodePath = NodePath()
-
-
-func set_input_block_config(p_mode: int, p_blocked: Array, p_allowed: Array) -> void:
-	_ui_block_mode = p_mode
-	_blocked_action_ids = p_blocked.duplicate()
-	_allowed_action_ids = p_allowed.duplicate()
 
 
 ## 注入焦点配置（由 GF_UIService 在 open 时调用）。
@@ -143,21 +131,3 @@ func _on_close() -> void:
 ## 面板被隐藏时调用（仅在 cache 策略下触发），用于暂停轮询等
 func _on_hide() -> void:
 	pass
-
-
-# ============================================================
-# v4.0：GF_InputPolicy 查询接口（子类按需覆写）
-# ============================================================
-
-## 返回此面板的输入阻挡模式（GAME_INPUT_BLOCK_*）。
-## 默认从 GF_UIPanelDef 读取，子类一般不需要覆写。
-func get_game_input_block_mode() -> int:
-	return _ui_block_mode
-
-
-func get_blocked_action_ids() -> Array:
-	return _blocked_action_ids
-
-
-func get_allowed_action_ids() -> Array:
-	return _allowed_action_ids
