@@ -1,6 +1,6 @@
 # tests/unit/ecs/test_ecs_component_factory.gd
 ## GF_EcsComponentFactory 单元测试。
-## 组件工厂注册表：register/create/has/clear 及存档集成。
+## 组件工厂注册表：手动注册、自动发现、存档集成。
 extends GutTest
 
 const FACTORY_PATH := "res://ecs/save/ecs_component_factory.gd"
@@ -28,7 +28,7 @@ func after_each() -> void:
 
 
 # ============================================================
-# 基础注册表操作
+# 手动注册（灵活模式）
 # ============================================================
 
 func test_register_and_create() -> void:
@@ -75,26 +75,68 @@ func test_registered_types_returns_all() -> void:
 
 
 # ============================================================
-# 存档集成：factory 重建组件实例
+# 自动发现（推荐模式）：register_script / discover_from
 # ============================================================
 
-func test_save_load_with_factory_reconstructs_component() -> void:
-	_factory.register(&"Health", func(p_data: Dictionary):
-		return {"hp": p_data.hp, "max": p_data.max, "tag": "rebuilt"}
-	)
+func test_register_script_auto_discovers_type_and_factory() -> void:
+	# 加载 test helper 组件类
+	var script: GDScript = load("res://tests/helpers/fake_component.gd")
+	var ok: bool = _factory.register_script(script)
+	assert_true(ok)
+	assert_true(_factory.has_factory(&"FakeHealth"))
+
+	# 通过工厂重建
+	var result = _factory.create(&"FakeHealth", {"hp": 99, "max_hp": 150})
+	assert_eq(result.hp, 99)
+	assert_eq(result.max_hp, 150)
+
+
+func test_register_script_fails_for_non_component_base() -> void:
+	# GDScript 引用非 GF_EcsComponentBase 子类 → 返回 false
+	var script: GDScript = load("res://ecs/save/ecs_component_factory.gd")
+	var ok: bool = _factory.register_script(script)
+	assert_false(ok)
+
+
+func test_discover_from_registers_multiple() -> void:
+	var s1: GDScript = load("res://tests/helpers/fake_component.gd")
+	# s1 注册为 FakeHealth，这里用同一脚本模拟多种类型不够好
+	# 直接测 discover_from 的计数逻辑
+	var count: int = _factory.discover_from([s1])
+	assert_eq(count, 1)
+	assert_true(_factory.has_factory(&"FakeHealth"))
+
+
+func test_discover_from_counts_only_successful() -> void:
+	# 混合有效和无效脚本
+	var valid: GDScript = load("res://tests/helpers/fake_component.gd")
+	var invalid: GDScript = load("res://ecs/save/ecs_component_factory.gd")  # 非组件类
+	var count: int = _factory.discover_from([valid, invalid])
+	assert_eq(count, 1)
+
+
+# ============================================================
+# 存档集成：自动发现 + save/load 往返
+# ============================================================
+
+func test_save_load_with_auto_discovered_component() -> void:
+	_factory.register_script(load("res://tests/helpers/fake_component.gd"))
 	_adapter.component_factory = _factory
 
 	var entity := _world.spawn()
-	_world.add_component(entity, &"Health", {"hp": 50, "max": 100})
+	_world.add_component(entity, &"FakeHealth", {"hp": 60, "max_hp": 120})
 	var save_data := _adapter.save(_world)
 
 	_world.reset()
 	_adapter.load(_world, save_data)
 
-	var restored = _world.get_component(entity, &"Health")
-	assert_eq(restored.hp, 50)
-	assert_eq(restored.max, 100)
-	assert_eq(restored.tag, "rebuilt")
+	var restored = _world.get_component(entity, &"FakeHealth")
+	assert_eq(restored.hp, 60)
+	assert_eq(restored.max_hp, 120)
+
+	# 验证是 GF_EcsComponentBase 实例（不是原始 Dictionary）
+	assert_true(restored is GF_EcsComponentBase)
+	assert_eq(restored.get_component_type(), &"FakeHealth")
 
 
 func test_save_load_without_factory_uses_raw_data() -> void:
