@@ -9,6 +9,9 @@ var _snapshot_applier: GF_EcsSnapshotApplier = null
 var _migrator: GF_EcsSaveVersionMigrator = null
 var _current_save_version: int = 1
 
+## 组件工厂注册表（可选）。设置后，load 时自动通过工厂重建组件实例。
+var component_factory: GF_EcsComponentFactory = null
+
 
 func _init(p_current_save_version: int = 1) -> void:
 	_snapshot_builder = GF_EcsSnapshotBuilder.new()
@@ -26,7 +29,8 @@ func save(p_world: GF_EcsWorld) -> Dictionary:
 	}
 
 
-## 从存档数据恢复到世界。
+## 从存档数据恢复到世界。如果设置了 component_factory，
+## 会通过工厂回调将序列化数据重建为组件实例。
 func load(p_world: GF_EcsWorld, p_save_data: Dictionary) -> GF_OperationResult:
 	var data_version: int = p_save_data.get("save_version", 0)
 
@@ -42,7 +46,7 @@ func load(p_world: GF_EcsWorld, p_save_data: Dictionary) -> GF_OperationResult:
 	var snapshot := GF_EcsWorldSnapshot.new()
 	snapshot.from_dict(snapshot_dict)
 
-	return _snapshot_applier.apply(p_world, snapshot)
+	return _snapshot_applier.apply(p_world, snapshot, component_factory)
 
 
 ## 设置当前存档版本号。
