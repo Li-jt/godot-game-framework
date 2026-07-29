@@ -37,12 +37,23 @@ var _ui_block_mode: int = 0
 var _blocked_action_ids: Array = []
 ## v4.0：始终放行的动作 ID 列表
 var _allowed_action_ids: Array = []
+## 焦点模式（由 GF_UIService 打开面板时注入）
+var _focus_mode: Control.FocusMode = Control.FOCUS_ALL
+## 默认焦点控件路径（由 GF_UIService 打开面板时注入）
+var _default_focus_path: NodePath = NodePath()
 
 
 func set_input_block_config(p_mode: int, p_blocked: Array, p_allowed: Array) -> void:
 	_ui_block_mode = p_mode
 	_blocked_action_ids = p_blocked.duplicate()
 	_allowed_action_ids = p_allowed.duplicate()
+
+
+## 注入焦点配置（由 GF_UIService 在 open 时调用）。
+func set_focus_config(p_mode: Control.FocusMode, p_default_focus: NodePath) -> void:
+	_focus_mode = p_mode
+	_default_focus_path = p_default_focus
+
 
 ## GF_GameServices 上下文。由 GF_UIService 在面板实例化后自动注入。
 ## 子类在 _on_open / _on_reopen 中可直接使用。
@@ -57,12 +68,14 @@ func _on_factory_init(_p_data: Dictionary) -> void:
 ## 先填数据再显示，避免空面板闪烁。子类不要重写。
 func open(p_data: Dictionary = {}) -> void:
 	_on_open(p_data)
+	_apply_focus_config()
 	show()
 
 
 ## 重新打开已缓存面板。先填数据再显示。子类不要重写。
 func reopen(p_data: Dictionary = {}) -> void:
 	_on_reopen(p_data)
+	_apply_focus_config()
 	show()
 
 
@@ -83,6 +96,31 @@ func hide_panel() -> void:
 ## 默认使用面板自身矩形；HUD 等非全屏交互面板可覆盖为更窄的阻挡区域。
 func is_pointer_over_game_input_blocking_area(p_global_mouse_pos: Vector2) -> bool:
 	return visible and get_global_rect().has_point(p_global_mouse_pos)
+
+
+# ============================================================
+# 焦点导航
+# ============================================================
+
+## 根据全局配置和面板定义，递归设置子控件的 focus_mode，并自动聚焦 default_focus。
+func _apply_focus_config() -> void:
+	var cfg: Control.FocusMode = ctx.config.ui.focus_navigation.default_mode
+	var mode: Control.FocusMode = mini(cfg, _focus_mode)
+	if mode == Control.FOCUS_NONE:
+		return
+	_set_children_focus_mode(self, mode)
+	if not _default_focus_path.is_empty():
+		var target := get_node_or_null(_default_focus_path)
+		if target is Control:
+			target.grab_focus()
+
+
+## 递归设置所有 Control 子节点的 focus_mode。
+func _set_children_focus_mode(p_node: Node, p_mode: Control.FocusMode) -> void:
+	if p_node is Control:
+		p_node.focus_mode = p_mode
+	for child in p_node.get_children():
+		_set_children_focus_mode(child, p_mode)
 
 
 # ============================================================

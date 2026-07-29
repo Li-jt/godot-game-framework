@@ -14,6 +14,7 @@ var logging: LoggingSection = LoggingSection.new()
 var threading: ThreadingSection = ThreadingSection.new()
 var debug: DebugSection = DebugSection.new()
 var feature_flags: FeatureFlagsSection = FeatureFlagsSection.new()
+var ui: UiSection = UiSection.new()
 var path_overrides: PathOverridesSection = PathOverridesSection.new()
 
 
@@ -106,6 +107,20 @@ class FeatureFlagsSection:
 	var enable_network_stats: bool = false
 	var enable_auto_save: bool = false
 	var enable_tutorial: bool = false
+
+
+## UI 配置
+class UiSection:
+	extends RefCounted
+	## 焦点导航配置
+	var focus_navigation: UiFocusNavigationSection = UiFocusNavigationSection.new()
+
+
+## UI 焦点导航配置
+class UiFocusNavigationSection:
+	extends RefCounted
+	## 全局默认焦点模式。FOCUS_NONE = 关闭，FOCUS_CLICK = 仅鼠标，FOCUS_ALL = 全开。
+	var default_mode: Control.FocusMode = Control.FOCUS_ALL
 
 
 ## 路径覆盖配置。允许在不修改代码的情况下覆盖关键路径。

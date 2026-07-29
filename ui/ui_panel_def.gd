@@ -44,3 +44,9 @@ var blocked_action_ids: Array = []
 var blocks_ui_below: bool = false
 var close_on_escape: bool = true
 var modal: bool = false
+
+## 此面板的焦点模式。默认 FOCUS_ALL。FOCUS_NONE = 此面板不参与键盘/手柄导航。
+## 实际生效值 = min(全局配置 default_mode, 此值)。
+var focus_mode: Control.FocusMode = Control.FOCUS_ALL
+## 面板打开后自动聚焦的控件路径。空 = 不自动聚焦。
+var default_focus: NodePath = NodePath()
