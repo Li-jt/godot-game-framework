@@ -170,7 +170,7 @@ func _tick_entries(p_dt: float, p_filter: Callable) -> void:
 
 		if entry.interval > 0.0:
 			entry.accumulator += p_dt
-			if entry.accumulator >= entry.interval:
+			while entry.accumulator >= entry.interval:
 				entry.accumulator -= entry.interval
 				entry.callback.call(entry.interval)
 		else:
