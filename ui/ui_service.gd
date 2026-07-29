@@ -95,7 +95,7 @@ func open(p_name: String, p_data: Dictionary = {}) -> GF_OperationResult:
 	if def == null:
 		return GF_OperationResult.fail(GF_OperationResult.ERR_NOT_FOUND, "面板未注册: %s" % p_name, module_name)
 
-		_save_current_focus()
+	_save_current_focus()
 	if _active_panels.has(p_name) and def.singleton:
 		var existing := _get_panel_safe(p_name)
 		if existing != null:
