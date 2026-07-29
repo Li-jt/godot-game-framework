@@ -10,6 +10,8 @@ func get_data(p_entity: int) -> Variant: _ni(); return null
 func entities() -> PackedInt64Array: _ni(); return PackedInt64Array()
 func count() -> int: _ni(); return 0
 func clear() -> void: _ni()
+## 返回存储后端名称（如 "SparseSet"、"Archetype"），用于调试和测试。
+func get_backend_name() -> String: return "Unknown"
 
 func _ni() -> void:
 	push_error("GF_IEcsStorage: 方法未实现")
