@@ -53,7 +53,9 @@ func load(p_slot: int) -> GF_OperationResult:
 	var path := _slot_path(p_slot)
 	var result := _file_system.read_json(path)
 	if result.is_fail():
-		return result
+		result = _try_restore_backup(path)
+		if result.is_fail():
+			return result
 
 	var wrapper: Dictionary = result.data
 	if not wrapper.has("data"):
@@ -65,8 +67,24 @@ func load(p_slot: int) -> GF_OperationResult:
 
 func load_full(p_slot: int) -> GF_OperationResult:
 	var path := _slot_path(p_slot)
-	return _file_system.read_json(path)
+	var result := _file_system.read_json(path)
+	if result.is_fail():
+		return _try_restore_backup(path)
+	return result
 
+
+## 主文件读取失败时，尝试从 .bak 备用文件恢复。
+func _try_restore_backup(p_path: String) -> GF_OperationResult:
+	var bak_path := p_path + ".bak"
+	var result := _file_system.read_json(bak_path)
+	if result.is_fail():
+		return result
+
+	_log.warning("LocalSave", "主存档损坏，已从备份恢复: %s" % p_path)
+	# 将备份内容写回主文件
+	var json_text := JSON.stringify(result.data, "\t")
+	_file_system.write_text_atomic(p_path, json_text)
+	return result
 
 func list_slots() -> GF_OperationResult:
 	var slots: Array[GF_SaveMeta] = []
