@@ -159,49 +159,63 @@ func set_game_input_enabled(p_enabled: bool) -> void:
 
 
 # ============================================================
-# 录制/回放
-# ============================================================
 
-## 开始录制输入。
-func start_recording() -> void:
-	_resolver.start_recording()
+	# ============================================================
+	# 录制/回放
+	# ============================================================
 
-## 停止录制，返回录制数据 Dictionary。
-func stop_recording() -> Dictionary:
-	return _resolver.stop_recording()
+	## 开始录制。已在录制中则无操作（防止误触丢失数据）。
+	func start_recording() -> void:
+		_resolver.start_recording()
 
-## 是否正在录制。
-func is_recording() -> bool:
-	return _resolver.is_recording()
+	## 强制重新开始录制（清除已有数据）。
+	func restart_recording() -> void:
+		_resolver.restart_recording()
 
-## 从录制数据回放。回放期间真实输入被忽略。
-func replay(p_data: Dictionary) -> void:
-	_resolver.load_recording(p_data)
+	## 停止录制，返回录制数据。
+	func stop_recording() -> Dictionary:
+		return _resolver.stop_recording()
 
-## 停止回放。
-func stop_replay() -> void:
-	_resolver.stop_replay()
+	## 获取当前录制快照，不停止录制。
+	func snapshot_recording() -> Dictionary:
+		return _resolver.snapshot_recording()
 
-## 是否正在回放。
-func is_replaying() -> bool:
-	return _resolver.is_replaying()
+	## 是否正在录制。
+	func is_recording() -> bool:
+		return _resolver.is_recording()
 
-## 停止录制并保存到文件。
-func save_recording(p_path: String) -> void:
-	var data: Dictionary = _resolver.stop_recording()
-	var file: FileAccess = FileAccess.open(p_path, FileAccess.WRITE)
-	if file != null:
+	## 从录制数据回放。回放期间真实输入被忽略。
+	func replay(p_data: Dictionary) -> void:
+		_resolver.load_recording(p_data)
+
+	## 停止回放。
+	func stop_replay() -> void:
+		_resolver.stop_replay()
+
+	## 是否正在回放。
+	func is_replaying() -> bool:
+		return _resolver.is_replaying()
+
+	## 保存当前录制到文件（不停止录制）。返回 false 表示文件写入失败。
+	func save_recording(p_path: String) -> bool:
+		var data: Dictionary = _resolver.snapshot_recording()
+		if data.frames.is_empty():
+			return false
+		var file: FileAccess = FileAccess.open(p_path, FileAccess.WRITE)
+		if file == null:
+			return false
 		file.store_string(JSON.stringify(data, "\t"))
+		return true
 
-## 从文件加载录制数据并开始回放。返回 false 表示文件不存在或格式错误。
-func load_and_replay(p_path: String) -> bool:
-	if not FileAccess.file_exists(p_path):
-		return false
-	var file: FileAccess = FileAccess.open(p_path, FileAccess.READ)
-	if file == null:
-		return false
-	var data: Variant = JSON.parse_string(file.get_as_text())
-	if data == null:
-		return false
-	_resolver.load_recording(data)
-	return true
+	## 从文件加载录制数据并开始回放。返回 false 表示文件不存在或格式错误。
+	func load_and_replay(p_path: String) -> bool:
+		if not FileAccess.file_exists(p_path):
+			return false
+		var file: FileAccess = FileAccess.open(p_path, FileAccess.READ)
+		if file == null:
+			return false
+		var data: Variant = JSON.parse_string(file.get_as_text())
+		if data == null:
+			return false
+		_resolver.load_recording(data)
+		return true
