@@ -46,7 +46,7 @@ class _ArchetypeManager:
 		return _archetypes[p_arch_idx]["type_ids"].find(p_type_id)
 
 	## 从 archetype 中移除 entity（swap-remove，保持紧凑）。
-	func _remove_from_archetype(p_arch_idx: int, p_row: int) -> void:
+	func _remove_from_archetype(p_arch_idx: int, p_entity: int, p_row: int) -> void:
 		var arch: Dictionary = _archetypes[p_arch_idx]
 		var last_row: int = arch["entities"].size() - 1
 		if p_row != last_row:
@@ -58,12 +58,7 @@ class _ArchetypeManager:
 		arch["entities"].pop_back()
 		for col in arch["columns"].size():
 			arch["columns"][col].pop_back()
-		_entity_map.erase(p_entity if p_row == last_row else _get_last_entity_of_arch(p_arch_idx))
-
-	# Helper for swap tracking
-	func _get_last_entity_of_arch(p_arch_idx: int) -> int:
-		var arch: Dictionary = _archetypes[p_arch_idx]
-		return arch["entities"][arch["entities"].size() - 1]
+		_entity_map.erase(p_entity)
 
 	## 从旧 archetype 收集实体的所有组件数据。
 	func _collect_entity_data(p_entity: int, p_arch_idx: int, p_row: int) -> Dictionary:
@@ -103,7 +98,7 @@ class _ArchetypeManager:
 			var new_arch_idx := _get_or_create_archetype(new_type_ids)
 			var existing_data := _collect_entity_data(p_entity, info["archetype_idx"], info["row"])
 			existing_data[p_type_id] = p_data
-			_remove_from_archetype(info["archetype_idx"], info["row"])
+			_remove_from_archetype(info["archetype_idx"], p_entity, info["row"])
 			_append_to_archetype(new_arch_idx, p_entity, existing_data)
 			return
 
@@ -125,7 +120,7 @@ class _ArchetypeManager:
 
 		if old_type_ids.size() == 1:
 			# 只剩下这一个组件 → 移除实体
-			_remove_from_archetype(info["archetype_idx"], info["row"])
+			_remove_from_archetype(info["archetype_idx"], p_entity, info["row"])
 			return
 
 		# 迁移到不含此 type 的新 archetype
@@ -133,7 +128,7 @@ class _ArchetypeManager:
 		var new_arch_idx := _get_or_create_archetype(new_type_ids)
 		var existing_data := _collect_entity_data(p_entity, info["archetype_idx"], info["row"])
 		existing_data.erase(p_type_id)
-		_remove_from_archetype(info["archetype_idx"], info["row"])
+		_remove_from_archetype(info["archetype_idx"], p_entity, info["row"])
 		_append_to_archetype(new_arch_idx, p_entity, existing_data)
 
 	## 检查实体是否拥有某组件。
@@ -196,7 +191,7 @@ class _ArchetypeManager:
 				for e in entities_copy:
 					var existing_data := _collect_entity_data(e, arch_idx, _entity_map[e]["row"])
 					existing_data.erase(p_type_id)
-					_remove_from_archetype(arch_idx, _entity_map[e]["row"])
+					_remove_from_archetype(arch_idx, e, _entity_map[e]["row"])
 					_append_to_archetype(new_arch_idx, e, existing_data)
 
 	## 清空所有数据。

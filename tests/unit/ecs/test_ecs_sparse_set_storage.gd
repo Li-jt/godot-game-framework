@@ -64,3 +64,7 @@ func test_count_accurate() -> void:
 	assert_eq(_storage.count(), 2)
 	_storage.erase(1)
 	assert_eq(_storage.count(), 1)
+
+
+func test_get_backend_name() -> void:
+	assert_eq(_storage.get_backend_name(), "SparseSet")
