@@ -72,3 +72,8 @@ func clear() -> void:
 	_sparse.clear()
 	_dense.clear()
 	_entities.clear()
+
+
+## 返回存储后端名称。
+func get_backend_name() -> String:
+	return "SparseSet"

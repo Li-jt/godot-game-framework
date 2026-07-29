@@ -26,7 +26,7 @@ func execute(p_world: GF_EcsWorld) -> GF_EcsQueryResult:
 		candidates = p_world.all_entities()
 	else:
 		var with_type_ids: Array[int] = []
-		var with_storages: Array[GF_EcsSparseSetStorage] = []
+		var with_storages: Array[GF_IEcsStorage] = []
 		for with_type in _with_types:
 			var tid := registry.type_id_of(with_type)
 			if tid == 0:
