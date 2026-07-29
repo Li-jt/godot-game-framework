@@ -188,8 +188,8 @@ func is_replaying() -> bool:
 
 ## 停止录制并保存到文件。
 func save_recording(p_path: String) -> void:
-	var data := _resolver.stop_recording()
-	var file := FileAccess.open(p_path, FileAccess.WRITE)
+	var data: Dictionary = _resolver.stop_recording()
+	var file: FileAccess = FileAccess.open(p_path, FileAccess.WRITE)
 	if file != null:
 		file.store_string(JSON.stringify(data, "\t"))
 
@@ -197,10 +197,10 @@ func save_recording(p_path: String) -> void:
 func load_and_replay(p_path: String) -> bool:
 	if not FileAccess.file_exists(p_path):
 		return false
-	var file := FileAccess.open(p_path, FileAccess.READ)
+	var file: FileAccess = FileAccess.open(p_path, FileAccess.READ)
 	if file == null:
 		return false
-	var data := JSON.parse_string(file.get_as_text())
+	var data: Variant = JSON.parse_string(file.get_as_text())
 	if data == null:
 		return false
 	_resolver.load_recording(data)

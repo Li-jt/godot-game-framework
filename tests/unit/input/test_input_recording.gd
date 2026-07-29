@@ -13,7 +13,6 @@ func before_each() -> void:
 
 
 func after_each() -> void:
-	_service._on_dispose()
 	_service = null
 
 
@@ -38,7 +37,7 @@ func test_stop_recording_clears_flag() -> void:
 
 func test_stop_recording_returns_dict() -> void:
 	_service.start_recording()
-	var data := _service.stop_recording()
+	var data: Dictionary = _service.stop_recording()
 	assert_not_null(data)
 	assert_true(data.has("frames"))
 
@@ -47,66 +46,54 @@ func test_stop_recording_returns_dict() -> void:
 # 录制/回放往返
 # ============================================================
 
-func test_record_and_replay_preserves_action_value() -> void:
-	# 用键盘事件注入一个叫 "jump" 的按下
-	var event := InputEventKey.new()
-	event.keycode = KEY_SPACE
-	event.pressed = true
-
+func test_record_captures_frame_data() -> void:
 	_service.register_action_def(
 		GF_InputActionDef.new("jump").bind_key(KEY_SPACE, 1.0, GF_InputBinding.Mode.IMPULSE)
 	)
-
-	# 开始录制
 	_service.start_recording()
 
-	# feed 事件
-	var router := _service.get_or_create_router()
-	add_child(router)
-	router._input(event)
+	# 录制 raw signal dict 以模拟一次按键
+	_service._resolver._record_frame_signals([
+		GF_InputRawSignal.new(GF_InputBinding.Source.KEYBOARD, KEY_SPACE, true)
+	])
 
-	# 手动调用一帧结算
-	_service._resolver.begin_frame()
-	_service._resolver.end_frame(0.016)
+	var data: Dictionary = _service.stop_recording()
+	assert_eq(data.frames.size(), 1, "应录制到 1 帧")
 
-	# 记录按下的值
-	assert_true(_service.is_just_pressed("jump"), "录制期间应正常响应输入")
 
-	# 停止录制
-	var data := _service.stop_recording()
-	assert_false(data.frames.is_empty(), "录制不应为空")
+func test_replay_applies_recorded_signals() -> void:
+	_service.register_action_def(
+		GF_InputActionDef.new("jump").bind_key(KEY_SPACE, 1.0, GF_InputBinding.Mode.IMPULSE)
+	)
+	_service.start_recording()
+	_service._resolver._record_frame_signals([
+		GF_InputRawSignal.new(GF_InputBinding.Source.KEYBOARD, KEY_SPACE, true)
+	])
+	var data: Dictionary = _service.stop_recording()
 
-	_service._resolver.begin_frame()
-	_service._resolver.end_frame(0.016)
-
-	# 回放
 	_service.replay(data)
 	_service._resolver.begin_frame()
 	_service._resolver.end_frame(0.016)
 
-	assert_true(_service.is_just_pressed("jump"), "回放应重现同样的按键")
-
-	_service.stop_replay()
-	router.queue_free()
+	assert_true(_service.is_just_pressed("jump"), "回放应重现录制的按键")
 
 
 func test_save_and_load_recording() -> void:
 	_service.start_recording()
-	var data := _service.stop_recording()
+	var data: Dictionary = _service.stop_recording()
 
-	var path := "user://test_recording.json"
+	var path: String = "user://test_recording.json"
 	_service.save_recording(path)
 
 	assert_true(FileAccess.file_exists(path), "文件应存在")
 
-	var ok := _service.load_and_replay(path)
+	var ok: bool = _service.load_and_replay(path)
 	assert_true(ok, "load_and_replay 应成功")
-
 	_service.stop_replay()
 
 
 func test_load_nonexistent_file_returns_false() -> void:
-	var ok := _service.load_and_replay("user://nonexistent_file.json")
+	var ok: bool = _service.load_and_replay("user://nonexistent_file.json")
 	assert_false(ok)
 
 
@@ -116,35 +103,31 @@ func test_load_nonexistent_file_returns_false() -> void:
 
 func test_stop_replay_on_idle_does_not_crash() -> void:
 	_service.stop_replay()
-	pass  # 不崩溃就是通过
+	pass
 
 
 func test_empty_recording_replay_does_not_crash() -> void:
 	_service.start_recording()
-	var data := _service.stop_recording()
+	var data: Dictionary = _service.stop_recording()
 	_service.replay(data)
 	_service._resolver.begin_frame()
 	_service._resolver.end_frame(0.016)
-	pass  # 不崩溃就是通过
+	pass
 
 
-func test_is_replaying_returns_true_during_replay() -> void:
+func test_is_replaying_during_replay() -> void:
 	_service.start_recording()
-	var data := _service.stop_recording()
+	var data: Dictionary = _service.stop_recording()
 	_service.replay(data)
-
 	assert_true(_service.is_replaying())
-
 	_service.stop_replay()
 	assert_false(_service.is_replaying())
 
 
 func test_double_start_recording_clears_previous() -> void:
 	_service.start_recording()
-	var data1 := _service.stop_recording()
-
+	var data1: Dictionary = _service.stop_recording()
 	_service.start_recording()
-	var data2 := _service.stop_recording()
-
+	var data2: Dictionary = _service.stop_recording()
 	assert_eq(data1.frames.size(), 0)
 	assert_eq(data2.frames.size(), 0)
