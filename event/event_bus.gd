@@ -1,5 +1,5 @@
 ## GF_EventBus
-## 事件总线。支持 EventScope 和 GF_EventToken。
+## 事件总线。支持 EventScope、GF_EventToken 和 GF_EventDef。
 class_name GF_EventBus
 extends GF_ModuleLifecycle
 
@@ -9,11 +9,11 @@ class ListenerEntry:
 	var token_id: String
 
 
-var _listeners: Dictionary = {}   # String event → Array[ListenerEntry]
-var _tokens: Dictionary = {}      # String token_id → {event, entry}
+var _listeners: Dictionary = {}
+var _tokens: Dictionary = {}
 var _token_counter: int = 0
 var _dispatching: String = ""
-var _pending_removes: Array = []  # Array[String token_id]
+var _pending_removes: Array = []
 
 
 func _on_init() -> GF_OperationResult:
@@ -31,29 +31,23 @@ func _on_dispose() -> GF_OperationResult:
 # 订阅
 # ============================================================
 
-## 订阅事件。p_scope 用于场景切换时一键清理。
 func subscribe(p_event: String, p_callback: Callable, p_scope: String = "global") -> GF_EventToken:
 	_token_counter += 1
 	var token_id := "%s_%d" % [p_event, _token_counter]
-
 	var entry := ListenerEntry.new()
 	entry.callback = p_callback
 	entry.scope = p_scope
 	entry.token_id = token_id
-
 	if not _listeners.has(p_event):
 		_listeners[p_event] = []
 	_listeners[p_event].append(entry)
-
 	_tokens[token_id] = {"event": p_event, "entry": entry}
-
 	var token := GF_EventToken.new()
 	token.id = token_id
 	token._bus_ref = weakref(self)
 	return token
 
 
-## 订阅一次性事件
 func subscribe_once(p_event: String, p_callback: Callable, p_scope: String = "global") -> GF_EventToken:
 	var token: GF_EventToken
 	var wrapper := func(p_data = null):
@@ -62,28 +56,31 @@ func subscribe_once(p_event: String, p_callback: Callable, p_scope: String = "gl
 	token = subscribe(p_event, wrapper, p_scope)
 	return token
 
-	## 订阅事件（GF_EventDef，类型安全）。
-	func subscribe_def(p_def, p_callback: Callable, p_scope: String = "global") -> GF_EventToken:
-		return subscribe(p_def.event_name, p_callback, p_scope)
 
-	## 一次性订阅（GF_EventDef）。
-	func subscribe_once_def(p_def, p_callback: Callable, p_scope: String = "global") -> GF_EventToken:
-		return subscribe_once(p_def.event_name, p_callback, p_scope)
+## 通过 GF_EventDef 订阅。
+func subscribe_def(p_def, p_callback: Callable, p_scope: String = "global") -> GF_EventToken:
+	return subscribe(p_def.event_name, p_callback, p_scope)
 
-	## 事件是否有监听者（GF_EventDef）。
-	func has_listeners_def(p_def) -> bool:
-		return has_listeners(p_def.event_name)
 
-	## 事件监听者数量（GF_EventDef）。
-	func listener_count_def(p_def) -> int:
-		return listener_count(p_def.event_name)
+## 通过 GF_EventDef 一次性订阅。
+func subscribe_once_def(p_def, p_callback: Callable, p_scope: String = "global") -> GF_EventToken:
+	return subscribe_once(p_def.event_name, p_callback, p_scope)
+
+
+## 通过 GF_EventDef 检查是否有监听者。
+func has_listeners_def(p_def) -> bool:
+	return has_listeners(p_def.event_name)
+
+
+## 通过 GF_EventDef 获取监听者数量。
+func listener_count_def(p_def) -> int:
+	return listener_count(p_def.event_name)
 
 
 # ============================================================
 # 取消订阅
 # ============================================================
 
-## 通过 GF_EventToken 取消订阅
 func unsubscribe_token(p_token_id: String) -> void:
 	if _dispatching != "":
 		_pending_removes.append(p_token_id)
@@ -91,7 +88,6 @@ func unsubscribe_token(p_token_id: String) -> void:
 		_do_unsubscribe_token(p_token_id)
 
 
-## 取消订阅（向后兼容）
 func unsubscribe(p_event: String, p_callback: Callable) -> void:
 	if _dispatching == p_event:
 		_pending_removes.append(_find_token_id(p_event, p_callback))
@@ -99,7 +95,6 @@ func unsubscribe(p_event: String, p_callback: Callable) -> void:
 		_remove_by_callback(p_event, p_callback)
 
 
-## 清理指定 scope 下的所有订阅
 func clear_scope(p_scope: String) -> void:
 	if _dispatching != "":
 		for event in _listeners.keys():
@@ -120,38 +115,28 @@ func clear_scope(p_scope: String) -> void:
 # 发布
 # ============================================================
 
-	## 发布事件（字符串名，向后兼容）。
-	func publish(p_event: String, p_data = null) -> void:
-		_dispatch(p_event, null, p_data)
+func publish(p_event: String, p_data = null) -> void:
+	if not _listeners.has(p_event):
+		return
+	var arr: Array = _listeners[p_event]
+	if arr.is_empty():
+		return
+	_dispatching = p_event
+	for entry in arr.duplicate():
+		if _pending_removes.has(entry.token_id):
+			continue
+		entry.callback.call(p_data)
+	_dispatching = ""
+	for tid in _pending_removes:
+		_do_unsubscribe_token(tid)
+	_pending_removes.clear()
 
 
-	## 发布事件（GF_EventDef，类型安全）。
-	func publish_def(p_def, p_data = null) -> void:
-		_dispatch(p_def.event_name, p_def, p_data)
-
-
-	func _dispatch(p_event: String, p_def, p_data) -> void:
-		if not _listeners.has(p_event):
-			return
-
-		var arr: Array = _listeners[p_event]
-		if arr.is_empty():
-			return
-
-		# Payload 校验（仅在设置了校验器时）
-		if p_def != null and not p_def.validate(p_data):
-			push_warning("GF_EventBus: payload 校验失败 — %s" % p_event)
-
-		_dispatching = p_event
-		for entry in arr.duplicate():
-			if _pending_removes.has(entry.token_id):
-				continue
-			entry.callback.call(p_data)
-		_dispatching = ""
-
-		for tid in _pending_removes:
-			_do_unsubscribe_token(tid)
-		_pending_removes.clear()
+## 通过 GF_EventDef 发布事件。支持可选的 payload 校验器。
+func publish_def(p_def, p_data = null) -> void:
+	if p_def != null and not p_def.validate(p_data):
+		push_warning("GF_EventBus: payload 校验失败 — %s" % p_def.event_name)
+	publish(p_def.event_name, p_data)
 
 
 # ============================================================
@@ -182,13 +167,11 @@ func _do_unsubscribe_token(p_token_id: String) -> void:
 	var info: Dictionary = _tokens[p_token_id]
 	var event: String = info.event
 	var entry = info.entry
-
 	if _listeners.has(event):
 		var arr: Array = _listeners[event]
 		arr.erase(entry)
 		if arr.is_empty():
 			_listeners.erase(event)
-
 	_tokens.erase(p_token_id)
 
 
