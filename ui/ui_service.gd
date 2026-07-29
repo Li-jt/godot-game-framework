@@ -4,8 +4,6 @@ class_name GF_UIService
 extends GF_ModuleLifecycle
 
 const MAX_CACHED := 5
-const GAME_INPUT_BLOCK_ALWAYS := 1
-const GAME_INPUT_BLOCK_POINTER_ONLY := 2
 
 var _scene_host: GF_SceneHost = null
 var _input_service: GF_InputService = null
@@ -95,12 +93,11 @@ func open(p_name: String, p_data: Dictionary = {}) -> GF_OperationResult:
 	if def == null:
 		return GF_OperationResult.fail(GF_OperationResult.ERR_NOT_FOUND, "面板未注册: %s" % p_name, module_name)
 
-		_save_current_focus()
+	_save_current_focus()
 	if _active_panels.has(p_name) and def.singleton:
 		var existing := _get_panel_safe(p_name)
 		if existing != null:
 			existing.reopen(p_data)
-		existing.set_input_block_config(def.game_input_block_mode, def.blocked_action_ids.duplicate(), def.blocked_action_ids.filter(func(a): return a == "cancel"))
 		_bring_to_front(p_name)
 		_recalculate_input_block()
 		return GF_OperationResult.ok(existing)
@@ -108,12 +105,11 @@ func open(p_name: String, p_data: Dictionary = {}) -> GF_OperationResult:
 	if _cache.has(p_name):
 		var cached := _get_cached_safe(p_name)
 		if cached != null:
-				_cache.erase(p_name)
-				_cache_order.erase(p_name)
-				_active_panels[p_name] = cached
-				cached.set_input_block_config(def.game_input_block_mode, def.blocked_action_ids.duplicate(), def.blocked_action_ids.filter(func(a): return a == "cancel"))
-				cached.reopen(p_data)
-				_on_opened(p_name)
+			_cache.erase(p_name)
+			_cache_order.erase(p_name)
+			_active_panels[p_name] = cached
+			cached.reopen(p_data)
+			_on_opened(p_name)
 		return GF_OperationResult.ok(cached)
 
 	var result = _scene_host.load_ui_panel(def.kind, def.path, {})
@@ -126,12 +122,9 @@ func open(p_name: String, p_data: Dictionary = {}) -> GF_OperationResult:
 
 	panel.panel_name = p_name
 	panel.ctx = _panel_context
-	# v4.0: 注入输入阻挡配置到面板实例
-	_log.debug("GF_UIService", "open panel: %s mode=%d blocked=%s" % [p_name, def.game_input_block_mode, str(def.blocked_action_ids)])
-	panel.set_input_block_config(def.game_input_block_mode,
-		def.blocked_action_ids.duplicate(),
-		def.blocked_action_ids.filter(func(a): return a == "cancel"))
+	panel._panel_def = def
 	panel.set_focus_config(def.focus_mode, def.default_focus)
+	_log.debug("GF_UIService", "open panel: %s mode=%d blocked=%s" % [p_name, def.input_block_mode, str(def.blocked_action_ids)])
 	_active_panels[p_name] = panel
 	panel.open(p_data)
 	_on_opened(p_name)
@@ -193,7 +186,6 @@ func hide(p_name: String) -> GF_OperationResult:
 ## 关闭栈顶可关闭面板（ESC 键逻辑）。
 ## 拖拽中 ESC → 取消拖拽，不关面板。
 func close_top() -> GF_OperationResult:
-	# 拖拽中 ESC → 取消拖拽
 	if is_dragging():
 		cancel_drag()
 		return GF_OperationResult.ok()
@@ -282,7 +274,7 @@ func get_panel(p_name: String) -> GF_UIPanel:
 	return _active_panels.get(p_name, null) as GF_UIPanel
 
 
-## v4.0：返回所有活跃面板列表（供 GF_InputPolicy 查询）。
+## 返回所有活跃面板列表（供 GF_InputPolicy 查询）。
 func get_active_panels() -> Array[GF_UIPanel]:
 	var result: Array[GF_UIPanel] = []
 	for name in _active_panels.keys():
@@ -311,30 +303,12 @@ func _get_cached_safe(p_name: String) -> GF_UIPanel:
 	return panel_obj as GF_UIPanel
 
 
-## v4.0：返回所有活跃面板名称。
+## 返回所有活跃面板名称。
 func get_active_panel_names() -> Array[String]:
 	var result: Array[String] = []
 	for name in _active_panels.keys():
 		result.append(str(name))
 	return result
-
-
-## 当前是否有可见的模态面板
-func has_modal_active() -> bool:
-	for name in _active_panels.keys():
-		var def := _get_def(name)
-		if def != null and def.modal and (_active_panels[name] as GF_UIPanel).visible:
-			return true
-	return false
-
-
-## 当前是否有阻塞下层 UI 的面板
-func has_ui_blocker_active() -> bool:
-	for name in _active_panels.keys():
-		var def := _get_def(name)
-		if def != null and def.blocks_ui_below and (_active_panels[name] as GF_UIPanel).visible:
-			return true
-	return false
 
 
 # ============================================================
@@ -410,7 +384,6 @@ func get_drag_manager() -> GF_UIDragManager:
 
 
 ## [L2] 简化拖拽：给 data + icon，框架全管。返回 GF_UIDragHandler 供连接信号。
-## p_data 放入 event.drag_data，p_icon 自动创建 GF_UIDragGhost。
 func begin_simple_drag(p_data: Dictionary, p_icon: Texture2D, p_offset: Vector2 = Vector2(-24, -24), p_source: GF_UIPanel = null) -> GF_UIDragHandler:
 	var handler := _DefaultDragHandler.new(p_data, p_icon, p_offset)
 	begin_drag(handler, _get_global_mouse_pos(), p_source)
@@ -435,7 +408,6 @@ func _on_drag_drop(p_mouse_pos: Vector2) -> void:
 	var event := _drag_manager.get_current_event()
 	var hit_target := _hit_test_target(p_mouse_pos)
 
-	# 1. 调 DropTarget.on_drop
 	var accepted := false
 	if hit_target != null and hit_target.on_drop.is_valid():
 		event.drop_receiver = hit_target.panel
@@ -443,15 +415,12 @@ func _on_drag_drop(p_mouse_pos: Vector2) -> void:
 		if not accepted:
 			event.drop_receiver = null
 
-	# 2. 调 handler.on_drop（拖拽源处理）
 	if is_instance_valid(_drag_manager.get_current_handler()):
 		_drag_manager.get_current_handler().on_drop(event)
 
-	# 3. 调 handler.on_end_drag（无论如何）
 	if is_instance_valid(_drag_manager.get_current_handler()):
 		_drag_manager.get_current_handler().on_end_drag(event)
 
-	# 4. 清理 hover
 	if _last_hovered != null:
 		if _last_hovered.on_leave.is_valid():
 			_last_hovered.on_leave.call()
@@ -461,7 +430,6 @@ func _on_drag_drop(p_mouse_pos: Vector2) -> void:
 
 
 func _hit_test_target(p_mouse_pos: Vector2) -> GF_UIDropTarget:
-	# 从 _open_order 栈顶向下遍历（后打开的面板优先拦截）
 	for i in range(_open_order.size() - 1, -1, -1):
 		var panel := _get_panel_safe(_open_order[i])
 		if panel == null or not panel.visible:
@@ -472,13 +440,9 @@ func _hit_test_target(p_mouse_pos: Vector2) -> GF_UIDropTarget:
 				continue
 			if target.panel != panel:
 				continue
-
-			# 先调业务判断（可能非常轻量，如字符串比较）
 			if target.accept_filter.is_valid():
 				if not target.accept_filter.call(_drag_manager.get_current_event().drag_data):
 					continue
-
-			# 再算几何
 			var global_rect := Rect2(panel.global_position + target.rect.position, target.rect.size)
 			if global_rect.has_point(p_mouse_pos):
 				return target
@@ -503,7 +467,6 @@ func _do_close(p_name: String, p_def: GF_UIPanelDef, p_suppress_recalc: bool = f
 	var panel := _get_panel_safe(p_name)
 	if panel == null: return
 
-	# 清理该面板的所有 DropTarget（不取消拖拽）
 	unregister_panel_targets(panel)
 
 	_active_panels.erase(p_name)
@@ -575,10 +538,8 @@ func _prewarm_one(p_name: String) -> void:
 
 	panel.panel_name = p_name
 	panel.ctx = _panel_context
-	# v4.0: 注入输入阻挡配置
-	panel.set_input_block_config(def.game_input_block_mode,
-		def.blocked_action_ids.duplicate(),
-		def.blocked_action_ids.filter(func(a): return a == "cancel"))
+	panel._panel_def = def
+	panel.set_focus_config(def.focus_mode, def.default_focus)
 
 	if not def.preview_data.is_empty():
 		panel.open(def.preview_data)
@@ -603,7 +564,7 @@ func _recalculate_input_block() -> void:
 	for name in _active_panels.keys():
 		var def := _get_def(name)
 		var panel := _get_panel_safe(name)
-		if def == null or not _uses_always_game_input_block(def) or not panel.visible:
+		if def == null or def.input_block_mode != GF_UIPanelDef.InputBlockMode.ALWAYS or not panel.visible:
 			continue
 		for action_id in def.blocked_action_ids:
 			if action_id == "*":
@@ -645,17 +606,13 @@ func _should_block_game_action(p_action_id: String) -> bool:
 		var panel := _get_panel_safe(name)
 		if def == null or panel == null or not panel.visible:
 			continue
-		if def.game_input_block_mode != GAME_INPUT_BLOCK_POINTER_ONLY:
+		if def.input_block_mode != GF_UIPanelDef.InputBlockMode.POINTER_ONLY:
 			continue
 		if not _def_blocks_action(def, p_action_id):
 			continue
 		if panel.is_pointer_over_game_input_blocking_area(panel.get_global_mouse_position()):
 			return true
 	return false
-
-
-func _uses_always_game_input_block(p_def: GF_UIPanelDef) -> bool:
-	return p_def.blocks_game_input or p_def.game_input_block_mode == GAME_INPUT_BLOCK_ALWAYS
 
 
 func _def_blocks_action(p_def: GF_UIPanelDef, p_action_id: String) -> bool:
@@ -686,7 +643,6 @@ func _remove_from_order(p_name: String) -> void:
 	_open_order.erase(p_name)
 
 
-## 保存当前 Viewport 焦点到栈中，用于面板关闭后恢复。
 func _save_current_focus() -> void:
 	var vp := get_viewport()
 	if vp == null:
@@ -696,7 +652,6 @@ func _save_current_focus() -> void:
 		_focus_stack.push_back(owner)
 
 
-## 恢复栈顶焦点。面板关闭时调用。
 func _restore_last_focus() -> void:
 	if _focus_stack.is_empty():
 		return

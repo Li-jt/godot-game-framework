@@ -37,7 +37,6 @@ func is_action_blocked(p_action_id: String, _p_event: InputEvent, p_pointer_pos:
 	# 4. 空间事件 + POINTER_ONLY 面板命中区域 + action 在 blocked 列表 -> 阻挡
 	if p_pointer_pos != Vector2.INF:
 		if _ui_pointer_blocks(p_action_id, p_pointer_pos):
-			# DEBUG: print("[Policy] BLOCKED ", p_action_id, " at ", p_pointer_pos)
 			return true
 
 	return false
@@ -86,26 +85,22 @@ func _ui_always_blocks(p_action_id: String) -> bool:
 	if _ui_service.is_dragging(): return false
 	var panels: Array = _ui_service.get_active_panels()
 	for panel in panels:
-		var mode: int = panel.get_game_input_block_mode()
-		if mode == 1:  # GAME_INPUT_BLOCK_ALWAYS
-			var blocked: Array = panel.get_blocked_action_ids()
-			if blocked.has("*") or blocked.has(p_action_id):
-				return true
+		var def = panel._panel_def
+		if def == null: continue
+		if def.input_block_mode != GF_UIPanelDef.InputBlockMode.ALWAYS: continue
+		if def.blocked_action_ids.has("*") or def.blocked_action_ids.has(p_action_id):
+			return true
 	return false
 
 func _ui_pointer_blocks(p_action_id: String, p_pos: Vector2) -> bool:
-	if _ui_service == null:
-		if _dbg_once == 0: _dbg_once = 1; print("[Policy] _ui_service is NULL!")
-		return false
+	if _ui_service == null: return false
 	if _ui_service.is_dragging(): return false
 	var panels: Array = _ui_service.get_active_panels()
-	if panels.is_empty() and _dbg_once == 1: _dbg_once = 2; print("[Policy] get_active_panels() is empty!")
 	for panel in panels:
-		var mode: int = panel.get_game_input_block_mode()
-		var blocked: Array = panel.get_blocked_action_ids()
-		if _dbg_once < 10: _dbg_once += 1; print("[Policy] panel ", panel.panel_name, " mode=", mode, " blocked=", blocked, " over=", panel.is_pointer_over_game_input_blocking_area(p_pos))
-		if mode != 2: continue  # POINTER_ONLY
-		if not (blocked.has("*") or blocked.has(p_action_id)): continue
+		var def = panel._panel_def
+		if def == null: continue
+		if def.input_block_mode != GF_UIPanelDef.InputBlockMode.POINTER_ONLY: continue
+		if not (def.blocked_action_ids.has("*") or def.blocked_action_ids.has(p_action_id)): continue
 		if panel.is_pointer_over_game_input_blocking_area(p_pos):
 			return true
 	return false
