@@ -10,7 +10,8 @@ var _migrator: GF_EcsSaveVersionMigrator = null
 var _current_save_version: int = 1
 
 ## 组件工厂注册表（可选）。设置后，load 时自动通过工厂重建组件实例。
-var component_factory: GF_EcsComponentFactory = null
+## 类型为 Variant 以避开 class_name 解析顺序问题，实际应传入 GF_EcsComponentFactory 实例。
+var component_factory: Variant = null
 
 
 func _init(p_current_save_version: int = 1) -> void:
