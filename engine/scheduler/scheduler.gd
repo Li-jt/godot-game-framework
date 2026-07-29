@@ -1,11 +1,13 @@
 ## GF_Scheduler
 ## 统一 Tick 驱动器。按 TickGroup 分组执行，同组内按 priority 排序。
+## PHYSICS 组由 _physics_process 驱动（固定步长），其余由 _process 驱动。
 class_name GF_Scheduler
 extends Node
 
 enum TickGroup {
-	FRAME = 0,         # 渲染相关（最高频）
-	SIMULATION = 10,   # 物理 / AI / 需求刷新
+	PHYSICS = -10,     # 固定步长（_physics_process 驱动，默认 60Hz）
+	FRAME = 0,         # 渲染相关（_process 驱动，可变帧率）
+	SIMULATION = 10,   # 游戏逻辑（在 PHYSICS 或 FRAME 之后运行）
 	UI = 50,           # UI 更新
 	SAVE = 80,         # 自动保存
 	DEBUG = 100,       # 调试面板
@@ -44,6 +46,7 @@ var _dirty: bool = false
 # ============================================================
 
 ## 注册逐帧回调。p_group 决定执行阶段，p_priority 越小越早执行。
+## PHYSICS 组的回调接收固定 delta（如 1/60），其余接收可变 delta。
 func register(p_group: TickGroup, p_name: String, p_callback: Callable, p_priority: int = 0) -> TickHandle:
 	_remove(p_name)
 
@@ -58,7 +61,8 @@ func register(p_group: TickGroup, p_name: String, p_callback: Callable, p_priori
 	return _make_handle(p_name)
 
 
-## 注册固定间隔回调。
+## 注册固定间隔回调。interval 时间到达时触发，传递该间隔值。
+## PHYSICS 组按物理步长累积，其余按帧 delta 累积。
 func register_interval(p_group: TickGroup, p_name: String, p_callback: Callable, p_interval: float, p_priority: int = 0) -> TickHandle:
 	_remove(p_name)
 
@@ -131,6 +135,7 @@ func is_runtime_ready() -> bool:
 	return true
 
 
+## _process 驱动除 PHYSICS 以外的所有组。
 func _process(p_delta: float) -> void:
 	if paused:
 		return
@@ -140,18 +145,36 @@ func _process(p_delta: float) -> void:
 		_dirty = false
 
 	var dt := p_delta * time_scale
+	_tick_entries(dt, func(e: TickEntry): return e.group != TickGroup.PHYSICS)
 
+
+## _physics_process 驱动 PHYSICS 组（固定步长）。
+func _physics_process(p_delta: float) -> void:
+	if paused:
+		return
+
+	if _dirty:
+		_sort()
+		_dirty = false
+
+	var dt := p_delta * time_scale
+	_tick_entries(dt, func(e: TickEntry): return e.group == TickGroup.PHYSICS)
+
+
+func _tick_entries(p_dt: float, p_filter: Callable) -> void:
 	for entry in _entries:
 		if _paused_groups.has(entry.group):
 			continue
+		if not p_filter.call(entry):
+			continue
 
 		if entry.interval > 0.0:
-			entry.accumulator += dt
+			entry.accumulator += p_dt
 			if entry.accumulator >= entry.interval:
 				entry.accumulator -= entry.interval
 				entry.callback.call(entry.interval)
 		else:
-			entry.callback.call(dt)
+			entry.callback.call(p_dt)
 
 
 # ============================================================
