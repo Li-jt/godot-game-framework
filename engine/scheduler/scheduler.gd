@@ -162,19 +162,29 @@ func _physics_process(p_delta: float) -> void:
 
 
 func _tick_entries(p_dt: float, p_filter: Callable) -> void:
+	var invalid_entries: Array[TickEntry] = []
 	for entry in _entries:
 		if _paused_groups.has(entry.group):
 			continue
 		if not p_filter.call(entry):
+			continue
+		if not entry.callback.is_valid():
+			invalid_entries.append(entry)
 			continue
 
 		if entry.interval > 0.0:
 			entry.accumulator += p_dt
 			while entry.accumulator >= entry.interval:
 				entry.accumulator -= entry.interval
+				if not entry.callback.is_valid():
+					invalid_entries.append(entry)
+					break
 				entry.callback.call(entry.interval)
 		else:
 			entry.callback.call(p_dt)
+
+	for entry in invalid_entries:
+		_entries.erase(entry)
 
 
 # ============================================================
