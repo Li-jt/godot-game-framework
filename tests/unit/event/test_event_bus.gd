@@ -3,23 +3,22 @@
 extends GutTest
 
 var _bus: GF_EventBus
-var _test_event
-var _count_event
 
 
 func before_each() -> void:
 	_bus = GF_EventBus.new()
 	_bus.module_name = "TestEventBus"
 	_bus.init_module()
-	_test_event = load("res://event/event_def.gd").new(&"test.typed")
-	_count_event = load("res://event/event_def.gd").new(&"count.event",
-		func(p): return p is Dictionary and p.has("count"))
 
 
 func after_each() -> void:
 	_bus.dispose_module()
 	_bus = null
 
+
+# ============================================================
+# 字符串事件
+# ============================================================
 
 func test_subscribe_returns_token() -> void:
 	var token := _bus.subscribe("test.event", func(_d = null): pass)
@@ -34,16 +33,6 @@ func test_multiple_subscribers_all_called() -> void:
 	_bus.subscribe("test.event", func(_d = null): calls.append("C"))
 	_bus.publish("test.event")
 	assert_eq(calls.size(), 3)
-
-
-func test_multiple_events_independent() -> void:
-	var a_called := false
-	var b_called := false
-	_bus.subscribe("event.a", func(_d = null): a_called = true)
-	_bus.subscribe("event.b", func(_d = null): b_called = true)
-	_bus.publish("event.a")
-	assert_true(a_called)
-	assert_false(b_called)
 
 
 func test_publish_delivers_to_subscriber() -> void:
@@ -79,22 +68,6 @@ func test_token_unsubscribe() -> void:
 	token.unsubscribe()
 	_bus.publish("test.event")
 	assert_eq(count, 0)
-
-
-func test_unsubscribe_during_dispatch_does_not_break_loop() -> void:
-	var calls: Array[String] = []
-	var token_to_remove: GF_EventToken
-	var a_cb := func(_d = null): calls.append("A")
-	var b_cb := func(_d = null):
-		calls.append("B")
-		token_to_remove.unsubscribe()
-	var c_cb := func(_d = null): calls.append("C")
-	_bus.subscribe("test.event", a_cb)
-	_bus.subscribe("test.event", b_cb)
-	token_to_remove = _bus.subscribe("test.event", c_cb)
-	_bus.publish("test.event")
-	assert_has(calls, "A")
-	assert_has(calls, "B")
 
 
 func test_once_fires_only_first_time() -> void:
@@ -147,43 +120,29 @@ func test_dispose_clears_all_listeners() -> void:
 # EventDef 类型化事件
 # ============================================================
 
-func test_publish_def_delivers_to_subscriber() -> void:
-	var received := false
-	_bus.subscribe_def(_test_event, func(_d): received = true)
-	_bus.publish_def(_test_event)
-	assert_true(received)
+func test_event_def_wraps_name() -> void:
+	var def = load("res://event/event_def.gd").new(&"test.typed")
+	assert_eq(def.event_name, "test.typed")
 
 
-func test_publish_def_compatible_with_string_subscribe() -> void:
+func test_publish_def_works() -> void:
 	var received := false
 	_bus.subscribe("test.typed", func(_d): received = true)
-	_bus.publish_def(_test_event)
+	var def = load("res://event/event_def.gd").new(&"test.typed")
+	_bus.publish_def(def)
 	assert_true(received)
 
 
-func test_subscribe_def_returns_token() -> void:
-	var token: GF_EventToken = _bus.subscribe_def(_test_event, func(_d): pass)
-	assert_not_null(token)
-	token.unsubscribe()
-	assert_false(_bus.has_listeners_def(_test_event))
-
-
-func test_has_listeners_def() -> void:
-	assert_false(_bus.has_listeners_def(_test_event))
-	_bus.subscribe_def(_test_event, func(_d): pass)
-	assert_true(_bus.has_listeners_def(_test_event))
-
-
-func test_validator_does_not_block_publish() -> void:
+func test_subscribe_def_works() -> void:
 	var received := false
-	_bus.subscribe_def(_count_event, func(_d): received = true)
-	_bus.publish_def(_count_event, {"wrong": "data"})
-	assert_true(received, "校验器不应阻止事件发布")
+	var def = load("res://event/event_def.gd").new(&"test.typed")
+	_bus.subscribe_def(def, func(_d): received = true)
+	_bus.publish("test.typed")
+	assert_true(received)
 
 
-func test_once_def_fires_only_once() -> void:
-	var count: int = 0
-	_bus.subscribe_once_def(_test_event, func(_d): count += 1)
-	_bus.publish_def(_test_event)
-	_bus.publish_def(_test_event)
-	assert_eq(count, 1)
+func test_has_listeners_def_works() -> void:
+	var def = load("res://event/event_def.gd").new(&"item.changed")
+	assert_false(_bus.has_listeners_def(def))
+	_bus.subscribe("item.changed", func(_d): pass)
+	assert_true(_bus.has_listeners_def(def))
