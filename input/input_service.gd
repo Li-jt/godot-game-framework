@@ -156,3 +156,52 @@ func mouse_position() -> Vector2:
 func set_game_input_blocker(_p: Callable) -> void: pass
 func set_game_input_enabled(p_enabled: bool) -> void:
 	if _router != null: _router.set_enabled(p_enabled)
+
+
+# ============================================================
+# 录制/回放
+# ============================================================
+
+## 开始录制输入。
+func start_recording() -> void:
+	_resolver.start_recording()
+
+## 停止录制，返回录制数据 Dictionary。
+func stop_recording() -> Dictionary:
+	return _resolver.stop_recording()
+
+## 是否正在录制。
+func is_recording() -> bool:
+	return _resolver.is_recording()
+
+## 从录制数据回放。回放期间真实输入被忽略。
+func replay(p_data: Dictionary) -> void:
+	_resolver.load_recording(p_data)
+
+## 停止回放。
+func stop_replay() -> void:
+	_resolver.stop_replay()
+
+## 是否正在回放。
+func is_replaying() -> bool:
+	return _resolver.is_replaying()
+
+## 停止录制并保存到文件。
+func save_recording(p_path: String) -> void:
+	var data := _resolver.stop_recording()
+	var file := FileAccess.open(p_path, FileAccess.WRITE)
+	if file != null:
+		file.store_string(JSON.stringify(data, "\t"))
+
+## 从文件加载录制数据并开始回放。返回 false 表示文件不存在或格式错误。
+func load_and_replay(p_path: String) -> bool:
+	if not FileAccess.file_exists(p_path):
+		return false
+	var file := FileAccess.open(p_path, FileAccess.READ)
+	if file == null:
+		return false
+	var data := JSON.parse_string(file.get_as_text())
+	if data == null:
+		return false
+	_resolver.load_recording(data)
+	return true
