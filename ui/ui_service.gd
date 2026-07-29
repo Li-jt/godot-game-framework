@@ -27,6 +27,8 @@ var _panel_context: GF_UiContext = null
 var _drag_manager: GF_UIDragManager = null
 var _drop_targets: Array[GF_UIDropTarget] = []
 var _last_hovered: GF_UIDropTarget = null
+## 焦点栈：打开面板时保存当前焦点，关闭面板时恢复。
+var _focus_stack: Array[Control] = []
 
 
 func _on_init() -> GF_OperationResult:
@@ -93,6 +95,7 @@ func open(p_name: String, p_data: Dictionary = {}) -> GF_OperationResult:
 	if def == null:
 		return GF_OperationResult.fail(GF_OperationResult.ERR_NOT_FOUND, "面板未注册: %s" % p_name, module_name)
 
+		_save_current_focus()
 	if _active_panels.has(p_name) and def.singleton:
 		var existing := _get_panel_safe(p_name)
 		if existing != null:
@@ -128,6 +131,7 @@ func open(p_name: String, p_data: Dictionary = {}) -> GF_OperationResult:
 	panel.set_input_block_config(def.game_input_block_mode,
 		def.blocked_action_ids.duplicate(),
 		def.blocked_action_ids.filter(func(a): return a == "cancel"))
+	panel.set_focus_config(def.focus_mode, def.default_focus)
 	_active_panels[p_name] = panel
 	panel.open(p_data)
 	_on_opened(p_name)
@@ -505,6 +509,7 @@ func _do_close(p_name: String, p_def: GF_UIPanelDef, p_suppress_recalc: bool = f
 	_active_panels.erase(p_name)
 	_remove_from_order(p_name)
 
+	_restore_last_focus()
 	if p_def.lifecycle == GF_UIPanelDef.Lifecycle.HIDE_ON_CLOSE:
 		_cached_store(p_name, panel)
 	else:
@@ -679,6 +684,25 @@ func _bring_to_front(p_name: String) -> void:
 
 func _remove_from_order(p_name: String) -> void:
 	_open_order.erase(p_name)
+
+
+## 保存当前 Viewport 焦点到栈中，用于面板关闭后恢复。
+func _save_current_focus() -> void:
+	var vp := get_viewport()
+	if vp == null:
+		return
+	var owner := vp.gui_get_focus_owner()
+	if owner != null:
+		_focus_stack.push_back(owner)
+
+
+## 恢复栈顶焦点。面板关闭时调用。
+func _restore_last_focus() -> void:
+	if _focus_stack.is_empty():
+		return
+	var prev := _focus_stack.pop_back()
+	if is_instance_valid(prev):
+		prev.grab_focus()
 
 
 func _apply_layer_order(p_kind: StringName) -> void:
