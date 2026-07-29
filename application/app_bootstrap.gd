@@ -113,14 +113,8 @@ func _run_boot_sequence() -> void:
 	var log: GF_LogService = deps.log
 	log.info("Bootstrap", "服务注册中心已创建，当前注册 %d 个服务" % registry.count())
 
-	# GF_GameServices
-	var context := _build_game_services(
-		deps.config, deps.log, deps.scene_host, deps.save_service,
-		deps.input_service, deps.ui_service, deps.audio_service, deps.config_svc,
-		deps.resource_svc, deps.event_bus, deps.loc_service, deps.debug_service,
-		deps.app_flow, deps.scheduler, deps.runtime_svc, deps.threading_svc,
-		deps.ecs_world, deps.ecs_scheduler, core_result.data.file_system
-	)
+	# GF_GameServices — 从 deps 字典按需取用，避免位置参数过多
+	var context := _build_game_services(deps)
 
 	_print_banner(deps.config, log)
 	_print_config_summary(deps.config, log)
@@ -224,19 +218,27 @@ func _build_registry_entries(p_deps: Dictionary) -> Array:
 		[GF_ServiceRegistry.KEY_ECS_SCHEDULER,  p_deps.ecs_scheduler],
 	]
 
-func _build_game_services(
-	p_config, p_log, p_scene_host, p_save_service, p_input, p_ui, p_audio,
-	p_config_service, p_resource, p_event_bus, p_loc, p_debug, p_app_flow, p_scheduler, p_runtime, p_threading,
-	p_ecs_world, p_ecs_scheduler, p_file_system
-) -> GF_GameServices:
+func _build_game_services(p_deps: Dictionary) -> GF_GameServices:
 	var s := GF_GameServices.new()
-	s.config = p_config; s.log = p_log; s.scene_host = p_scene_host
-	s.save_service = p_save_service; s.input = p_input; s.ui = p_ui
-	s.audio = p_audio; s.config_service = p_config_service; s.resource = p_resource
-	s.event_bus = p_event_bus; s.loc = p_loc; s.debug = p_debug; s.app_flow = p_app_flow
-	s.scheduler = p_scheduler; s.runtime = p_runtime; s.threading = p_threading
-	s.ecs_world = p_ecs_world; s.ecs_scheduler = p_ecs_scheduler
-	s.file_system = p_file_system
+	s.config = p_deps.config
+	s.log = p_deps.log
+	s.scene_host = p_deps.scene_host
+	s.save_service = p_deps.save_service
+	s.input = p_deps.input_service
+	s.ui = p_deps.ui_service
+	s.audio = p_deps.audio_service
+	s.config_service = p_deps.config_svc
+	s.resource = p_deps.resource_svc
+	s.event_bus = p_deps.event_bus
+	s.loc = p_deps.loc_service
+	s.debug = p_deps.debug_service
+	s.app_flow = p_deps.app_flow
+	s.scheduler = p_deps.scheduler
+	s.runtime = p_deps.runtime_svc
+	s.threading = p_deps.threading_svc
+	s.ecs_world = p_deps.ecs_world
+	s.ecs_scheduler = p_deps.ecs_scheduler
+	s.file_system = p_deps.file_system
 	return s
 
 func _print_banner(p_config: GF_AppConfig, p_log: GF_LogService) -> void:
