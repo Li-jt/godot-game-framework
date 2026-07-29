@@ -62,6 +62,22 @@ func subscribe_once(p_event: String, p_callback: Callable, p_scope: String = "gl
 	token = subscribe(p_event, wrapper, p_scope)
 	return token
 
+	## 订阅事件（GF_EventDef，类型安全）。
+	func subscribe_def(p_def: GF_EventDef, p_callback: Callable, p_scope: String = "global") -> GF_EventToken:
+		return subscribe(p_def.event_name, p_callback, p_scope)
+
+	## 一次性订阅（GF_EventDef）。
+	func subscribe_once_def(p_def: GF_EventDef, p_callback: Callable, p_scope: String = "global") -> GF_EventToken:
+		return subscribe_once(p_def.event_name, p_callback, p_scope)
+
+	## 事件是否有监听者（GF_EventDef）。
+	func has_listeners_def(p_def: GF_EventDef) -> bool:
+		return has_listeners(p_def.event_name)
+
+	## 事件监听者数量（GF_EventDef）。
+	func listener_count_def(p_def: GF_EventDef) -> int:
+		return listener_count(p_def.event_name)
+
 
 # ============================================================
 # 取消订阅
@@ -104,24 +120,38 @@ func clear_scope(p_scope: String) -> void:
 # 发布
 # ============================================================
 
-func publish(p_event: String, p_data = null) -> void:
-	if not _listeners.has(p_event):
-		return
+	## 发布事件（字符串名，向后兼容）。
+	func publish(p_event: String, p_data = null) -> void:
+		_dispatch(p_event, null, p_data)
 
-	var arr: Array = _listeners[p_event]
-	if arr.is_empty():
-		return
 
-	_dispatching = p_event
-	for entry in arr.duplicate():
-		if _pending_removes.has(entry.token_id):
-			continue
-		entry.callback.call(p_data)
-	_dispatching = ""
+	## 发布事件（GF_EventDef，类型安全）。
+	func publish_def(p_def: GF_EventDef, p_data = null) -> void:
+		_dispatch(p_def.event_name, p_def, p_data)
 
-	for tid in _pending_removes:
-		_do_unsubscribe_token(tid)
-	_pending_removes.clear()
+
+	func _dispatch(p_event: String, p_def: GF_EventDef, p_data) -> void:
+		if not _listeners.has(p_event):
+			return
+
+		var arr: Array = _listeners[p_event]
+		if arr.is_empty():
+			return
+
+		# Payload 校验（仅在设置了校验器时）
+		if p_def != null and not p_def.validate(p_data):
+			push_warning("GF_EventBus: payload 校验失败 — %s" % p_event)
+
+		_dispatching = p_event
+		for entry in arr.duplicate():
+			if _pending_removes.has(entry.token_id):
+				continue
+			entry.callback.call(p_data)
+		_dispatching = ""
+
+		for tid in _pending_removes:
+			_do_unsubscribe_token(tid)
+		_pending_removes.clear()
 
 
 # ============================================================
