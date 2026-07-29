@@ -1,7 +1,7 @@
-## ThreadJobCallbacks
+## GF_ThreadJobCallbacks
 ## 线程任务回调集合。所有回调均在主线程触发。
-## 回调签名统一为：func(summary: ThreadJobSummary) -> void
-class_name ThreadJobCallbacks
+## 回调签名统一为：func(summary: GF_ThreadJobSummary) -> void
+class_name GF_ThreadJobCallbacks
 extends RefCounted
 
 ## 任务成功时触发。

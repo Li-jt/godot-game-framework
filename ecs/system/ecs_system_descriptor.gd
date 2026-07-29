@@ -1,6 +1,6 @@
-## EcsSystemDescriptor — 系统元数据。
+## GF_EcsSystemDescriptor — 系统元数据。
 ## 描述系统名称、分组、tick 频率、依赖关系，供调度器和调试器使用。
-class_name EcsSystemDescriptor
+class_name GF_EcsSystemDescriptor
 extends RefCounted
 
 ## 系统显示名称（用于调试和性能统计）

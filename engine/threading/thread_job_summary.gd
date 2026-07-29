@@ -1,12 +1,12 @@
-## ThreadJobSummary
+## GF_ThreadJobSummary
 ## 线程任务执行摘要。用于句柄查询、日志输出、回调参数与调试面板展示。
-class_name ThreadJobSummary
+class_name GF_ThreadJobSummary
 extends RefCounted
 
 var job_id: int = 0
 var name: String = ""
 var tag: String = ""
-var state: int = ThreadJobState.Value.QUEUED
+var state: int = GF_ThreadJobState.Value.QUEUED
 var attempts: int = 0
 var submitted_at_ms: int = 0
 var started_at_ms: int = -1
@@ -14,7 +14,7 @@ var finished_at_ms: int = -1
 var timeout_ms: int = 0
 var cancel_reason: String = ""
 var metadata: Dictionary = {}
-var result: OperationResult = null
+var result: GF_OperationResult = null
 
 
 ## 计算任务总耗时（毫秒）。
@@ -26,7 +26,7 @@ func duration_ms() -> int:
 
 ## 返回任务状态文本。
 func status_text() -> String:
-	return ThreadJobState.to_text(state)
+	return GF_ThreadJobState.to_text(state)
 
 
 ## 转换为字典，便于 UI/日志展示。

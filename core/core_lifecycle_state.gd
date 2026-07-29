@@ -1,4 +1,4 @@
-## CoreLifecycleState
+## GF_CoreLifecycleState
 ## 模块生命周期状态枚举。
 ## 所有 Framework 服务模块必须统一遵守此状态机，不允许各模块自定义状态。
 ##
@@ -7,7 +7,7 @@
 ##   INITIALIZED   -> CONFIGURING  -> READY           （configure / finalize_configuration 完成）
 ##   INITIALIZED   -> CONFIGURING  -> FAILED           （configure 失败）
 ##   任意状态      -> DISPOSED                          （释放，不可逆）
-class_name CoreLifecycleState
+class_name GF_CoreLifecycleState
 extends RefCounted
 
 enum State {

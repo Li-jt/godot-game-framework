@@ -1,6 +1,6 @@
-## AudioRuntime
+## GF_AudioRuntime
 ## 音频运行时宿主。管理音频播放节点和通道。
-## 后续由 AudioService（T3-5）在此基础上提供高层接口（资源加载、淡入淡出等）。
+## 后续由 GF_AudioService（T3-5）在此基础上提供高层接口（资源加载、淡入淡出等）。
 ##
 ## 通道设计：
 ##   MASTER — 总控
@@ -14,12 +14,12 @@
 ##
 ## 使用方式：
 ##   [codeblock]
-##   var audio: AudioRuntime = injected_audio_runtime
+##   var audio: GF_AudioRuntime = injected_audio_runtime
 ##   audio.play_bgm(some_stream)
 ##   audio.play_sfx(click_stream)
-##   audio.set_volume(AudioRuntime.Channel.SFX, 0.8)
+##   audio.set_volume(GF_AudioRuntime.Channel.SFX, 0.8)
 ##   [/codeblock]
-class_name AudioRuntime
+class_name GF_AudioRuntime
 extends Node
 
 enum Channel {

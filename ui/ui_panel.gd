@@ -1,11 +1,11 @@
-## UIPanel
+## GF_UIPanel
 ## 所有游戏 UI 面板的基类。Game 层的面板脚本继承此类。
 ##
 ## 字段：
-##   panel_name  — 面板名称，由 UIService 在 open 时赋值
-##   ctx         — GameServices 上下文，由 UIService 在实例化后自动注入
+##   panel_name  — 面板名称，由 GF_UIService 在 open 时赋值
+##   ctx         — GF_GameServices 上下文，由 GF_UIService 在实例化后自动注入
 ##
-## 生命周期（由 UIService 调用，子类重写带下划线的方法）：
+## 生命周期（由 GF_UIService 调用，子类重写带下划线的方法）：
 ##
 ##   destroy 策略（默认）：
 ##     实例化 → ctx 注入 → _on_factory_init(data) → open(data) → _on_open(data)
@@ -20,18 +20,18 @@
 ## 使用方式：
 ##   [codeblock]
 ##   class_name ItemDetailPanel
-##   extends UIPanel
+##   extends GF_UIPanel
 ##
 ##   func _on_open(p_data: Dictionary) -> void:
 ##       $Label.text = str(p_data.get("id", ""))
 ##       ctx.log.info("面板打开")  # 直接使用 self.ctx
 ##   [/codeblock]
-class_name UIPanel
+class_name GF_UIPanel
 extends Control
 
-## 由 UIService 在 open 时设置，用于反向查找面板定义
+## 由 GF_UIService 在 open 时设置，用于反向查找面板定义
 var panel_name: String = ""
-## v4.0：输入阻挡模式（由 UIService 从 UIPanelDef 注入）
+## v4.0：输入阻挡模式（由 GF_UIService 从 GF_UIPanelDef 注入）
 var _ui_block_mode: int = 0
 ## v4.0：阻挡的动作 ID 列表
 var _blocked_action_ids: Array = []
@@ -44,12 +44,12 @@ func set_input_block_config(p_mode: int, p_blocked: Array, p_allowed: Array) -> 
 	_blocked_action_ids = p_blocked.duplicate()
 	_allowed_action_ids = p_allowed.duplicate()
 
-## GameServices 上下文。由 UIService 在面板实例化后自动注入。
+## GF_GameServices 上下文。由 GF_UIService 在面板实例化后自动注入。
 ## 子类在 _on_open / _on_reopen 中可直接使用。
-var ctx: UiContext = null
+var ctx: GF_UiContext = null
 
 
-## SceneFactory 钩子：实例化后自动调用。p_data 为 SceneFactory.create() 传入的 init_data。
+## GF_SceneFactory 钩子：实例化后自动调用。p_data 为 GF_SceneFactory.create() 传入的 init_data。
 func _on_factory_init(_p_data: Dictionary) -> void:
 	pass
 
@@ -66,7 +66,7 @@ func reopen(p_data: Dictionary = {}) -> void:
 	show()
 
 
-## UIService 调用。子类不要重写。
+## GF_UIService 调用。子类不要重写。
 func close() -> void:
 	_on_close()
 	hide()
@@ -108,11 +108,11 @@ func _on_hide() -> void:
 
 
 # ============================================================
-# v4.0：InputPolicy 查询接口（子类按需覆写）
+# v4.0：GF_InputPolicy 查询接口（子类按需覆写）
 # ============================================================
 
 ## 返回此面板的输入阻挡模式（GAME_INPUT_BLOCK_*）。
-## 默认从 UIPanelDef 读取，子类一般不需要覆写。
+## 默认从 GF_UIPanelDef 读取，子类一般不需要覆写。
 func get_game_input_block_mode() -> int:
 	return _ui_block_mode
 

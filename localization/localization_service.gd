@@ -1,26 +1,26 @@
-## LocalizationService
+## GF_LocalizationService
 ## 本地化服务。管理多语言文本的加载和查询。
-class_name LocalizationService
-extends ModuleLifecycle
+class_name GF_LocalizationService
+extends GF_ModuleLifecycle
 
 var _current_locale: String = "zh"
 var _translations: Dictionary = {}  # locale -> Dictionary(key -> text)
-var _file_system: FileSystemService = null
-var _log: LogService = null
+var _file_system: GF_FileSystemService = null
+var _log: GF_LogService = null
 
 
-func _on_init() -> OperationResult:
-	return OperationResult.ok()
+func _on_init() -> GF_OperationResult:
+	return GF_OperationResult.ok()
 
 
-func configure(p_file_system: FileSystemService, p_log: LogService) -> OperationResult:
+func configure(p_file_system: GF_FileSystemService, p_log: GF_LogService) -> GF_OperationResult:
 	if p_file_system == null:
-		return OperationResult.fail(OperationResult.ERR_BAD_REQUEST, "file_system 不能为 null", module_name)
+		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "file_system 不能为 null", module_name)
 	if p_log == null:
-		return OperationResult.fail(OperationResult.ERR_BAD_REQUEST, "log 不能为 null", module_name)
+		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "log 不能为 null", module_name)
 	_file_system = p_file_system
 	_log = p_log
-	return OperationResult.ok()
+	return GF_OperationResult.ok()
 
 
 # ============================================================
@@ -70,7 +70,7 @@ func has_key(p_key: String) -> bool:
 # ============================================================
 
 ## 从 JSON 文件加载某语言的翻译表
-func load_translation(p_locale: String, p_path: String) -> OperationResult:
+func load_translation(p_locale: String, p_path: String) -> GF_OperationResult:
 	var result := _file_system.read_json(p_path)
 	if result.is_fail():
 		_log.error("Localization", "加载失败: %s → %s" % [p_locale, p_path])
@@ -78,4 +78,4 @@ func load_translation(p_locale: String, p_path: String) -> OperationResult:
 
 	_translations[p_locale] = result.data as Dictionary
 	_log.info("Localization", "已加载 %s (%d 条)" % [p_locale, (result.data as Dictionary).size()])
-	return OperationResult.ok()
+	return GF_OperationResult.ok()

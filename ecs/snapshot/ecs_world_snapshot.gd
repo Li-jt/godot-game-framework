@@ -1,7 +1,7 @@
-## EcsWorldSnapshot — ECS 世界可序列化快照。
+## GF_EcsWorldSnapshot — ECS 世界可序列化快照。
 ## 包含全部实体、组件数据、世界版本和组件类型注册信息，
 ## 供 Save / Rollback / Network 使用。
-class_name EcsWorldSnapshot
+class_name GF_EcsWorldSnapshot
 extends RefCounted
 
 ## 世界版本号

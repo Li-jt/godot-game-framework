@@ -1,4 +1,4 @@
-## ConfigService
+## GF_ConfigService
 ## 游戏内容定义仓库。管理 ItemDef、BuildingDef 等游戏配置数据。
 ##
 ## Framework 只负责存储和查询机制（按类型+ID 索引），
@@ -14,27 +14,27 @@
 ##   var item = config.get_def("items", "wood")
 ##   var all_buildings = config.get_all("buildings")
 ##   [/codeblock]
-class_name ConfigService
-extends ModuleLifecycle
+class_name GF_ConfigService
+extends GF_ModuleLifecycle
 
-var _file_system: FileSystemService = null
-var _log: LogService = null
+var _file_system: GF_FileSystemService = null
+var _log: GF_LogService = null
 var _defs: Dictionary = {}        # String type_key -> Dictionary (id -> Variant)
-var _validators: Dictionary = {}  # String type_key -> Array[DefValidator]
+var _validators: Dictionary = {}  # String type_key -> Array[GF_DefValidator]
 
 
-func _on_init() -> OperationResult:
-	return OperationResult.ok()
+func _on_init() -> GF_OperationResult:
+	return GF_OperationResult.ok()
 
 
-func configure(p_file_system: FileSystemService, p_log: LogService) -> OperationResult:
+func configure(p_file_system: GF_FileSystemService, p_log: GF_LogService) -> GF_OperationResult:
 	if p_file_system == null:
-		return OperationResult.fail(OperationResult.ERR_BAD_REQUEST, "configure: file_system 不能为 null", module_name)
+		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "configure: file_system 不能为 null", module_name)
 	if p_log == null:
-		return OperationResult.fail(OperationResult.ERR_BAD_REQUEST, "configure: log 不能为 null", module_name)
+		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "configure: log 不能为 null", module_name)
 	_file_system = p_file_system
 	_log = p_log
-	return OperationResult.ok()
+	return GF_OperationResult.ok()
 
 
 # ============================================================
@@ -63,16 +63,16 @@ func register_def(p_type_key: String, p_id: String, p_def) -> void:
 # ============================================================
 
 ## 从 JSON 文件加载定义。JSON 应为顶级 Dictionary，key 为 def id。
-func load_json(p_type_key: String, p_path: String) -> OperationResult:
+func load_json(p_type_key: String, p_path: String) -> GF_OperationResult:
 	var result := _file_system.read_json(p_path)
 	if result.is_fail():
-		_log.error("ConfigService", "加载失败: %s → %s" % [p_type_key, p_path])
+		_log.error("GF_ConfigService", "加载失败: %s → %s" % [p_type_key, p_path])
 		return result
 
 	var data := result.data as Dictionary
 	register_defs(p_type_key, data)
-	_log.info("ConfigService", "已加载: %s (%d 条)" % [p_type_key, data.size()])
-	return OperationResult.ok()
+	_log.info("GF_ConfigService", "已加载: %s (%d 条)" % [p_type_key, data.size()])
+	return GF_OperationResult.ok()
 
 
 # ============================================================
@@ -107,7 +107,7 @@ func get_types() -> Array:
 
 
 ## 注册校验器。Game 层在加载 Def 后调用。
-func register_validator(p_validator: DefValidator) -> void:
+func register_validator(p_validator: GF_DefValidator) -> void:
 	if not _validators.has(p_validator.type_key):
 		_validators[p_validator.type_key] = []
 	_validators[p_validator.type_key].append(p_validator)
@@ -115,7 +115,7 @@ func register_validator(p_validator: DefValidator) -> void:
 
 ## 校验所有已注册类型的定义。返回第一个失败或 ok。
 ## 校验错误列表在 error.context["errors"] 中。
-func validate_all() -> OperationResult:
+func validate_all() -> GF_OperationResult:
 	var all_errors: Array[String] = []
 
 	for type_key in _defs.keys():
@@ -127,10 +127,10 @@ func validate_all() -> OperationResult:
 					all_errors.append("[%s] %s" % [type_key, err])
 
 	if all_errors.is_empty():
-		return OperationResult.ok()
+		return GF_OperationResult.ok()
 
-	var result := OperationResult.fail(
-		OperationResult.ERR_VALIDATION,
+	var result := GF_OperationResult.fail(
+		GF_OperationResult.ERR_VALIDATION,
 		"Def 校验失败，共 %d 个错误" % all_errors.size(),
 		module_name
 	)

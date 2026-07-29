@@ -1,8 +1,8 @@
-## AppConfig
+## GF_AppConfig
 ## 项目运行配置的总容器。
 ## 由 Environment 模块加载多个配置来源（JSON、.env、命令行）后合并生成。
 ## 运行时通过 AppConfigService 获取，不直接实例化。
-class_name AppConfig
+class_name GF_AppConfig
 extends RefCounted
 
 var app: AppSection = AppSection.new()
@@ -111,7 +111,7 @@ class FeatureFlagsSection:
 ## 路径覆盖配置。允许在不修改代码的情况下覆盖关键路径。
 class PathOverridesSection:
 	extends RefCounted
-	var scene_host: String = ""           ## 覆盖 SceneHost 场景路径
+	var scene_host: String = ""           ## 覆盖 GF_SceneHost 场景路径
 	var localization_root: String = ""    ## 本地化文件根目录
 	var world_scene: String = ""          ## 世界场景路径
 	var input_bindings_path: String = ""  ## 输入重绑文件路径

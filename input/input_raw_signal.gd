@@ -1,9 +1,9 @@
-## InputRawSignal — 设备归一化后的中间态信号（v4.0）。
-## DeviceNormalizer 将 Godot InputEvent 转为此格式，ActionResolver 据此匹配 binding。
-class_name InputRawSignal
+## GF_InputRawSignal — 设备归一化后的中间态信号（v4.0）。
+## GF_DeviceNormalizer 将 Godot InputEvent 转为此格式，GF_ActionResolver 据此匹配 binding。
+class_name GF_InputRawSignal
 extends RefCounted
 
-## 设备源类型（同 InputBinding.Source）
+## 设备源类型（同 GF_InputBinding.Source）
 var source: int = 0
 ## 设备码（keycode / button_index / joy_axis）
 var code: int = 0
@@ -29,9 +29,9 @@ func _init(p_source: int = 0, p_code: int = 0, p_is_press: bool = false,
 	analog_value = p_analog; pointer_pos = p_pos; device_id = p_device
 
 
-## 是否为空间事件（鼠标/触控）。用于 InputPolicy 判定是否需要 UI 阻挡。
+## 是否为空间事件（鼠标/触控）。用于 GF_InputPolicy 判定是否需要 UI 阻挡。
 func is_spatial() -> bool:
 	return source in [
-		InputBinding.Source.MOUSE_BUTTON, InputBinding.Source.MOUSE_WHEEL,
-		InputBinding.Source.TOUCH_PAN, InputBinding.Source.TOUCH_MAGNIFY,
+		GF_InputBinding.Source.MOUSE_BUTTON, GF_InputBinding.Source.MOUSE_WHEEL,
+		GF_InputBinding.Source.TOUCH_PAN, GF_InputBinding.Source.TOUCH_MAGNIFY,
 	]

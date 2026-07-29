@@ -1,67 +1,67 @@
-## SaveService
-## 存档服务。管理槽位、版本、迁移链、Provider 路由、ISaveable 收集。
+## GF_SaveService
+## 存档服务。管理槽位、版本、迁移链、Provider 路由、GF_ISaveable 收集。
 ##
 ## 存档流程：
-##   Game 层注册 ISaveable → SaveService._build_save_data() 自动打包 → Provider 写入
+##   Game 层注册 GF_ISaveable → GF_SaveService._build_save_data() 自动打包 → Provider 写入
 ## 读取流程：
 ##   Provider 读取 → 版本迁移 → _restore_save_data() 自动分发
 ##
-## ISaveable 注册路径：
-##   1. collect_from_node(root) — 场景树自动扫描（Node-based ISaveable）
+## GF_ISaveable 注册路径：
+##   1. collect_from_node(root) — 场景树自动扫描（Node-based GF_ISaveable）
 ##   2. child_entering_tree 信号 — 增量注册（collect 之后挂入的新节点）
-##   3. register_saveable() — 手动注册（纯数据、Service、Mod ISaveable）
+##   3. register_saveable() — 手动注册（纯数据、Service、Mod GF_ISaveable）
 ##
 ## 网络兼容：
 ##   on_save() 产出的模块级字典可直接作为网络 delta 发送；
 ##   服务端收到后按 save_key 合并或校验。
-class_name SaveService
-extends ModuleLifecycle
+class_name GF_SaveService
+extends GF_ModuleLifecycle
 
-var _provider: SaveProvider = null
-var _path_resolver: PathResolver = null
-var _log: LogService = null
+var _provider: GF_SaveProvider = null
+var _path_resolver: GF_PathResolver = null
+var _log: GF_LogService = null
 
 var _migrators: Dictionary = {}
-var _saveables: Dictionary = {}  # String key → ISaveable
+var _saveables: Dictionary = {}  # String key → GF_ISaveable
 
 
-func _on_init() -> OperationResult:
-	return OperationResult.ok()
+func _on_init() -> GF_OperationResult:
+	return GF_OperationResult.ok()
 
 
-func configure(p_provider: SaveProvider, p_path_resolver: PathResolver, p_log: LogService) -> OperationResult:
+func configure(p_provider: GF_SaveProvider, p_path_resolver: GF_PathResolver, p_log: GF_LogService) -> GF_OperationResult:
 	if p_provider == null:
-		return OperationResult.fail(OperationResult.ERR_BAD_REQUEST, "provider 不能为 null", module_name)
+		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "provider 不能为 null", module_name)
 	if p_path_resolver == null:
-		return OperationResult.fail(OperationResult.ERR_BAD_REQUEST, "path_resolver 不能为 null", module_name)
+		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "path_resolver 不能为 null", module_name)
 	if p_log == null:
-		return OperationResult.fail(OperationResult.ERR_BAD_REQUEST, "log 不能为 null", module_name)
+		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "log 不能为 null", module_name)
 	_provider = p_provider
 	_path_resolver = p_path_resolver
 	_log = p_log
-	return OperationResult.ok()
+	return GF_OperationResult.ok()
 
 
 # ============================================================
 # 迁移器注册
 # ============================================================
 
-func register_migrator(p_migrator: SaveVersionMigrator) -> void:
+func register_migrator(p_migrator: GF_SaveVersionMigrator) -> void:
 	_migrators[p_migrator.from_version] = p_migrator
 	_log.info("Save", "注册迁移器: v%d → v%d" % [p_migrator.from_version, p_migrator.to_version])
 
 
 # ============================================================
-# ISaveable 注册
+# GF_ISaveable 注册
 # ============================================================
 
-## 注册 ISaveable 实例。存盘时 save_all() 自动收集其 on_save() 数据。
-## 适用于非 Node 的纯数据 ISaveable、Service 持有的全局 ISaveable、Mod 注册的 ISaveable。
-## Node-based ISaveable 推荐使用 collect_from_node() 自动扫描注册。
-func register_saveable(p_saveable: ISaveable) -> void:
+## 注册 GF_ISaveable 实例。存盘时 save_all() 自动收集其 on_save() 数据。
+## 适用于非 Node 的纯数据 GF_ISaveable、Service 持有的全局 GF_ISaveable、Mod 注册的 GF_ISaveable。
+## Node-based GF_ISaveable 推荐使用 collect_from_node() 自动扫描注册。
+func register_saveable(p_saveable: GF_ISaveable) -> void:
 	var key := p_saveable.save_key()
 	if key.is_empty():
-		_log.warning("Save", "ISaveable.save_key() 为空，跳过注册")
+		_log.warning("Save", "GF_ISaveable.save_key() 为空，跳过注册")
 		return
 	_saveables[key] = p_saveable
 	_log.info("Save", "注册存档模块: %s" % key)
@@ -71,19 +71,19 @@ func unregister_saveable(p_key: String) -> void:
 	_saveables.erase(p_key)
 
 
-## 从节点树一次性扫描 ISaveable 后代节点并注册。
+## 从节点树一次性扫描 GF_ISaveable 后代节点并注册。
 ## 之后通过 child_entering_tree/child_exiting_tree 信号做增量注册，无需重复调用。
-## 调用时机：WorldRoot._on_world_setup() 中，场景树构建完成后。
+## 调用时机：GF_WorldRoot._on_world_setup() 中，场景树构建完成后。
 ## [br]
 ## [param root] 要扫描的根节点
 ## [br]
-## [return] 收集到的 ISaveable 数量
+## [return] 收集到的 GF_ISaveable 数量
 func collect_from_node(p_root: Node) -> int:
 	if p_root == null:
 		return 0
 	var count := 0
 	_collect_recursive(p_root, count)
-	_log.info("Save", "collect_from_node(%s) → 收集 %d 个 ISaveable" % [p_root.name, count])
+	_log.info("Save", "collect_from_node(%s) → 收集 %d 个 GF_ISaveable" % [p_root.name, count])
 
 	# 从此之后增量注册
 	if not p_root.child_entering_tree.is_connected(_on_saveable_child_entered):
@@ -111,7 +111,7 @@ func unregister_by_prefix(p_prefix: String) -> int:
 	return removed
 
 
-## 世界切换时调用：注销旧世界 ISaveable，扫描新世界后代并注册。
+## 世界切换时调用：注销旧世界 GF_ISaveable，扫描新世界后代并注册。
 ## p_old_root 传 null 表示首次加载（跳过注销步骤）。
 ## p_prefix 默认为 "world."，区分世界数据与 Profile 级数据。
 func on_world_switch(p_old_root: Node, p_new_root: Node, p_prefix: String = "world.") -> void:
@@ -126,24 +126,24 @@ func on_world_switch(p_old_root: Node, p_new_root: Node, p_prefix: String = "wor
 		collect_from_node(p_new_root)
 
 
-## 从一组 ISaveable 实例中批量注册。
+## 从一组 GF_ISaveable 实例中批量注册。
 ## 每个实例的 save_key() 必须唯一且非空。
-func collect_from(p_saveables: Array) -> OperationResult:
+func collect_from(p_saveables: Array) -> GF_OperationResult:
 	var errors: Array[String] = []
 	for obj in p_saveables:
-		if not obj is ISaveable:
+		if not obj is GF_ISaveable:
 			continue
-		var key := (obj as ISaveable).save_key()
+		var key := (obj as GF_ISaveable).save_key()
 		if key.is_empty():
-			errors.append("ISaveable %s 的 save_key() 返回空字符串" % str(obj))
+			errors.append("GF_ISaveable %s 的 save_key() 返回空字符串" % str(obj))
 			continue
 		register_saveable(obj)
 	if not errors.is_empty():
-		return OperationResult.fail(OperationResult.ERR_BAD_REQUEST, ", ".join(errors), module_name)
-	return OperationResult.ok()
+		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, ", ".join(errors), module_name)
+	return GF_OperationResult.ok()
 
 
-## 按 owner 注销所有 ISaveable（按 save_key 前缀匹配，如 "mod:xxx:"）。
+## 按 owner 注销所有 GF_ISaveable（按 save_key 前缀匹配，如 "mod:xxx:"）。
 func unregister_saveables_by_owner(p_owner: String) -> int:
 	var removed := 0
 	var keys_to_remove: Array[String] = []
@@ -160,30 +160,30 @@ func unregister_saveables_by_owner(p_owner: String) -> int:
 # 公开方法
 # ============================================================
 
-## 保存全部已注册的 ISaveable 模块
-func save_all(p_slot: int, p_meta: SaveMeta) -> OperationResult:
+## 保存全部已注册的 GF_ISaveable 模块
+func save_all(p_slot: int, p_meta: GF_SaveMeta) -> GF_OperationResult:
 	var data := _build_save_data()
 	return save(p_slot, data, p_meta)
 
 
-## 保存指定数据。写入时自动标记当前 SaveVersion。
-func save(p_slot: int, p_data: Dictionary, p_meta: SaveMeta) -> OperationResult:
-	p_meta.save_version = SaveVersion.CURRENT
+## 保存指定数据。写入时自动标记当前 GF_SaveVersion。
+func save(p_slot: int, p_data: Dictionary, p_meta: GF_SaveMeta) -> GF_OperationResult:
+	p_meta.save_version = GF_SaveVersion.CURRENT
 	return _provider.save(p_slot, p_data, p_meta)
 
 
-## 读取并自动恢复所有已注册的 ISaveable 模块
-func load_and_restore(p_slot: int) -> OperationResult:
+## 读取并自动恢复所有已注册的 GF_ISaveable 模块
+func load_and_restore(p_slot: int) -> GF_OperationResult:
 	var result := load_slot(p_slot)
 	if result.is_fail():
 		return result
 	_restore_save_data(result.data as Dictionary)
-	return OperationResult.ok()
+	return GF_OperationResult.ok()
 
 
 ## 读取原始存档数据（不自动恢复）。自动检测版本并执行迁移链。
 ## 注意：方法名用 load_slot 避免与 Godot 内置 load() 冲突。
-func load_slot(p_slot: int) -> OperationResult:
+func load_slot(p_slot: int) -> GF_OperationResult:
 	var raw_result := _provider.load_full(p_slot)
 	if raw_result.is_fail():
 		return raw_result
@@ -193,22 +193,22 @@ func load_slot(p_slot: int) -> OperationResult:
 	var data: Dictionary = wrapper.get("data", {})
 	var data_version: int = meta.get("save_version", 0)
 
-	if data_version == SaveVersion.CURRENT:
-		return OperationResult.ok(data)
+	if data_version == GF_SaveVersion.CURRENT:
+		return GF_OperationResult.ok(data)
 
-	if data_version > SaveVersion.CURRENT:
-		return OperationResult.fail(
-			OperationResult.ERR_MIGRATION,
-			"存档版本(v%d)高于当前版本(v%d)，请升级游戏" % [data_version, SaveVersion.CURRENT],
+	if data_version > GF_SaveVersion.CURRENT:
+		return GF_OperationResult.fail(
+			GF_OperationResult.ERR_MIGRATION,
+			"存档版本(v%d)高于当前版本(v%d)，请升级游戏" % [data_version, GF_SaveVersion.CURRENT],
 			module_name
 		)
 
 	var v := data_version
-	while v < SaveVersion.CURRENT:
-		var migrator: SaveVersionMigrator = _migrators.get(v, null)
+	while v < GF_SaveVersion.CURRENT:
+		var migrator: GF_SaveVersionMigrator = _migrators.get(v, null)
 		if migrator == null:
-			return OperationResult.fail(
-				OperationResult.ERR_MIGRATION,
+			return GF_OperationResult.fail(
+				GF_OperationResult.ERR_MIGRATION,
 				"缺少迁移器: v%d → v%d" % [v, v + 1],
 				module_name
 			)
@@ -221,15 +221,15 @@ func load_slot(p_slot: int) -> OperationResult:
 		v = migrator.to_version
 		_log.info("Save", "迁移完成: v%d → v%d" % [migrator.from_version, migrator.to_version])
 
-	_log.info("Save", "存档版本迁移完成 v%d → v%d" % [data_version, SaveVersion.CURRENT])
-	return OperationResult.ok(data)
+	_log.info("Save", "存档版本迁移完成 v%d → v%d" % [data_version, GF_SaveVersion.CURRENT])
+	return GF_OperationResult.ok(data)
 
 
-func list_slots() -> OperationResult:
+func list_slots() -> GF_OperationResult:
 	return _provider.list_slots()
 
 
-func delete_slot(p_slot: int) -> OperationResult:
+func delete_slot(p_slot: int) -> GF_OperationResult:
 	return _provider.delete(p_slot)
 
 
@@ -240,7 +240,7 @@ func delete_slot(p_slot: int) -> OperationResult:
 func _build_save_data() -> Dictionary:
 	var data := {}
 	for key in _saveables.keys():
-		var saveable: ISaveable = _saveables[key]
+		var saveable: GF_ISaveable = _saveables[key]
 		data[key] = saveable.on_save()
 	_log.info("Save", "构建存档数据完成，模块数: %d" % data.size())
 	return data
@@ -251,7 +251,7 @@ func _restore_save_data(p_data: Dictionary) -> void:
 	var sorted: Array = []
 	for key in p_data.keys():
 		if _saveables.has(key):
-			var saveable: ISaveable = _saveables[key]
+			var saveable: GF_ISaveable = _saveables[key]
 			sorted.append({"key": key, "saveable": saveable, "priority": saveable.restore_priority()})
 
 	sorted.sort_custom(func(a, b): return a["priority"] < b["priority"])
@@ -260,7 +260,7 @@ func _restore_save_data(p_data: Dictionary) -> void:
 	var skipped := 0
 	for entry in sorted:
 		var key: String = entry["key"]
-		var saveable: ISaveable = entry["saveable"]
+		var saveable: GF_ISaveable = entry["saveable"]
 		saveable.on_load(p_data[key])
 		restored += 1
 
@@ -272,11 +272,11 @@ func _restore_save_data(p_data: Dictionary) -> void:
 	_log.info("Save", "恢复存档数据完成，恢复模块数: %d，跳过: %d" % [restored, skipped])
 
 
-## 递归扫描节点树，收集 ISaveable 后代节点。
+## 递归扫描节点树，收集 GF_ISaveable 后代节点。
 ## p_count 为 int 引用：GDScript 中基础类型非引用传递，调用方用返回值替代。
 func _collect_recursive(p_node: Node, p_count: int) -> void:
-	if p_node is ISaveable:
-		register_saveable(p_node as ISaveable)
+	if p_node is GF_ISaveable:
+		register_saveable(p_node as GF_ISaveable)
 		p_count += 1
 	for child in p_node.get_children():
 		_collect_recursive(child, p_count)
@@ -284,12 +284,12 @@ func _collect_recursive(p_node: Node, p_count: int) -> void:
 
 ## child_entering_tree 回调：新节点挂入时自动注册。
 func _on_saveable_child_entered(p_child: Node) -> void:
-	if p_child is ISaveable:
-		register_saveable(p_child as ISaveable)
+	if p_child is GF_ISaveable:
+		register_saveable(p_child as GF_ISaveable)
 
 
 ## child_exiting_tree 回调：节点移出时自动注销。
 func _on_saveable_child_exited(p_child: Node) -> void:
-	if p_child is ISaveable:
-		var key := (p_child as ISaveable).save_key()
+	if p_child is GF_ISaveable:
+		var key := (p_child as GF_ISaveable).save_key()
 		unregister_saveable(key)

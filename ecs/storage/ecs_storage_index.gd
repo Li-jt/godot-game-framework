@@ -1,21 +1,21 @@
-## EcsStorageIndex — 组件类型到存储实例的索引映射。
-## 为 EcsQuery 提供候选实体集，按需创建存储实例。
-class_name EcsStorageIndex
-extends IEcsStorageIndex
+## GF_EcsStorageIndex — 组件类型到存储实例的索引映射。
+## 为 GF_EcsQuery 提供候选实体集，按需创建存储实例。
+class_name GF_EcsStorageIndex
+extends GF_IEcsStorageIndex
 
-var _storages: Dictionary = {}  # int type_id -> EcsSparseSetStorage
+var _storages: Dictionary = {}  # int type_id -> GF_EcsSparseSetStorage
 
 
 ## 获取指定类型的存储实例，不存在时返回 null。
-func get_storage(p_type_id: int) -> EcsSparseSetStorage:
+func get_storage(p_type_id: int) -> GF_EcsSparseSetStorage:
 	return _storages.get(p_type_id, null)
 
 
 ## 获取或创建指定类型的存储实例。
-func get_or_create_storage(p_type_id: int) -> EcsSparseSetStorage:
+func get_or_create_storage(p_type_id: int) -> GF_EcsSparseSetStorage:
 	if _storages.has(p_type_id):
 		return _storages[p_type_id]
-	var storage: EcsSparseSetStorage = EcsSparseSetStorage.new()
+	var storage: GF_EcsSparseSetStorage = GF_EcsSparseSetStorage.new()
 	_storages[p_type_id] = storage
 	return storage
 

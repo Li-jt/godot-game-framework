@@ -1,6 +1,6 @@
-## EcsEntityId — 实体 ID 工具类。
-## 提供静态校验方法，ID 分配由 EcsWorld 实例管理，避免多 World 冲突。
-class_name EcsEntityId
+## GF_EcsEntityId — 实体 ID 工具类。
+## 提供静态校验方法，ID 分配由 GF_EcsWorld 实例管理，避免多 World 冲突。
+class_name GF_EcsEntityId
 extends RefCounted
 
 ## 校验实体 ID 是否有效（大于 0 即为有效）。

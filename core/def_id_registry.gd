@@ -1,7 +1,7 @@
-## DefIdRegistry — 游戏内容定义的 ID 注册表。
+## GF_DefIdRegistry — 游戏内容定义的 ID 注册表。
 ## 所有游戏 ID（Economy/Resource/Building/WorkJob 等）统一在此注册和查询。
 ## 支持 xlsx 导出的 JSON 批量加载 + Mod 运行时动态追加。
-class_name DefIdRegistry
+class_name GF_DefIdRegistry
 extends RefCounted
 
 class CategoryInfo:
@@ -20,17 +20,17 @@ var _display_names: Dictionary = {}         ## {int: String}
 
 
 ## 加载一个 *_ids.json 文件，批量注册所有 ID。
-func load_ids_json(p_path: String, p_owner: String = "game") -> OperationResult:
+func load_ids_json(p_path: String, p_owner: String = "game") -> GF_OperationResult:
 	var file := FileAccess.open(p_path, FileAccess.READ)
 	if file == null:
-		return OperationResult.fail(OperationResult.ERR_NOT_FOUND, "DefIdRegistry", "文件不存在: %s" % p_path)
+		return GF_OperationResult.fail(GF_OperationResult.ERR_NOT_FOUND, "GF_DefIdRegistry", "文件不存在: %s" % p_path)
 	var text := file.get_as_text()
 	file.close()
 
 	var json := JSON.new()
 	var err := json.parse(text)
 	if err != OK:
-		return OperationResult.fail(OperationResult.ERR_IO, "DefIdRegistry", "JSON 解析失败: %s" % p_path)
+		return GF_OperationResult.fail(GF_OperationResult.ERR_IO, "GF_DefIdRegistry", "JSON 解析失败: %s" % p_path)
 
 	var data: Dictionary = json.data
 	var category: String = data.get("category", "")
@@ -46,7 +46,7 @@ func load_ids_json(p_path: String, p_owner: String = "game") -> OperationResult:
 		if not display_name.is_empty():
 			_display_names[id] = display_name
 
-	return OperationResult.ok()
+	return GF_OperationResult.ok()
 
 
 ## 注册一个 category 段。
@@ -71,7 +71,7 @@ func register_id(p_category: String, p_key: StringName, p_preferred_id: int = 0,
 		var existing_id: int = _category_keys[p_category][p_key]
 		if p_preferred_id == 0 or p_preferred_id == existing_id:
 			return existing_id
-		push_error("[DefIdRegistry] key='%s' 已注册为 %d, 不能改为 %d" % [p_key, existing_id, p_preferred_id])
+		push_error("[GF_DefIdRegistry] key='%s' 已注册为 %d, 不能改为 %d" % [p_key, existing_id, p_preferred_id])
 		return existing_id
 
 	# 分配 ID
@@ -79,7 +79,7 @@ func register_id(p_category: String, p_key: StringName, p_preferred_id: int = 0,
 	if p_preferred_id > 0 and not _id_to_key.has(p_preferred_id):
 		assigned_id = p_preferred_id
 	elif p_preferred_id > 0:
-		push_warning("[DefIdRegistry] ID %d 已被占用, '%s' 自动分配" % [p_preferred_id, p_owner])
+		push_warning("[GF_DefIdRegistry] ID %d 已被占用, '%s' 自动分配" % [p_preferred_id, p_owner])
 		assigned_id = _allocate_next(p_category)
 	else:
 		assigned_id = _allocate_next(p_category)

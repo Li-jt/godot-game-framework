@@ -1,15 +1,15 @@
-## InputRouter — 输入路由器 Node（v4.0）。
+## GF_InputRouter — 输入路由器 Node（v4.0）。
 ## 统一入口：_input 采集所有 Godot 事件，_process 驱动每帧合成。
-## 替代 v3.0 的 InputProvider。
-class_name InputRouter
+## 替代 v3.0 的 GF_InputProvider。
+class_name GF_InputRouter
 extends Node
 
-var _resolver: ActionResolver = null
+var _resolver: GF_ActionResolver = null
 var _last_frame: int = -1
 var _enabled: bool = true
 
 
-func configure(p_resolver: ActionResolver) -> void:
+func configure(p_resolver: GF_ActionResolver) -> void:
 	_resolver = p_resolver
 	set_process(true)
 

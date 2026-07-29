@@ -1,17 +1,17 @@
-## ThreadingService
+## GF_ThreadingService
 ## 框架级线程任务服务。提供任务队列、优先级调度、取消、超时、重试、统计与主线程回调。
 ## 业务层仅提交“纯数据计算任务”，不得在子线程直接操作场景树或 UI。
-class_name ThreadingService
-extends ModuleLifecycle
+class_name GF_ThreadingService
+extends GF_ModuleLifecycle
 
 
 ## 内部任务记录结构。仅在主线程读写。
 class JobRecord:
 	var job_id: int = 0
 	var work: Callable = Callable()
-	var options: ThreadJobOptions = null
-	var token: ThreadJobToken = null
-	var state: int = ThreadJobState.Value.QUEUED
+	var options: GF_ThreadJobOptions = null
+	var token: GF_ThreadJobToken = null
+	var state: int = GF_ThreadJobState.Value.QUEUED
 	var attempts: int = 0
 	var submitted_at_ms: int = 0
 	var started_at_ms: int = -1
@@ -19,7 +19,7 @@ class JobRecord:
 	var next_dispatch_at_ms: int = 0
 	var worker_task_id: int = -1
 	var cancel_reason: String = ""
-	var final_result: OperationResult = null
+	var final_result: GF_OperationResult = null
 
 
 var _enabled: bool = true
@@ -29,7 +29,7 @@ var _default_timeout_ms: int = 30000
 var _slow_job_warn_ms: int = 350
 var _history_limit: int = 256
 
-var _log: LogService = null
+var _log: GF_LogService = null
 var _next_job_id: int = 1
 var _jobs: Dictionary = {}               # job_id -> JobRecord
 var _queue: Array[int] = []              # 等待调度的任务
@@ -38,7 +38,7 @@ var _orphan_task_ids: Array[int] = []    # 已终态但线程尚未退出的任�
 var _terminal_order: Array[int] = []     # 终态任务顺序，用于清理
 
 var _worker_result_mutex: Mutex = Mutex.new()
-var _worker_results: Dictionary = {}      # job_id -> OperationResult
+var _worker_results: Dictionary = {}      # job_id -> GF_OperationResult
 
 var _stats := {
 	"submitted": 0,
@@ -55,16 +55,16 @@ var _stats := {
 
 
 ## 生命周期初始化。
-func _on_init() -> OperationResult:
-	return OperationResult.ok()
+func _on_init() -> GF_OperationResult:
+	return GF_OperationResult.ok()
 
 
 ## 配置线程服务。
-func configure(p_config: AppConfig.ThreadingSection, p_log: LogService) -> OperationResult:
+func configure(p_config: GF_AppConfig.ThreadingSection, p_log: GF_LogService) -> GF_OperationResult:
 	if p_config == null:
-		return OperationResult.fail(OperationResult.ERR_BAD_REQUEST, "threading_config 不能为 null", module_name)
+		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "threading_config 不能为 null", module_name)
 	if p_log == null:
-		return OperationResult.fail(OperationResult.ERR_BAD_REQUEST, "log 不能为 null", module_name)
+		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "log 不能为 null", module_name)
 	_enabled = p_config.enabled
 	_max_active_jobs = maxi(1, p_config.max_active_jobs)
 	_max_dispatch_per_tick = maxi(1, p_config.max_dispatch_per_tick)
@@ -72,11 +72,11 @@ func configure(p_config: AppConfig.ThreadingSection, p_log: LogService) -> Opera
 	_slow_job_warn_ms = maxi(1, p_config.slow_job_warn_ms)
 	_history_limit = maxi(32, p_config.history_limit)
 	_log = p_log
-	return OperationResult.ok()
+	return GF_OperationResult.ok()
 
 
 ## 生命周期释放。
-func _on_dispose() -> OperationResult:
+func _on_dispose() -> GF_OperationResult:
 	cancel_all("threading_service_disposed")
 	_jobs.clear()
 	_queue.clear()
@@ -86,15 +86,15 @@ func _on_dispose() -> OperationResult:
 	_worker_result_mutex.lock()
 	_worker_results.clear()
 	_worker_result_mutex.unlock()
-	return OperationResult.ok()
+	return GF_OperationResult.ok()
 
 
-## 运行时就绪检查（供 ServiceRegistry.verify 调用）。
+## 运行时就绪检查（供 GF_ServiceRegistry.verify 调用）。
 func is_runtime_ready() -> bool:
 	return is_ready()
 
 
-## 每帧泵送线程队列。建议由 Scheduler 在 FRAME 组持续调用。
+## 每帧泵送线程队列。建议由 GF_Scheduler 在 FRAME 组持续调用。
 func pump(_p_delta: float) -> void:
 	if not is_ready():
 		return
@@ -104,14 +104,14 @@ func pump(_p_delta: float) -> void:
 	_dispatch_jobs()
 
 
-## 提交线程任务。任务签名：func(token: ThreadJobToken) -> Variant|OperationResult
-func submit(p_work: Callable, p_options: ThreadJobOptions = null) -> OperationResult:
+## 提交线程任务。任务签名：func(token: GF_ThreadJobToken) -> Variant|GF_OperationResult
+func submit(p_work: Callable, p_options: GF_ThreadJobOptions = null) -> GF_OperationResult:
 	if not is_ready():
-		return OperationResult.fail(OperationResult.ERR_PRECONDITION, "ThreadingService 未 ready", module_name)
+		return GF_OperationResult.fail(GF_OperationResult.ERR_PRECONDITION, "GF_ThreadingService 未 ready", module_name)
 	if not p_work.is_valid():
-		return OperationResult.fail(OperationResult.ERR_BAD_REQUEST, "任务 Callable 无效", module_name)
+		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "任务 Callable 无效", module_name)
 
-	var options := p_options if p_options != null else ThreadJobOptions.new()
+	var options := p_options if p_options != null else GF_ThreadJobOptions.new()
 	var job_id := _next_job_id
 	_next_job_id += 1
 
@@ -119,8 +119,8 @@ func submit(p_work: Callable, p_options: ThreadJobOptions = null) -> OperationRe
 	record.job_id = job_id
 	record.work = p_work
 	record.options = options
-	record.token = ThreadJobToken.new()
-	record.state = ThreadJobState.Value.QUEUED
+	record.token = GF_ThreadJobToken.new()
+	record.state = GF_ThreadJobState.Value.QUEUED
 	record.submitted_at_ms = Time.get_ticks_msec()
 	record.next_dispatch_at_ms = record.submitted_at_ms
 
@@ -137,37 +137,37 @@ func submit(p_work: Callable, p_options: ThreadJobOptions = null) -> OperationRe
 	if not _enabled:
 		_execute_inline(record)
 
-	var handle := ThreadJobHandle.new()
+	var handle := GF_ThreadJobHandle.new()
 	handle.job_id = job_id
 	handle.job_name = record.options.name
 	handle.bind(self)
-	return OperationResult.ok(handle)
+	return GF_OperationResult.ok(handle)
 
 
 ## 取消指定任务。运行中任务为协作式取消：立即进入终态，后台线程稍后自行退出。
-func cancel_job(p_job_id: int, p_reason: String = "cancelled_by_request") -> OperationResult:
+func cancel_job(p_job_id: int, p_reason: String = "cancelled_by_request") -> GF_OperationResult:
 	var record := _jobs.get(p_job_id, null) as JobRecord
 	if record == null:
-		return OperationResult.fail(OperationResult.ERR_NOT_FOUND, "任务不存在: %d" % p_job_id, module_name)
-	if ThreadJobState.is_terminal(record.state):
-		return OperationResult.ok()
+		return GF_OperationResult.fail(GF_OperationResult.ERR_NOT_FOUND, "任务不存在: %d" % p_job_id, module_name)
+	if GF_ThreadJobState.is_terminal(record.state):
+		return GF_OperationResult.ok()
 
 	record.token.request_cancel(p_reason)
 	record.cancel_reason = p_reason
 
-	if record.state in [ThreadJobState.Value.QUEUED, ThreadJobState.Value.RETRY_WAIT]:
+	if record.state in [GF_ThreadJobState.Value.QUEUED, GF_ThreadJobState.Value.RETRY_WAIT]:
 		_queue.erase(p_job_id)
-		_finalize_job(record, ThreadJobState.Value.CANCELLED, _cancelled_result("任务在队列中被取消: %s" % p_reason))
-		return OperationResult.ok()
+		_finalize_job(record, GF_ThreadJobState.Value.CANCELLED, _cancelled_result("任务在队列中被取消: %s" % p_reason))
+		return GF_OperationResult.ok()
 
-	if record.state == ThreadJobState.Value.RUNNING:
+	if record.state == GF_ThreadJobState.Value.RUNNING:
 		_active.erase(p_job_id)
 		if record.worker_task_id >= 0:
 			_orphan_task_ids.append(record.worker_task_id)
-		_finalize_job(record, ThreadJobState.Value.CANCELLED, _cancelled_result("任务运行中被取消: %s" % p_reason))
-		return OperationResult.ok()
+		_finalize_job(record, GF_ThreadJobState.Value.CANCELLED, _cancelled_result("任务运行中被取消: %s" % p_reason))
+		return GF_OperationResult.ok()
 
-	return OperationResult.ok()
+	return GF_OperationResult.ok()
 
 
 ## 按标签取消任务（包含排队和运行中任务）。
@@ -197,7 +197,7 @@ func cancel_all(p_reason: String = "cancelled_all") -> int:
 		var record := _jobs.get(job_id, null) as JobRecord
 		if record == null:
 			continue
-		if ThreadJobState.is_terminal(record.state):
+		if GF_ThreadJobState.is_terminal(record.state):
 			continue
 		var result := cancel_job(job_id, p_reason)
 		if result.is_ok():
@@ -209,12 +209,12 @@ func cancel_all(p_reason: String = "cancelled_all") -> int:
 func get_job_state(p_job_id: int) -> int:
 	var record := _jobs.get(p_job_id, null) as JobRecord
 	if record == null:
-		return ThreadJobState.Value.FAILED
+		return GF_ThreadJobState.Value.FAILED
 	return record.state
 
 
 ## 查询任务摘要。
-func get_job_summary(p_job_id: int) -> ThreadJobSummary:
+func get_job_summary(p_job_id: int) -> GF_ThreadJobSummary:
 	var record := _jobs.get(p_job_id, null) as JobRecord
 	if record == null:
 		return null
@@ -227,9 +227,9 @@ func get_stats() -> Dictionary:
 
 
 ## 获取最新终态任务摘要列表（按完成时间倒序）。
-func get_recent_history(p_limit: int = 20) -> Array[ThreadJobSummary]:
+func get_recent_history(p_limit: int = 20) -> Array[GF_ThreadJobSummary]:
 	var limit := maxi(1, p_limit)
-	var result: Array[ThreadJobSummary] = []
+	var result: Array[GF_ThreadJobSummary] = []
 	for i in range(_terminal_order.size() - 1, -1, -1):
 		var job_id: int = _terminal_order[i]
 		var record := _jobs.get(job_id, null) as JobRecord
@@ -243,7 +243,7 @@ func get_recent_history(p_limit: int = 20) -> Array[ThreadJobSummary]:
 
 ## 内部：在禁用线程模式下同步执行任务。
 func _execute_inline(p_record: JobRecord) -> void:
-	p_record.state = ThreadJobState.Value.RUNNING
+	p_record.state = GF_ThreadJobState.Value.RUNNING
 	p_record.attempts += 1
 	p_record.started_at_ms = Time.get_ticks_msec()
 	var result := _execute_work(p_record.work, p_record.token)
@@ -270,11 +270,11 @@ func _collect_completed_jobs() -> void:
 		var record := _jobs.get(job_id, null) as JobRecord
 		if record == null:
 			continue
-		if ThreadJobState.is_terminal(record.state):
+		if GF_ThreadJobState.is_terminal(record.state):
 			continue
 		var result := _consume_worker_result(job_id)
 		if result == null:
-			result = OperationResult.fail(OperationResult.ERR_INTERNAL, "任务未返回结果: %d" % job_id, module_name)
+			result = GF_OperationResult.fail(GF_OperationResult.ERR_INTERNAL, "任务未返回结果: %d" % job_id, module_name)
 		_finalize_or_retry(record, result)
 
 
@@ -298,18 +298,18 @@ func _handle_timeouts() -> void:
 	for job_id in timed_out_ids:
 		_active.erase(job_id)
 		var record := _jobs.get(job_id, null) as JobRecord
-		if record == null or ThreadJobState.is_terminal(record.state):
+		if record == null or GF_ThreadJobState.is_terminal(record.state):
 			continue
 		record.token.request_cancel("timeout")
 		record.cancel_reason = "timeout"
 		if record.worker_task_id >= 0:
 			_orphan_task_ids.append(record.worker_task_id)
-		var result := OperationResult.fail(
-			OperationResult.ERR_TIMEOUT,
+		var result := GF_OperationResult.fail(
+			GF_OperationResult.ERR_TIMEOUT,
 			"任务超时（%d ms）: %s" % [record.options.resolve_timeout_ms(_default_timeout_ms), record.options.name],
 			module_name
 		)
-		_finalize_job(record, ThreadJobState.Value.TIMEOUT, result)
+		_finalize_job(record, GF_ThreadJobState.Value.TIMEOUT, result)
 
 
 ## 内部：按优先级与预算分发任务到 WorkerThreadPool。
@@ -323,12 +323,12 @@ func _dispatch_jobs() -> void:
 		if job_id < 0:
 			break
 		var record := _jobs.get(job_id, null) as JobRecord
-		if record == null or ThreadJobState.is_terminal(record.state):
+		if record == null or GF_ThreadJobState.is_terminal(record.state):
 			continue
-		record.state = ThreadJobState.Value.RUNNING
+		record.state = GF_ThreadJobState.Value.RUNNING
 		record.attempts += 1
 		record.started_at_ms = now_ms
-		var high_priority := ThreadJobPriority.is_high_priority(record.options.priority)
+		var high_priority := GF_ThreadJobPriority.is_high_priority(record.options.priority)
 		var task_desc := "ThreadJob#%d:%s" % [record.job_id, record.options.name]
 		record.worker_task_id = WorkerThreadPool.add_task(
 			Callable(self, "_worker_execute_job").bind(record.job_id, record.work, record.token),
@@ -348,7 +348,7 @@ func _pop_next_dispatchable_job(p_now_ms: int) -> int:
 		if record == null:
 			_queue.remove_at(i)
 			return -1
-		if record.state == ThreadJobState.Value.CANCELLED:
+		if record.state == GF_ThreadJobState.Value.CANCELLED:
 			_queue.remove_at(i)
 			return -1
 		if record.next_dispatch_at_ms > p_now_ms:
@@ -359,9 +359,9 @@ func _pop_next_dispatchable_job(p_now_ms: int) -> int:
 
 
 ## 内部：任务完成后根据结果执行重试或终态收口。
-func _finalize_or_retry(p_record: JobRecord, p_result: OperationResult) -> void:
+func _finalize_or_retry(p_record: JobRecord, p_result: GF_OperationResult) -> void:
 	if p_result != null and p_result.is_fail() and p_record.attempts <= p_record.options.max_retries:
-		p_record.state = ThreadJobState.Value.RETRY_WAIT
+		p_record.state = GF_ThreadJobState.Value.RETRY_WAIT
 		var wait_ms := maxi(1, p_record.options.retry_backoff_ms) * p_record.attempts
 		p_record.next_dispatch_at_ms = Time.get_ticks_msec() + wait_ms
 		_queue.append(p_record.job_id)
@@ -370,13 +370,13 @@ func _finalize_or_retry(p_record: JobRecord, p_result: OperationResult) -> void:
 		return
 
 	if p_result == null:
-		p_result = OperationResult.fail(OperationResult.ERR_INTERNAL, "任务结果为空: %d" % p_record.job_id, module_name)
-	var terminal_state := ThreadJobState.Value.COMPLETED if p_result.is_ok() else ThreadJobState.Value.FAILED
+		p_result = GF_OperationResult.fail(GF_OperationResult.ERR_INTERNAL, "任务结果为空: %d" % p_record.job_id, module_name)
+	var terminal_state := GF_ThreadJobState.Value.COMPLETED if p_result.is_ok() else GF_ThreadJobState.Value.FAILED
 	_finalize_job(p_record, terminal_state, p_result)
 
 
 ## 内部：统一写入终态、更新统计并触发回调。
-func _finalize_job(p_record: JobRecord, p_state: int, p_result: OperationResult) -> void:
+func _finalize_job(p_record: JobRecord, p_state: int, p_result: GF_OperationResult) -> void:
 	p_record.state = p_state
 	p_record.finished_at_ms = Time.get_ticks_msec()
 	p_record.final_result = p_result
@@ -385,13 +385,13 @@ func _finalize_job(p_record: JobRecord, p_state: int, p_result: OperationResult)
 	_terminal_order.append(p_record.job_id)
 
 	match p_state:
-		ThreadJobState.Value.COMPLETED:
+		GF_ThreadJobState.Value.COMPLETED:
 			_stats["completed"] += 1
-		ThreadJobState.Value.FAILED:
+		GF_ThreadJobState.Value.FAILED:
 			_stats["failed"] += 1
-		ThreadJobState.Value.CANCELLED:
+		GF_ThreadJobState.Value.CANCELLED:
 			_stats["cancelled"] += 1
-		ThreadJobState.Value.TIMEOUT:
+		GF_ThreadJobState.Value.TIMEOUT:
 			_stats["timed_out"] += 1
 
 	var duration := summary.duration_ms()
@@ -412,23 +412,23 @@ func _finalize_job(p_record: JobRecord, p_state: int, p_result: OperationResult)
 
 
 ## 内部：对终态任务触发主线程回调。
-func _emit_callbacks(p_summary: ThreadJobSummary, p_callbacks: ThreadJobCallbacks) -> void:
+func _emit_callbacks(p_summary: GF_ThreadJobSummary, p_callbacks: GF_ThreadJobCallbacks) -> void:
 	if p_callbacks == null:
 		return
 	match p_summary.state:
-		ThreadJobState.Value.COMPLETED:
+		GF_ThreadJobState.Value.COMPLETED:
 			_try_call(p_callbacks.on_completed, p_summary)
-		ThreadJobState.Value.FAILED:
+		GF_ThreadJobState.Value.FAILED:
 			_try_call(p_callbacks.on_failed, p_summary)
-		ThreadJobState.Value.CANCELLED:
+		GF_ThreadJobState.Value.CANCELLED:
 			_try_call(p_callbacks.on_cancelled, p_summary)
-		ThreadJobState.Value.TIMEOUT:
+		GF_ThreadJobState.Value.TIMEOUT:
 			_try_call(p_callbacks.on_timeout, p_summary)
 	_try_call(p_callbacks.on_finished, p_summary)
 
 
 ## 内部：安全调用回调，避免单个回调异常中断流程。
-func _try_call(p_callable: Callable, p_summary: ThreadJobSummary) -> void:
+func _try_call(p_callable: Callable, p_summary: GF_ThreadJobSummary) -> void:
 	if not p_callable.is_valid():
 		return
 	p_callable.call(p_summary)
@@ -471,7 +471,7 @@ func _cleanup_orphan_tasks() -> void:
 
 
 ## 内部：工作线程执行入口。
-func _worker_execute_job(p_job_id: int, p_work: Callable, p_token: ThreadJobToken) -> void:
+func _worker_execute_job(p_job_id: int, p_work: Callable, p_token: GF_ThreadJobToken) -> void:
 	var result := _execute_work(p_work, p_token)
 	_worker_result_mutex.lock()
 	_worker_results[p_job_id] = result
@@ -479,11 +479,11 @@ func _worker_execute_job(p_job_id: int, p_work: Callable, p_token: ThreadJobToke
 
 
 ## 内部：执行任务主体并标准化返回值。
-func _execute_work(p_work: Callable, p_token: ThreadJobToken) -> OperationResult:
+func _execute_work(p_work: Callable, p_token: GF_ThreadJobToken) -> GF_OperationResult:
 	if p_token != null and p_token.is_cancel_requested():
 		return _cancelled_result("任务执行前已取消")
 	if not p_work.is_valid():
-		return OperationResult.fail(OperationResult.ERR_BAD_REQUEST, "任务 Callable 无效", module_name)
+		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "任务 Callable 无效", module_name)
 	var ret = null
 	if p_work.get_argument_count() <= 0:
 		ret = p_work.call()
@@ -491,28 +491,28 @@ func _execute_work(p_work: Callable, p_token: ThreadJobToken) -> OperationResult
 		ret = p_work.call(p_token)
 	if p_token != null and p_token.is_cancel_requested():
 		return _cancelled_result("任务执行过程中被取消")
-	if ret is OperationResult:
-		return ret as OperationResult
-	return OperationResult.ok(ret)
+	if ret is GF_OperationResult:
+		return ret as GF_OperationResult
+	return GF_OperationResult.ok(ret)
 
 
 ## 内部：消费工作线程结果（一次性读取）。
-func _consume_worker_result(p_job_id: int) -> OperationResult:
+func _consume_worker_result(p_job_id: int) -> GF_OperationResult:
 	_worker_result_mutex.lock()
-	var result := _worker_results.get(p_job_id, null) as OperationResult
+	var result := _worker_results.get(p_job_id, null) as GF_OperationResult
 	_worker_results.erase(p_job_id)
 	_worker_result_mutex.unlock()
 	return result
 
 
 ## 内部：构造取消结果对象。
-func _cancelled_result(p_message: String) -> OperationResult:
-	return OperationResult.fail(OperationResult.ERR_PRECONDITION, p_message, module_name)
+func _cancelled_result(p_message: String) -> GF_OperationResult:
+	return GF_OperationResult.fail(GF_OperationResult.ERR_PRECONDITION, p_message, module_name)
 
 
 ## 内部：构造任务摘要快照。
-func _build_summary(p_record: JobRecord) -> ThreadJobSummary:
-	var s := ThreadJobSummary.new()
+func _build_summary(p_record: JobRecord) -> GF_ThreadJobSummary:
+	var s := GF_ThreadJobSummary.new()
 	s.job_id = p_record.job_id
 	s.name = p_record.options.name
 	s.tag = p_record.options.tag

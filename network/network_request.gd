@@ -1,6 +1,6 @@
-## NetworkRequest
+## GF_NetworkRequest
 ## 网络请求模型。统一描述 HTTP 请求的参数。
-class_name NetworkRequest
+class_name GF_NetworkRequest
 extends RefCounted
 
 var method: String = "GET"          # GET / POST / PUT / DELETE

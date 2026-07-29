@@ -1,4 +1,4 @@
-## RuntimeUtilities
+## GF_RuntimeUtilities
 ## Godot 运行时工具集。纯静态方法，不注册为服务，不存储状态。
 ##
 ## 提供：
@@ -6,7 +6,7 @@
 ##   - 延迟执行
 ##   - 节点安全操作（有效性检查、安全释放）
 ##   - 场景树访问辅助
-class_name RuntimeUtilities
+class_name GF_RuntimeUtilities
 extends RefCounted
 
 
@@ -18,7 +18,7 @@ extends RefCounted
 ## 异步回调（网络/文件 IO 完成后）必须用此方法回到主线程再操作节点。
 ##
 ##   [codeblock]
-##   RuntimeUtilities.defer(func(): my_node.visible = true)
+##   GF_RuntimeUtilities.defer(func(): my_node.visible = true)
 ##   [/codeblock]
 static func defer(p_callable: Callable) -> void:
 	(p_callable as Callable).call_deferred()
@@ -37,7 +37,7 @@ static func defer_with(p_callable: Callable, p_arg1 = null) -> void:
 ## 需要传入场景树中的任意节点来创建 Timer。
 ##
 ##   [codeblock]
-##   RuntimeUtilities.delay(some_node, 2.0, func(): print("2秒后执行"))
+##   GF_RuntimeUtilities.delay(some_node, 2.0, func(): print("2秒后执行"))
 ##   [/codeblock]
 static func delay(p_host: Node, p_seconds: float, p_callable: Callable) -> void:
 	var timer := p_host.get_tree().create_timer(p_seconds)

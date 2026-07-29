@@ -1,7 +1,7 @@
-## DefValidator
+## GF_DefValidator
 ## Def 校验器抽象基类。Game 层为每种 Def 类型（ItemDef、BuildingDef 等）创建子类。
-## 注册到 ConfigService 后，validate_all() 时自动调用。
-class_name DefValidator
+## 注册到 GF_ConfigService 后，validate_all() 时自动调用。
+class_name GF_DefValidator
 extends RefCounted
 
 ## 此校验器对应的类型 key，如 "items"、"buildings"

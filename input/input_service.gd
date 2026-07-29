@@ -1,40 +1,40 @@
-## InputService v4.0
-## 统一输入服务。内部组合 InputRouter / ActionResolver / InputPolicy / InputRebindService。
+## GF_InputService v4.0
+## 统一输入服务。内部组合 GF_InputRouter / GF_ActionResolver / GF_InputPolicy / GF_InputRebindService。
 ## 游戏层只通过此服务查询动作，不接触底层原始事件。
-class_name InputService
-extends ModuleLifecycle
+class_name GF_InputService
+extends GF_ModuleLifecycle
 
-var _resolver: ActionResolver = null
-var _router: InputRouter = null
-var _policy: InputPolicy = null
-var _gesture: InputGestureEngine = null
-var _rebind: InputRebindService = null
+var _resolver: GF_ActionResolver = null
+var _router: GF_InputRouter = null
+var _policy: GF_InputPolicy = null
+var _gesture: GF_InputGestureEngine = null
+var _rebind: GF_InputRebindService = null
 
 
-func _on_init() -> OperationResult:
-	_resolver = ActionResolver.new()
-	_policy = InputPolicy.new()
-	_gesture = InputGestureEngine.new()
-	_rebind = InputRebindService.new()
+func _on_init() -> GF_OperationResult:
+	_resolver = GF_ActionResolver.new()
+	_policy = GF_InputPolicy.new()
+	_gesture = GF_InputGestureEngine.new()
+	_rebind = GF_InputRebindService.new()
 	_rebind.configure(_resolver)
 	_resolver.set_policy(_policy)
 	_resolver.set_gesture(_gesture)
-	return OperationResult.ok()
+	return GF_OperationResult.ok()
 
 
-func configure(_p_adapter = null) -> OperationResult:
-	return OperationResult.ok()
+func configure(_p_adapter = null) -> GF_OperationResult:
+	return GF_OperationResult.ok()
 
 
-## 注入 UIService（供 InputPolicy 查询面板状态）。
+## 注入 GF_UIService（供 GF_InputPolicy 查询面板状态）。
 func set_ui_service(p_ui) -> void:
 	_policy.set_ui_service(p_ui)
 
 
-## 创建 InputRouter Node。调用方负责挂到场景树。
-func create_router() -> InputRouter:
+## 创建 GF_InputRouter Node。调用方负责挂到场景树。
+func create_router() -> GF_InputRouter:
 	if _router == null:
-		_router = InputRouter.new()
+		_router = GF_InputRouter.new()
 		_router.configure(_resolver)
 	return _router
 
@@ -43,11 +43,11 @@ func create_router() -> InputRouter:
 # 动作
 # ============================================================
 
-func register_action_def(p_def: InputActionDef) -> void:
+func register_action_def(p_def: GF_InputActionDef) -> void:
 	p_def.snapshot_default_bindings()
 	_resolver.register_action_def(p_def)
 
-func get_action_def(p_action_id: String) -> InputActionDef:
+func get_action_def(p_action_id: String) -> GF_InputActionDef:
 	return _resolver.get_def(p_action_id)
 
 func get_all_action_ids() -> Array[String]:
@@ -72,17 +72,17 @@ func is_just_released(p_action_id: String) -> bool:
 
 
 # ============================================================
-# 上下文（透传到 InputPolicy）
+# 上下文（透传到 GF_InputPolicy）
 # ============================================================
 
-func push_context(p_ctx: InputContext) -> void:
-	var stack: Array[InputContext] = _policy.get_context_stack()
+func push_context(p_ctx: GF_InputContext) -> void:
+	var stack: Array[GF_InputContext] = _policy.get_context_stack()
 	if stack.size() > 0 and stack.back().priority == p_ctx.priority:
 		stack.pop_back()
 	stack.append(p_ctx)
 
 func pop_context() -> void:
-	var stack: Array[InputContext] = _policy.get_context_stack()
+	var stack: Array[GF_InputContext] = _policy.get_context_stack()
 	if stack.size() > 0: stack.pop_back()
 
 func clear_contexts() -> void:
@@ -120,7 +120,7 @@ func reset_action_to_default(p_action_id: String) -> bool:
 # ============================================================
 
 func register_action(p_action_id: String, _p_input_map_action: String = "") -> void:
-	register_action_def(InputActionDef.new(p_action_id))
+	register_action_def(GF_InputActionDef.new(p_action_id))
 
 func register_actions(p_entries: Array) -> void:
 	for entry in p_entries:

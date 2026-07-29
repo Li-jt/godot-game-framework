@@ -1,15 +1,15 @@
-## UIService
+## GF_UIService
 ## UI 管理服务。根据面板 kind 路由到对应 UI 层，根据 Lifecycle 控制关闭行为。
-class_name UIService
-extends ModuleLifecycle
+class_name GF_UIService
+extends GF_ModuleLifecycle
 
 const MAX_CACHED := 5
 const GAME_INPUT_BLOCK_ALWAYS := 1
 const GAME_INPUT_BLOCK_POINTER_ONLY := 2
 
-var _scene_host: SceneHost = null
-var _input_service: InputService = null
-var _log: LogService = null
+var _scene_host: GF_SceneHost = null
+var _input_service: GF_InputService = null
+var _log: GF_LogService = null
 
 var _panel_defs: Dictionary = {}
 var _active_panels: Dictionary = {}
@@ -18,32 +18,32 @@ var _cache_order: Array[String] = []
 var _open_order: Array[String] = []
 
 ## 面板上下文。configure 时由上层传入，每次面板实例化后自动设置到 panel.ctx。
-var _panel_context: UiContext = null
+var _panel_context: GF_UiContext = null
 
 # ============================================================
 # 拖拽
 # ============================================================
 
-var _drag_manager: UIDragManager = null
-var _drop_targets: Array[UIDropTarget] = []
-var _last_hovered: UIDropTarget = null
+var _drag_manager: GF_UIDragManager = null
+var _drop_targets: Array[GF_UIDropTarget] = []
+var _last_hovered: GF_UIDropTarget = null
 
 
-func _on_init() -> OperationResult:
-	return OperationResult.ok()
+func _on_init() -> GF_OperationResult:
+	return GF_OperationResult.ok()
 
 
-## 配置 UI 服务。p_ui_context 为上层装配器构建的 UiContext，
-## UIService 将其存储为 _panel_context，后续所有面板实例化后自动注入。
-func configure(p_ui_context: UiContext) -> OperationResult:
+## 配置 UI 服务。p_ui_context 为上层装配器构建的 GF_UiContext，
+## GF_UIService 将其存储为 _panel_context，后续所有面板实例化后自动注入。
+func configure(p_ui_context: GF_UiContext) -> GF_OperationResult:
 	if p_ui_context == null:
-		return OperationResult.fail(OperationResult.ERR_BAD_REQUEST, "ui_context 不能为 null", module_name)
+		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "ui_context 不能为 null", module_name)
 	if p_ui_context.scene_host == null:
-		return OperationResult.fail(OperationResult.ERR_BAD_REQUEST, "ui_context.scene_host 不能为 null", module_name)
+		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "ui_context.scene_host 不能为 null", module_name)
 	if p_ui_context.input == null:
-		return OperationResult.fail(OperationResult.ERR_BAD_REQUEST, "ui_context.input 不能为 null", module_name)
+		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "ui_context.input 不能为 null", module_name)
 	if p_ui_context.log == null:
-		return OperationResult.fail(OperationResult.ERR_BAD_REQUEST, "ui_context.log 不能为 null", module_name)
+		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "ui_context.log 不能为 null", module_name)
 
 	_panel_context = p_ui_context
 	_panel_context.ui = self
@@ -53,12 +53,12 @@ func configure(p_ui_context: UiContext) -> OperationResult:
 	_input_service.set_game_input_blocker(_should_block_game_action)
 	_log = p_ui_context.log
 
-	# 初始化 UIDragManager
-	_drag_manager = UIDragManager.new()
-	_drag_manager.name = "UIDragManager"
+	# 初始化 GF_UIDragManager
+	_drag_manager = GF_UIDragManager.new()
+	_drag_manager.name = "GF_UIDragManager"
 	_drag_manager.configure(self)
 
-	return OperationResult.ok()
+	return GF_OperationResult.ok()
 
 
 # ============================================================
@@ -66,21 +66,21 @@ func configure(p_ui_context: UiContext) -> OperationResult:
 # ============================================================
 
 ## 注册单个面板定义
-func register(p_def: UIPanelDef) -> OperationResult:
+func register(p_def: GF_UIPanelDef) -> GF_OperationResult:
 	if p_def.name.is_empty() or p_def.path.is_empty():
-		return OperationResult.fail(OperationResult.ERR_BAD_REQUEST, "无效定义: %s" % p_def.name, module_name)
+		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "无效定义: %s" % p_def.name, module_name)
 	_panel_defs[p_def.name] = p_def
-	return OperationResult.ok()
+	return GF_OperationResult.ok()
 
 
 ## 批量注册面板定义
-func register_all(p_defs: Array[UIPanelDef]) -> OperationResult:
+func register_all(p_defs: Array[GF_UIPanelDef]) -> GF_OperationResult:
 	for def in p_defs:
 		var r := register(def)
 		if r.is_fail(): return r
-	_log.info("UIService", "面板注册完成，共 %d 个" % _panel_defs.size())
+	_log.info("GF_UIService", "面板注册完成，共 %d 个" % _panel_defs.size())
 	_prewarm_deferred()
-	return OperationResult.ok()
+	return GF_OperationResult.ok()
 
 
 # ============================================================
@@ -88,10 +88,10 @@ func register_all(p_defs: Array[UIPanelDef]) -> OperationResult:
 # ============================================================
 
 ## 打开面板。singleton 面板重复打开会 reopen 并提到栈顶。
-func open(p_name: String, p_data: Dictionary = {}) -> OperationResult:
+func open(p_name: String, p_data: Dictionary = {}) -> GF_OperationResult:
 	var def := _get_def(p_name)
 	if def == null:
-		return OperationResult.fail(OperationResult.ERR_NOT_FOUND, "面板未注册: %s" % p_name, module_name)
+		return GF_OperationResult.fail(GF_OperationResult.ERR_NOT_FOUND, "面板未注册: %s" % p_name, module_name)
 
 	if _active_panels.has(p_name) and def.singleton:
 		var existing := _get_panel_safe(p_name)
@@ -100,7 +100,7 @@ func open(p_name: String, p_data: Dictionary = {}) -> OperationResult:
 		existing.set_input_block_config(def.game_input_block_mode, def.blocked_action_ids.duplicate(), def.blocked_action_ids.filter(func(a): return a == "cancel"))
 		_bring_to_front(p_name)
 		_recalculate_input_block()
-		return OperationResult.ok(existing)
+		return GF_OperationResult.ok(existing)
 
 	if _cache.has(p_name):
 		var cached := _get_cached_safe(p_name)
@@ -111,27 +111,27 @@ func open(p_name: String, p_data: Dictionary = {}) -> OperationResult:
 				cached.set_input_block_config(def.game_input_block_mode, def.blocked_action_ids.duplicate(), def.blocked_action_ids.filter(func(a): return a == "cancel"))
 				cached.reopen(p_data)
 				_on_opened(p_name)
-		return OperationResult.ok(cached)
+		return GF_OperationResult.ok(cached)
 
 	var result = _scene_host.load_ui_panel(def.kind, def.path, {})
 	if result.is_fail():
 		return result
 
-	var panel := result.data as UIPanel
+	var panel := result.data as GF_UIPanel
 	if panel == null:
-		return OperationResult.fail(OperationResult.ERR_BAD_REQUEST, "根节点不是 UIPanel: %s" % p_name, module_name)
+		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "根节点不是 GF_UIPanel: %s" % p_name, module_name)
 
 	panel.panel_name = p_name
 	panel.ctx = _panel_context
 	# v4.0: 注入输入阻挡配置到面板实例
-	_log.debug("UIService", "open panel: %s mode=%d blocked=%s" % [p_name, def.game_input_block_mode, str(def.blocked_action_ids)])
+	_log.debug("GF_UIService", "open panel: %s mode=%d blocked=%s" % [p_name, def.game_input_block_mode, str(def.blocked_action_ids)])
 	panel.set_input_block_config(def.game_input_block_mode,
 		def.blocked_action_ids.duplicate(),
 		def.blocked_action_ids.filter(func(a): return a == "cancel"))
 	_active_panels[p_name] = panel
 	panel.open(p_data)
 	_on_opened(p_name)
-	return OperationResult.ok(panel)
+	return GF_OperationResult.ok(panel)
 
 
 # ============================================================
@@ -139,25 +139,25 @@ func open(p_name: String, p_data: Dictionary = {}) -> OperationResult:
 # ============================================================
 
 ## 关闭面板。PERSISTENT / MANAGED_BY_FLOW 面板会被拒绝。
-func close(p_name: String) -> OperationResult:
+func close(p_name: String) -> GF_OperationResult:
 	var def := _get_def(p_name)
 	if def == null:
-		return OperationResult.fail(OperationResult.ERR_NOT_FOUND, "面板未注册: %s" % p_name, module_name)
+		return GF_OperationResult.fail(GF_OperationResult.ERR_NOT_FOUND, "面板未注册: %s" % p_name, module_name)
 
-	if def.lifecycle in [UIPanelDef.Lifecycle.PERSISTENT, UIPanelDef.Lifecycle.MANAGED_BY_FLOW]:
-		return OperationResult.fail(OperationResult.ERR_FORBIDDEN, "不允许普通 close: %s" % p_name, module_name)
+	if def.lifecycle in [GF_UIPanelDef.Lifecycle.PERSISTENT, GF_UIPanelDef.Lifecycle.MANAGED_BY_FLOW]:
+		return GF_OperationResult.fail(GF_OperationResult.ERR_FORBIDDEN, "不允许普通 close: %s" % p_name, module_name)
 
 	_do_close(p_name, def)
-	return OperationResult.ok()
+	return GF_OperationResult.ok()
 
 
 ## 强制关闭面板（跳过生命周期限制）
-func force_close(p_name: String) -> OperationResult:
+func force_close(p_name: String) -> GF_OperationResult:
 	var def := _get_def(p_name)
 	if def == null:
-		return OperationResult.fail(OperationResult.ERR_NOT_FOUND, "面板未注册: %s" % p_name, module_name)
+		return GF_OperationResult.fail(GF_OperationResult.ERR_NOT_FOUND, "面板未注册: %s" % p_name, module_name)
 	_do_close(p_name, def)
-	return OperationResult.ok()
+	return GF_OperationResult.ok()
 
 
 # ============================================================
@@ -165,21 +165,21 @@ func force_close(p_name: String) -> OperationResult:
 # ============================================================
 
 ## 显示已打开的面板
-func show(p_name: String) -> OperationResult:
+func show(p_name: String) -> GF_OperationResult:
 	if not _active_panels.has(p_name):
-		return OperationResult.fail(OperationResult.ERR_NOT_FOUND, "面板未打开: %s" % p_name, module_name)
-	(_active_panels[p_name] as UIPanel).show()
+		return GF_OperationResult.fail(GF_OperationResult.ERR_NOT_FOUND, "面板未打开: %s" % p_name, module_name)
+	(_active_panels[p_name] as GF_UIPanel).show()
 	_recalculate_input_block()
-	return OperationResult.ok()
+	return GF_OperationResult.ok()
 
 
 ## 隐藏已打开的面板
-func hide(p_name: String) -> OperationResult:
+func hide(p_name: String) -> GF_OperationResult:
 	if not _active_panels.has(p_name):
-		return OperationResult.fail(OperationResult.ERR_NOT_FOUND, "面板未打开: %s" % p_name, module_name)
-	(_active_panels[p_name] as UIPanel).hide()
+		return GF_OperationResult.fail(GF_OperationResult.ERR_NOT_FOUND, "面板未打开: %s" % p_name, module_name)
+	(_active_panels[p_name] as GF_UIPanel).hide()
 	_recalculate_input_block()
-	return OperationResult.ok()
+	return GF_OperationResult.ok()
 
 
 # ============================================================
@@ -188,31 +188,31 @@ func hide(p_name: String) -> OperationResult:
 
 ## 关闭栈顶可关闭面板（ESC 键逻辑）。
 ## 拖拽中 ESC → 取消拖拽，不关面板。
-func close_top() -> OperationResult:
+func close_top() -> GF_OperationResult:
 	# 拖拽中 ESC → 取消拖拽
 	if is_dragging():
 		cancel_drag()
-		return OperationResult.ok()
+		return GF_OperationResult.ok()
 
 	for i in range(_open_order.size() - 1, -1, -1):
 		var name: String = _open_order[i]
 		var def := _get_def(name)
 		if def == null:
 			continue
-		if def.lifecycle in [UIPanelDef.Lifecycle.PERSISTENT, UIPanelDef.Lifecycle.MANAGED_BY_FLOW]:
+		if def.lifecycle in [GF_UIPanelDef.Lifecycle.PERSISTENT, GF_UIPanelDef.Lifecycle.MANAGED_BY_FLOW]:
 			continue
 		if not def.close_on_escape:
 			continue
 		_do_close(name, def)
-		return OperationResult.ok()
-	return OperationResult.ok()
+		return GF_OperationResult.ok()
+	return GF_OperationResult.ok()
 
 
 ## 关闭所有非 PERSISTENT/MANAGED_BY_FLOW 面板
 func close_all() -> void:
 	for name in _active_panels.keys():
 		var def := _get_def(name)
-		if def != null and def.lifecycle in [UIPanelDef.Lifecycle.PERSISTENT, UIPanelDef.Lifecycle.MANAGED_BY_FLOW]:
+		if def != null and def.lifecycle in [GF_UIPanelDef.Lifecycle.PERSISTENT, GF_UIPanelDef.Lifecycle.MANAGED_BY_FLOW]:
 			continue
 		_do_close_quiet(name, def)
 	_recalculate_input_block()
@@ -229,7 +229,7 @@ func clear_layer(p_kind: StringName) -> void:
 
 ## 关闭游戏内面板（SCREEN/POPUP/TOOLTIP），保留 HUD/系统
 func clear_gameplay_ui() -> void:
-	for kind in [UIPanelDef.KIND_SCREEN, UIPanelDef.KIND_POPUP, UIPanelDef.KIND_TOOLTIP]:
+	for kind in [GF_UIPanelDef.KIND_SCREEN, GF_UIPanelDef.KIND_POPUP, GF_UIPanelDef.KIND_TOOLTIP]:
 		_clear_layer_suppressed(kind)
 	_recalculate_input_block()
 
@@ -247,22 +247,22 @@ func clear_all_ui() -> void:
 func hide_hud() -> void:
 	for name in _active_panels.keys():
 		var def := _get_def(name)
-		if def != null and def.kind == UIPanelDef.KIND_HUD:
+		if def != null and def.kind == GF_UIPanelDef.KIND_HUD:
 			hide(name)
 
 
 ## 显示所有 HUD 面板。进入游戏时调用。
 func show_hud() -> void:
 	for name in _panel_defs.keys():
-		var def: UIPanelDef = _panel_defs[name]
-		if def.kind == UIPanelDef.KIND_HUD and def.lifecycle == UIPanelDef.Lifecycle.PERSISTENT:
+		var def: GF_UIPanelDef = _panel_defs[name]
+		if def.kind == GF_UIPanelDef.KIND_HUD and def.lifecycle == GF_UIPanelDef.Lifecycle.PERSISTENT:
 			if not _active_panels.has(name):
 				var r := open(name)
 				if r.is_fail():
-					_log.error("UIService", "show_hud 打开失败: %s — %s" % [name, r.error.message])
+					_log.error("GF_UIService", "show_hud 打开失败: %s — %s" % [name, r.error.message])
 	for name in _active_panels.keys():
 		var def := _get_def(name)
-		if def != null and def.kind == UIPanelDef.KIND_HUD:
+		if def != null and def.kind == GF_UIPanelDef.KIND_HUD:
 			show(name)
 
 
@@ -274,37 +274,37 @@ func is_open(p_name: String) -> bool:
 	return _active_panels.has(p_name)
 
 
-func get_panel(p_name: String) -> UIPanel:
-	return _active_panels.get(p_name, null) as UIPanel
+func get_panel(p_name: String) -> GF_UIPanel:
+	return _active_panels.get(p_name, null) as GF_UIPanel
 
 
-## v4.0：返回所有活跃面板列表（供 InputPolicy 查询）。
-func get_active_panels() -> Array[UIPanel]:
-	var result: Array[UIPanel] = []
+## v4.0：返回所有活跃面板列表（供 GF_InputPolicy 查询）。
+func get_active_panels() -> Array[GF_UIPanel]:
+	var result: Array[GF_UIPanel] = []
 	for name in _active_panels.keys():
 		var panel_obj = _active_panels[str(name)]
 		if is_instance_valid(panel_obj):
-			result.append(panel_obj as UIPanel)
+			result.append(panel_obj as GF_UIPanel)
 	return result
 
-func _get_panel_safe(p_name: String) -> UIPanel:
+func _get_panel_safe(p_name: String) -> GF_UIPanel:
 	if not _active_panels.has(p_name):
 		return null
 	var panel_obj = _active_panels[p_name]
 	if not is_instance_valid(panel_obj):
 		_active_panels.erase(p_name)
 		return null
-	return panel_obj as UIPanel
+	return panel_obj as GF_UIPanel
 
 
-func _get_cached_safe(p_name: String) -> UIPanel:
+func _get_cached_safe(p_name: String) -> GF_UIPanel:
 	if not _cache.has(p_name):
 		return null
 	var panel_obj = _cache[p_name]
 	if not is_instance_valid(panel_obj):
 		_cache.erase(p_name)
 		return null
-	return panel_obj as UIPanel
+	return panel_obj as GF_UIPanel
 
 
 ## v4.0：返回所有活跃面板名称。
@@ -319,7 +319,7 @@ func get_active_panel_names() -> Array[String]:
 func has_modal_active() -> bool:
 	for name in _active_panels.keys():
 		var def := _get_def(name)
-		if def != null and def.modal and (_active_panels[name] as UIPanel).visible:
+		if def != null and def.modal and (_active_panels[name] as GF_UIPanel).visible:
 			return true
 	return false
 
@@ -328,7 +328,7 @@ func has_modal_active() -> bool:
 func has_ui_blocker_active() -> bool:
 	for name in _active_panels.keys():
 		var def := _get_def(name)
-		if def != null and def.blocks_ui_below and (_active_panels[name] as UIPanel).visible:
+		if def != null and def.blocks_ui_below and (_active_panels[name] as GF_UIPanel).visible:
 			return true
 	return false
 
@@ -337,17 +337,17 @@ func has_ui_blocker_active() -> bool:
 # 拖拽 API
 # ============================================================
 
-## 开始拖拽。p_handler 为游戏层实现的 UIDragHandler 子类。
+## 开始拖拽。p_handler 为游戏层实现的 GF_UIDragHandler 子类。
 ## 如果有旧拖拽未结束，先 cancel 旧的再开始新的。
-func begin_drag(p_handler: UIDragHandler, p_screen_pos: Vector2, p_source: UIPanel = null) -> OperationResult:
+func begin_drag(p_handler: GF_UIDragHandler, p_screen_pos: Vector2, p_source: GF_UIPanel = null) -> GF_OperationResult:
 	if _drag_manager == null:
-		return OperationResult.fail(OperationResult.ERR_INTERNAL, "UIDragManager 未初始化", module_name)
+		return GF_OperationResult.fail(GF_OperationResult.ERR_INTERNAL, "GF_UIDragManager 未初始化", module_name)
 	if p_handler == null:
-		return OperationResult.fail(OperationResult.ERR_BAD_REQUEST, "handler 不能为 null", module_name)
+		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "handler 不能为 null", module_name)
 	if _drag_manager._event != null:
 		cancel_drag()
 	_drag_manager.begin(p_handler, p_screen_pos, MOUSE_BUTTON_LEFT, p_source)
-	return OperationResult.ok()
+	return GF_OperationResult.ok()
 
 
 ## 取消当前拖拽。触发 handler.on_end_drag(event) 且 event.drop_receiver = null。
@@ -369,7 +369,7 @@ func cancel_drag() -> void:
 		_drag_manager._clear()
 
 
-## 当前是否有活跃拖拽（供 InputPolicy 查询）
+## 当前是否有活跃拖拽（供 GF_InputPolicy 查询）
 func is_dragging() -> bool:
 	return _drag_manager != null and _drag_manager._event != null
 
@@ -382,39 +382,39 @@ func get_drag_position() -> Vector2:
 
 
 ## 注册放置目标（面板在 _on_open 中调用）
-func register_drop_target(p_target: UIDropTarget) -> OperationResult:
+func register_drop_target(p_target: GF_UIDropTarget) -> GF_OperationResult:
 	if p_target == null:
-		return OperationResult.fail(OperationResult.ERR_BAD_REQUEST, "target 不能为 null", module_name)
+		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "target 不能为 null", module_name)
 	if p_target.panel == null:
-		return OperationResult.fail(OperationResult.ERR_BAD_REQUEST, "target.panel 不能为 null", module_name)
+		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "target.panel 不能为 null", module_name)
 	_drop_targets.append(p_target)
-	return OperationResult.ok()
+	return GF_OperationResult.ok()
 
 
 ## 注销属于某面板的所有放置目标（框架在面板关闭时自动调用）
-func unregister_panel_targets(p_panel: UIPanel) -> void:
-	var filtered: Array[UIDropTarget] = []
+func unregister_panel_targets(p_panel: GF_UIPanel) -> void:
+	var filtered: Array[GF_UIDropTarget] = []
 	for t in _drop_targets:
 		if is_instance_valid(t) and t.panel != p_panel:
 			filtered.append(t)
 	_drop_targets = filtered
 
 
-## 获取 UIDragManager Node（供 ServiceInstallerImpl 挂到场景树）
-func get_drag_manager() -> UIDragManager:
+## 获取 GF_UIDragManager Node（供 GF_ServiceInstallerImpl 挂到场景树）
+func get_drag_manager() -> GF_UIDragManager:
 	return _drag_manager
 
 
-## [L2] 简化拖拽：给 data + icon，框架全管。返回 UIDragHandler 供连接信号。
-## p_data 放入 event.drag_data，p_icon 自动创建 UIDragGhost。
-func begin_simple_drag(p_data: Dictionary, p_icon: Texture2D, p_offset: Vector2 = Vector2(-24, -24), p_source: UIPanel = null) -> UIDragHandler:
+## [L2] 简化拖拽：给 data + icon，框架全管。返回 GF_UIDragHandler 供连接信号。
+## p_data 放入 event.drag_data，p_icon 自动创建 GF_UIDragGhost。
+func begin_simple_drag(p_data: Dictionary, p_icon: Texture2D, p_offset: Vector2 = Vector2(-24, -24), p_source: GF_UIPanel = null) -> GF_UIDragHandler:
 	var handler := _DefaultDragHandler.new(p_data, p_icon, p_offset)
 	begin_drag(handler, _get_global_mouse_pos(), p_source)
 	return handler
 
 
 # ============================================================
-# 内部：拖拽（UIDragManager 回调）
+# 内部：拖拽（GF_UIDragManager 回调）
 # ============================================================
 
 func _on_drag_motion(p_mouse_pos: Vector2) -> void:
@@ -456,7 +456,7 @@ func _on_drag_drop(p_mouse_pos: Vector2) -> void:
 	_drag_manager._clear()
 
 
-func _hit_test_target(p_mouse_pos: Vector2) -> UIDropTarget:
+func _hit_test_target(p_mouse_pos: Vector2) -> GF_UIDropTarget:
 	# 从 _open_order 栈顶向下遍历（后打开的面板优先拦截）
 	for i in range(_open_order.size() - 1, -1, -1):
 		var panel := _get_panel_safe(_open_order[i])
@@ -492,7 +492,7 @@ func _get_global_mouse_pos() -> Vector2:
 # 内部：关闭
 # ============================================================
 
-func _do_close(p_name: String, p_def: UIPanelDef, p_suppress_recalc: bool = false) -> void:
+func _do_close(p_name: String, p_def: GF_UIPanelDef, p_suppress_recalc: bool = false) -> void:
 	if not _active_panels.has(p_name):
 		return
 
@@ -505,7 +505,7 @@ func _do_close(p_name: String, p_def: UIPanelDef, p_suppress_recalc: bool = fals
 	_active_panels.erase(p_name)
 	_remove_from_order(p_name)
 
-	if p_def.lifecycle == UIPanelDef.Lifecycle.HIDE_ON_CLOSE:
+	if p_def.lifecycle == GF_UIPanelDef.Lifecycle.HIDE_ON_CLOSE:
 		_cached_store(p_name, panel)
 	else:
 		panel.close()
@@ -514,7 +514,7 @@ func _do_close(p_name: String, p_def: UIPanelDef, p_suppress_recalc: bool = fals
 		_recalculate_input_block()
 
 
-func _do_close_quiet(p_name: String, p_def: UIPanelDef) -> void:
+func _do_close_quiet(p_name: String, p_def: GF_UIPanelDef) -> void:
 	_do_close(p_name, p_def, true)
 
 
@@ -529,7 +529,7 @@ func _clear_layer_suppressed(p_kind: StringName) -> void:
 # 内部：缓存
 # ============================================================
 
-func _cached_store(p_name: String, p_panel: UIPanel) -> void:
+func _cached_store(p_name: String, p_panel: GF_UIPanel) -> void:
 	p_panel.hide_panel()
 	if _cache.has(p_name): _cache_order.erase(p_name)
 
@@ -551,8 +551,8 @@ func _cached_store(p_name: String, p_panel: UIPanel) -> void:
 
 func _prewarm_deferred() -> void:
 	for name in _panel_defs.keys():
-		var def: UIPanelDef = _panel_defs[name]
-		if def.prewarm and def.lifecycle in [UIPanelDef.Lifecycle.HIDE_ON_CLOSE, UIPanelDef.Lifecycle.PERSISTENT]:
+		var def: GF_UIPanelDef = _panel_defs[name]
+		if def.prewarm and def.lifecycle in [GF_UIPanelDef.Lifecycle.HIDE_ON_CLOSE, GF_UIPanelDef.Lifecycle.PERSISTENT]:
 			_prewarm_one.call_deferred(name)
 
 
@@ -560,12 +560,12 @@ func _prewarm_one(p_name: String) -> void:
 	if not is_instance_valid(self):
 		return
 
-	_log.debug("UIService", "_prewarm_one: %s" % p_name)
-	var def: UIPanelDef = _panel_defs[p_name]
+	_log.debug("GF_UIService", "_prewarm_one: %s" % p_name)
+	var def: GF_UIPanelDef = _panel_defs[p_name]
 	var result = _scene_host.load_ui_panel(def.kind, def.path, {})
 	if result.is_fail(): return
 
-	var panel := result.data as UIPanel
+	var panel := result.data as GF_UIPanel
 	if panel == null: return
 
 	panel.panel_name = p_name
@@ -586,7 +586,7 @@ func _prewarm_one(p_name: String) -> void:
 # 内部：输入
 # ============================================================
 
-var _ui_block_context: InputContext = null
+var _ui_block_context: GF_InputContext = null
 
 func _recalculate_input_block() -> void:
 	if _input_service == null:
@@ -610,7 +610,7 @@ func _recalculate_input_block() -> void:
 	var need_block := block_all or not blocked_ids.is_empty()
 
 	if need_block and _ui_block_context == null:
-		_ui_block_context = InputContext.new()
+		_ui_block_context = GF_InputContext.new()
 		_ui_block_context.name = "ui_block"
 		_ui_block_context.priority = 500
 		if block_all:
@@ -649,11 +649,11 @@ func _should_block_game_action(p_action_id: String) -> bool:
 	return false
 
 
-func _uses_always_game_input_block(p_def: UIPanelDef) -> bool:
+func _uses_always_game_input_block(p_def: GF_UIPanelDef) -> bool:
 	return p_def.blocks_game_input or p_def.game_input_block_mode == GAME_INPUT_BLOCK_ALWAYS
 
 
-func _def_blocks_action(p_def: UIPanelDef, p_action_id: String) -> bool:
+func _def_blocks_action(p_def: GF_UIPanelDef, p_action_id: String) -> bool:
 	if p_def.blocked_action_ids.has("*"):
 		return true
 	return p_def.blocked_action_ids.has(p_action_id)
@@ -696,16 +696,16 @@ func _apply_layer_order(p_kind: StringName) -> void:
 
 
 func _get_layer_order(p_node: Node) -> int:
-	if p_node is UIPanel:
-		var name: String = (p_node as UIPanel).panel_name
+	if p_node is GF_UIPanel:
+		var name: String = (p_node as GF_UIPanel).panel_name
 		var def := _get_def(name)
 		if def != null:
 			return def.layer_order
 	return 0
 
 
-func _get_def(p_name: String) -> UIPanelDef:
-	return _panel_defs.get(p_name, null) as UIPanelDef
+func _get_def(p_name: String) -> GF_UIPanelDef:
+	return _panel_defs.get(p_name, null) as GF_UIPanelDef
 
 
 # ============================================================
@@ -713,12 +713,12 @@ func _get_def(p_name: String) -> UIPanelDef:
 # ============================================================
 
 class _DefaultDragHandler
-extends UIDragHandler
+extends GF_UIDragHandler
 
 var _data: Dictionary = {}
 var _icon: Texture2D = null
 var _offset: Vector2 = Vector2.ZERO
-var _ghost: UIDragGhost = null
+var _ghost: GF_UIDragGhost = null
 
 
 func _init(p_data: Dictionary, p_icon: Texture2D, p_offset: Vector2) -> void:
@@ -727,7 +727,7 @@ func _init(p_data: Dictionary, p_icon: Texture2D, p_offset: Vector2) -> void:
 	_offset = p_offset
 
 
-func on_begin_drag(event: UIDragEvent) -> void:
+func on_begin_drag(event: GF_UIDragEvent) -> void:
 	event.drag_data = _data
 	if _icon != null:
 		_ghost = event.show_ghost_texture(_icon, _offset)

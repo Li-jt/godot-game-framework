@@ -1,12 +1,12 @@
-## InputPolicy — 输入策略层（v4.0）。
+## GF_InputPolicy — 输入策略层（v4.0）。
 ## 统一判定"动作是否可通过"：Context + UI Panel + allowlist。
 ## 核心原则：按 action 级别判定，不按 event 级别。
-class_name InputPolicy
+class_name GF_InputPolicy
 extends RefCounted
 
-var _context_stack: Array[InputContext] = []
-## UIService 引用（只读）
-var _ui_service: Variant = null  # UIService
+var _context_stack: Array[GF_InputContext] = []
+## GF_UIService 引用（只读）
+var _ui_service: Variant = null  # GF_UIService
 var _dbg_once: int = 0
 
 
@@ -14,7 +14,7 @@ func set_ui_service(p_ui) -> void:
 	_ui_service = p_ui
 
 
-func get_context_stack() -> Array[InputContext]:
+func get_context_stack() -> Array[GF_InputContext]:
 	return _context_stack
 
 

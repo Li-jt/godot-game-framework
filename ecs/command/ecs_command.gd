@@ -1,6 +1,6 @@
-## EcsCommand — ECS 命令缓冲中的操作类型常量。
+## GF_EcsCommand — ECS 命令缓冲中的操作类型常量。
 ## 定义 spawn / despawn / add_component / set_component / remove_component 五种标准操作。
-class_name EcsCommand
+class_name GF_EcsCommand
 extends RefCounted
 
 # 操作类型

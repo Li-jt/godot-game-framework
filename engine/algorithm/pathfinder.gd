@@ -1,6 +1,6 @@
-## Pathfinder — A* 寻路（Framework 层）。可实例化，支持注入启发式。
+## GF_Pathfinder — A* 寻路（Framework 层）。可实例化，支持注入启发式。
 ## 每次 find_path() 传入不同的 graph 和 traversal，同一实例可服务多种单位类型。
-class_name Pathfinder
+class_name GF_Pathfinder
 extends RefCounted
 
 class PathNode:
@@ -14,14 +14,14 @@ class PathNode:
 		pos = p_pos; parent = p_parent; g = p_g; h = p_h; f = p_g + p_h
 
 
-var _heuristic: IHeuristic
+var _heuristic: GF_IHeuristic
 
 
-func _init(p_heuristic: IHeuristic = null) -> void:
-	_heuristic = p_heuristic if p_heuristic != null else ManhattanHeuristic.new()
+func _init(p_heuristic: GF_IHeuristic = null) -> void:
+	_heuristic = p_heuristic if p_heuristic != null else GF_ManhattanHeuristic.new()
 
 
-func find_path(p_from: Vector2i, p_to: Vector2i, p_graph: IPathGraph, p_traversal: ITraversal) -> Array:
+func find_path(p_from: Vector2i, p_to: Vector2i, p_graph: GF_IPathGraph, p_traversal: GF_ITraversal) -> Array:
 	if not p_traversal.is_walkable(p_to):
 		return []
 	if p_from == p_to:

@@ -1,4 +1,4 @@
-## UIDragGhost
+## GF_UIDragGhost
 ## 拖拽视觉控件。游戏层通过 event.show_ghost_xxx() 一键创建，
 ## 无需手写 TextureRect 管理代码。
 ##
@@ -9,7 +9,7 @@
 ##
 ## 自动挂载到 SYSTEM 层（最顶层），确保不被任何面板遮挡。
 ## mouse_filter = IGNORE，不拦截鼠标事件。
-class_name UIDragGhost
+class_name GF_UIDragGhost
 extends Control
 
 var _offset: Vector2 = Vector2.ZERO
@@ -95,12 +95,12 @@ func show_with_text(p_text: String) -> void:
 	global_position = get_global_mouse_position() + _offset
 
 
-## 每帧由 UIDragManager._input 调用，跟随鼠标
+## 每帧由 GF_UIDragManager._input 调用，跟随鼠标
 func _follow(p_screen_pos: Vector2) -> void:
 	global_position = p_screen_pos + _offset
 
 
-## 由 UIDragManager._clear 在拖拽结束时调用
+## 由 GF_UIDragManager._clear 在拖拽结束时调用
 func dismiss() -> void:
 	hide()
 	queue_free()

@@ -1,11 +1,11 @@
-## InputRebindService — 按键重绑定服务（v4.0）。
+## GF_InputRebindService — 按键重绑定服务（v4.0）。
 ## 管理"监听新按键"流程 + 校验 + 应用 + 冲突处理。
-class_name InputRebindService
+class_name GF_InputRebindService
 extends RefCounted
 
 enum ConflictPolicy { ALLOW, WARN, REPLACE }
 
-var _resolver: ActionResolver = null
+var _resolver: GF_ActionResolver = null
 var _waiting: bool = false
 var _target_action_id: String = ""
 var _target_slot: int = 0
@@ -14,12 +14,12 @@ var _conflict_policy: int = ConflictPolicy.WARN
 signal rebind_changed(action_id: String, slot: int)
 
 
-func configure(p_resolver: ActionResolver) -> void:
+func configure(p_resolver: GF_ActionResolver) -> void:
 	_resolver = p_resolver
 
 
 func begin_rebind(p_action_id: String, p_slot: int) -> bool:
-	var def: InputActionDef = _resolver.get_def(p_action_id)
+	var def: GF_InputActionDef = _resolver.get_def(p_action_id)
 	if def == null or not def.rebindable:
 		return false
 	_waiting = true
@@ -36,11 +36,11 @@ func is_waiting() -> bool:
 	return _waiting
 
 
-## 在 InputRouter._input 中调用，检查是否是改键等待中的按键事件。
+## 在 GF_InputRouter._input 中调用，检查是否是改键等待中的按键事件。
 func handle_event_for_rebind(p_event: InputEvent) -> bool:
 	if not _waiting or _resolver == null:
 		return false
-	var def: InputActionDef = _resolver.get_def(_target_action_id)
+	var def: GF_InputActionDef = _resolver.get_def(_target_action_id)
 	if def == null:
 		return false
 
@@ -60,10 +60,10 @@ func handle_event_for_rebind(p_event: InputEvent) -> bool:
 	# 从事件创建 binding
 	var source: int = _event_to_source(p_event)
 	var code: int = _event_to_code(p_event)
-	var mode: int = InputBinding.Mode.IMPULSE
-	if source == InputBinding.Source.KEYBOARD:
-		mode = InputBinding.Mode.HELD
-	var binding: InputBinding = InputBinding.new(source, code, 1.0, mode, false, _target_slot)
+	var mode: int = GF_InputBinding.Mode.IMPULSE
+	if source == GF_InputBinding.Source.KEYBOARD:
+		mode = GF_InputBinding.Mode.HELD
+	var binding: GF_InputBinding = GF_InputBinding.new(source, code, 1.0, mode, false, _target_slot)
 
 	# 应用
 	apply_binding(_target_action_id, _target_slot, binding)
@@ -72,22 +72,22 @@ func handle_event_for_rebind(p_event: InputEvent) -> bool:
 	return true
 
 
-func can_bind_event_to_action(p_event: InputEvent, p_def: InputActionDef) -> bool:
+func can_bind_event_to_action(p_event: InputEvent, p_def: GF_InputActionDef) -> bool:
 	var source: int = _event_to_source(p_event)
 	match p_def.device_constraint:
-		InputActionDef.DeviceConstraint.KEYBOARD_ONLY:
-			return source == InputBinding.Source.KEYBOARD
-		InputActionDef.DeviceConstraint.MOUSE_ONLY:
-			return source in [InputBinding.Source.MOUSE_BUTTON, InputBinding.Source.MOUSE_WHEEL]
-		InputActionDef.DeviceConstraint.KEYBOARD_MOUSE:
-			return source in [InputBinding.Source.KEYBOARD, InputBinding.Source.MOUSE_BUTTON, InputBinding.Source.MOUSE_WHEEL]
-		InputActionDef.DeviceConstraint.GAMEPAD_ONLY:
-			return source in [InputBinding.Source.GAMEPAD_BUTTON, InputBinding.Source.GAMEPAD_AXIS]
+		GF_InputActionDef.DeviceConstraint.KEYBOARD_ONLY:
+			return source == GF_InputBinding.Source.KEYBOARD
+		GF_InputActionDef.DeviceConstraint.MOUSE_ONLY:
+			return source in [GF_InputBinding.Source.MOUSE_BUTTON, GF_InputBinding.Source.MOUSE_WHEEL]
+		GF_InputActionDef.DeviceConstraint.KEYBOARD_MOUSE:
+			return source in [GF_InputBinding.Source.KEYBOARD, GF_InputBinding.Source.MOUSE_BUTTON, GF_InputBinding.Source.MOUSE_WHEEL]
+		GF_InputActionDef.DeviceConstraint.GAMEPAD_ONLY:
+			return source in [GF_InputBinding.Source.GAMEPAD_BUTTON, GF_InputBinding.Source.GAMEPAD_AXIS]
 	return true
 
 
-func apply_binding(p_action_id: String, p_slot: int, p_binding: InputBinding) -> bool:
-	var def: InputActionDef = _resolver.get_def(p_action_id) as InputActionDef
+func apply_binding(p_action_id: String, p_slot: int, p_binding: GF_InputBinding) -> bool:
+	var def: GF_InputActionDef = _resolver.get_def(p_action_id) as GF_InputActionDef
 	if def == null: return false
 	# 移除同 slot 的旧绑定
 	var i: int = 0
@@ -101,7 +101,7 @@ func apply_binding(p_action_id: String, p_slot: int, p_binding: InputBinding) ->
 
 
 func reset_action_to_default(p_action_id: String) -> bool:
-	var def: InputActionDef = _resolver.get_def(p_action_id) as InputActionDef
+	var def: GF_InputActionDef = _resolver.get_def(p_action_id) as GF_InputActionDef
 	if def == null: return false
 	def.bindings.clear()
 	for b in def.default_bindings:
@@ -111,12 +111,12 @@ func reset_action_to_default(p_action_id: String) -> bool:
 
 
 func save(p_path: String = "user://input_bindings_v1.tres") -> bool:
-	var config: InputBindingConfig = InputBindingConfig.from_defs(_resolver._defs)
+	var config: GF_InputBindingConfig = GF_InputBindingConfig.from_defs(_resolver._defs)
 	return config.save_to_file(p_path)
 
 
 func load(p_path: String = "user://input_bindings_v1.tres") -> bool:
-	var config: InputBindingConfig = InputBindingConfig.load_from_file(p_path)
+	var config: GF_InputBindingConfig = GF_InputBindingConfig.load_from_file(p_path)
 	if config == null: return false
 	config.apply_to_defs(_resolver._defs)
 	return true
@@ -127,13 +127,13 @@ func load(p_path: String = "user://input_bindings_v1.tres") -> bool:
 # ============================================================
 
 func _event_to_source(p_event: InputEvent) -> int:
-	if p_event is InputEventKey: return InputBinding.Source.KEYBOARD
+	if p_event is InputEventKey: return GF_InputBinding.Source.KEYBOARD
 	if p_event is InputEventMouseButton:
 		var mb := p_event as InputEventMouseButton
 		if mb.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
-			return InputBinding.Source.MOUSE_WHEEL
-		return InputBinding.Source.MOUSE_BUTTON
-	if p_event is InputEventJoypadButton: return InputBinding.Source.GAMEPAD_BUTTON
+			return GF_InputBinding.Source.MOUSE_WHEEL
+		return GF_InputBinding.Source.MOUSE_BUTTON
+	if p_event is InputEventJoypadButton: return GF_InputBinding.Source.GAMEPAD_BUTTON
 	return -1
 
 func _event_to_code(p_event: InputEvent) -> int:

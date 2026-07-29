@@ -1,13 +1,13 @@
-## NodePool — 通用节点对象池（框架层）。
+## GF_NodePool — 通用节点对象池（框架层）。
 ## 按 PackedScene 维护空闲节点池，避免频繁 instantiate / queue_free 造成性能尖峰。
 ##
 ## 用法：
-##   var pool := NodePool.new()
+##   var pool := GF_NodePool.new()
 ##   var node := pool.acquire(tree_scene)    # 从池中取或新建
 ##   pool.release(node)                       # 归还（隐藏 + 移出树）
 ##
 ## 适用场景：地图上大量重复生成/销毁的实体（资源、建筑、单位等）。
-class_name NodePool
+class_name GF_NodePool
 extends RefCounted
 
 ## { scene.resource_path or uid → Array[Node] }

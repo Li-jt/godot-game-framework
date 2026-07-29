@@ -1,14 +1,14 @@
-## ResourceService
+## GF_ResourceService
 ## 项目级统一资源读取服务。带缓存、资源分组和释放策略。
 ##
 ## 使用方式：
 ##   [codeblock]
 ##   var res := context.resource
-##   var r := res.load_texture("textures/icon.png", ResourceService.GROUP_UI_COMMON)
-##   res.release_group(ResourceService.GROUP_LEVEL_01)
+##   var r := res.load_texture("textures/icon.png", GF_ResourceService.GROUP_UI_COMMON)
+##   res.release_group(GF_ResourceService.GROUP_LEVEL_01)
 ##   [/codeblock]
-class_name ResourceService
-extends ModuleLifecycle
+class_name GF_ResourceService
+extends GF_ModuleLifecycle
 
 ## 资源分组——StringName 常量。Framework 提供默认值，Mod 使用自己的标识。
 const GROUP_UI_COMMON: StringName = &"ui_common"
@@ -27,8 +27,8 @@ class CacheEntry:
 	var group: StringName
 
 
-var _asset_loading: AssetLoadingService = null
-var _log: LogService = null
+var _asset_loading: GF_AssetLoadingService = null
+var _log: GF_LogService = null
 var _cache: Dictionary = {}            # String path -> CacheEntry
 var _cache_order: Array[String] = []   # LRU 顺序
 const MAX_UNCACHED: int = 200
@@ -36,37 +36,37 @@ const MAX_UNCACHED: int = 200
 var _release_policy: ReleasePolicy = ReleasePolicy.LRU_ONLY
 
 
-func _on_init() -> OperationResult:
-	return OperationResult.ok()
+func _on_init() -> GF_OperationResult:
+	return GF_OperationResult.ok()
 
 
-func configure(p_asset_loading: AssetLoadingService, p_log: LogService) -> OperationResult:
+func configure(p_asset_loading: GF_AssetLoadingService, p_log: GF_LogService) -> GF_OperationResult:
 	if p_asset_loading == null:
-		return OperationResult.fail(OperationResult.ERR_BAD_REQUEST, "configure: asset_loading 不能为 null", module_name)
+		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "configure: asset_loading 不能为 null", module_name)
 	if p_log == null:
-		return OperationResult.fail(OperationResult.ERR_BAD_REQUEST, "configure: log 不能为 null", module_name)
+		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "configure: log 不能为 null", module_name)
 	_asset_loading = p_asset_loading
 	_log = p_log
-	return OperationResult.ok()
+	return GF_OperationResult.ok()
 
 
 # ============================================================
 # 加载
 # ============================================================
 
-func load_scene(p_path: String, p_group: StringName = GROUP_GAMEPLAY) -> OperationResult:
+func load_scene(p_path: String, p_group: StringName = GROUP_GAMEPLAY) -> GF_OperationResult:
 	return _cached_load(p_path, p_group, func(p): return _asset_loading.load_scene(p))
 
 
-func load_texture(p_path: String, p_group: StringName = GROUP_GAMEPLAY) -> OperationResult:
+func load_texture(p_path: String, p_group: StringName = GROUP_GAMEPLAY) -> GF_OperationResult:
 	return _cached_load(p_path, p_group, func(p): return _asset_loading.load_texture(p))
 
 
-func load_audio(p_path: String, p_group: StringName = GROUP_AUDIO) -> OperationResult:
+func load_audio(p_path: String, p_group: StringName = GROUP_AUDIO) -> GF_OperationResult:
 	return _cached_load(p_path, p_group, func(p): return _asset_loading.load_audio(p))
 
 
-func load_resource(p_path: String, p_group: StringName = GROUP_GAMEPLAY) -> OperationResult:
+func load_resource(p_path: String, p_group: StringName = GROUP_GAMEPLAY) -> GF_OperationResult:
 	return _cached_load(p_path, p_group, func(p): return _asset_loading.load_resource(p))
 
 
@@ -114,12 +114,12 @@ func cache_size() -> int:
 # 内部
 # ============================================================
 
-func _cached_load(p_path: String, p_group: StringName, p_loader: Callable) -> OperationResult:
+func _cached_load(p_path: String, p_group: StringName, p_loader: Callable) -> GF_OperationResult:
 	if _cache.has(p_path):
 		var entry: CacheEntry = _cache[p_path]
 		_touch_order(p_path)
 		_log.debug("Resource", "缓存命中: %s" % p_path)
-		return OperationResult.ok(entry.resource)
+		return GF_OperationResult.ok(entry.resource)
 
 	_lru_evict_if_needed()
 

@@ -1,6 +1,6 @@
-## SaveMeta
+## GF_SaveMeta
 ## 存档元数据。持久化时随 SaveData 一起写入，加载时先读取以判断兼容性。
-class_name SaveMeta
+class_name GF_SaveMeta
 extends RefCounted
 
 var slot_id: int = 0

@@ -1,7 +1,7 @@
-## EcsSaveVersionMigrator — ECS 存档版本迁移链。
+## GF_EcsSaveVersionMigrator — ECS 存档版本迁移链。
 ## 按版本号顺序执行迁移步骤，将旧版存档数据转换到最新格式。
 ## 支持 Mod 注册/卸载迁移步骤。
-class_name EcsSaveVersionMigrator
+class_name GF_EcsSaveVersionMigrator
 extends RefCounted
 
 ## 迁移步骤
@@ -37,9 +37,9 @@ func unregister_by_owner(p_owner: String) -> int:
 
 
 ## 从数据版本迁移到目标版本。
-func migrate(p_data: Dictionary, p_from_version: int, p_to_version: int) -> OperationResult:
+func migrate(p_data: Dictionary, p_from_version: int, p_to_version: int) -> GF_OperationResult:
 	if p_from_version >= p_to_version:
-		return OperationResult.ok(p_data)
+		return GF_OperationResult.ok(p_data)
 
 	var current_data := p_data.duplicate(true)
 	var current_version := p_from_version
@@ -47,11 +47,11 @@ func migrate(p_data: Dictionary, p_from_version: int, p_to_version: int) -> Oper
 	while current_version < p_to_version:
 		var next: MigrationStep = _find_migration(current_version)
 		if next == null:
-			push_warning("[EcsSaveVersionMigrator] 版本 %d 无迁移步骤" % current_version)
+			push_warning("[GF_EcsSaveVersionMigrator] 版本 %d 无迁移步骤" % current_version)
 			break
 		var result = next.fn.call(current_data)
-		if result is OperationResult:
-			var r: OperationResult = result
+		if result is GF_OperationResult:
+			var r: GF_OperationResult = result
 			if r.is_fail():
 				return r
 			current_data = r.data
@@ -59,7 +59,7 @@ func migrate(p_data: Dictionary, p_from_version: int, p_to_version: int) -> Oper
 			current_data = result
 		current_version = next.to_version
 
-	return OperationResult.ok(current_data)
+	return GF_OperationResult.ok(current_data)
 
 
 func _find_migration(p_from: int) -> MigrationStep:

@@ -1,4 +1,4 @@
-## UIDragSlot
+## GF_UIDragSlot
 ## 可拖拽格子 Control。既是拖拽源也是放置目标，拖到场景里配置一下就能用。
 ##
 ## 内置行为（框架自动处理，游戏层不需要写代码）：
@@ -7,10 +7,10 @@
 ## - 物品放入 → 发射 slot_drop_received 信号
 ##
 ## 使用方式：
-##   1. 在场景中放置 UIDragSlot 作为子节点
+##   1. 在场景中放置 GF_UIDragSlot 作为子节点
 ##   2. 编辑器中勾选 drag_enabled / drop_enabled
 ##   3. 连接 slot_drop_received 信号处理业务逻辑
-class_name UIDragSlot
+class_name GF_UIDragSlot
 extends Control
 
 # ════════════════════════════════════════════
@@ -43,16 +43,16 @@ extends Control
 # ════════════════════════════════════════════
 
 ## 物品从此格子拖出
-signal slot_drag_begin(slot: UIDragSlot)
+signal slot_drag_begin(slot: GF_UIDragSlot)
 
 ## 物品放入此格子
-signal slot_drop_received(from_slot: UIDragSlot, to_slot: UIDragSlot)
+signal slot_drop_received(from_slot: GF_UIDragSlot, to_slot: GF_UIDragSlot)
 
 ## 拖拽取消（物品弹回）
-signal slot_drag_cancelled(slot: UIDragSlot)
+signal slot_drag_cancelled(slot: GF_UIDragSlot)
 
 ## 拖拽结束（无论成功与否）
-signal slot_drag_end(slot: UIDragSlot, accepted: bool)
+signal slot_drag_end(slot: GF_UIDragSlot, accepted: bool)
 
 # ════════════════════════════════════════════
 # 内部引用
@@ -62,7 +62,7 @@ var _slot_data: Dictionary = {}
 var _highlight: ColorRect = null
 var _button: Button = null
 var _is_highlighted: bool = false
-var _registered_target: UIDropTarget = null
+var _registered_target: GF_UIDropTarget = null
 var _drop_target_registered: bool = false
 
 
@@ -109,7 +109,7 @@ func _try_register_drop_target() -> void:
 		_try_register_drop_target.call_deferred()
 		return
 
-	_registered_target = UIDropTarget.new()
+	_registered_target = GF_UIDropTarget.new()
 	_registered_target.panel = panel
 	_registered_target.rect = get_rect()
 	_registered_target.accept_filter = func(data: Dictionary) -> bool:
@@ -218,7 +218,7 @@ func _accepts(p_data: Dictionary) -> bool:
 
 
 func _handle_drop(p_data: Dictionary) -> bool:
-	var source_slot: UIDragSlot = p_data.get("_source_slot")
+	var source_slot: GF_UIDragSlot = p_data.get("_source_slot")
 	if source_slot == null:
 		return false
 	if source_slot == self:
@@ -244,11 +244,11 @@ func _hide_highlight() -> void:
 		_highlight.hide()
 
 
-func _get_parent_panel() -> UIPanel:
+func _get_parent_panel() -> GF_UIPanel:
 	var p: Node = get_parent()
 	while p != null:
-		if p is UIPanel:
-			return p as UIPanel
+		if p is GF_UIPanel:
+			return p as GF_UIPanel
 		p = p.get_parent()
 	return null
 
@@ -258,23 +258,23 @@ func _get_parent_panel() -> UIPanel:
 # ════════════════════════════════════════════
 
 class _SlotDragHandler
-extends UIDragHandler
+extends GF_UIDragHandler
 
-var _slot: UIDragSlot = null
+var _slot: GF_UIDragSlot = null
 var _data: Dictionary = {}
 var _icon: Texture2D = null
 var _offset: Vector2 = Vector2.ZERO
-var _ghost: UIDragGhost = null
+var _ghost: GF_UIDragGhost = null
 
 
-func on_begin_drag(event: UIDragEvent) -> void:
+func on_begin_drag(event: GF_UIDragEvent) -> void:
 	event.drag_data = _data.duplicate()
 	event.drag_data["_source_slot"] = _slot
 	if _icon != null:
 		_ghost = event.show_ghost_texture(_icon, _offset)
 
 
-func on_end_drag(event: UIDragEvent) -> void:
+func on_end_drag(event: GF_UIDragEvent) -> void:
 	if event.drop_receiver == null:
 		_slot.slot_drag_cancelled.emit(_slot)
 	_slot.slot_drag_end.emit(_slot, event.drop_receiver != null)

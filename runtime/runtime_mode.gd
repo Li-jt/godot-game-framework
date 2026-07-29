@@ -1,6 +1,6 @@
-## RuntimeMode
+## GF_RuntimeMode
 ## 运行时模式枚举。
-class_name RuntimeMode
+class_name GF_RuntimeMode
 extends RefCounted
 
 enum Mode {
