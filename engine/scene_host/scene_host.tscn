@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://bla4hxulwc6ql"]
 
-[ext_resource type="Script" uid="uid://btbribs5plw33" path="res://src/framework/engine/scene_host/scene_host.gd" id="1_scene_host"]
+[ext_resource type="Script" uid="uid://btbribs5plw33" path="res://engine/scene_host/scene_host.gd" id="1_scene_host"]
 
 [node name="SceneHost" type="Node" unique_id=107187853]
 script = ExtResource("1_scene_host")
