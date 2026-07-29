@@ -6,3 +6,7 @@
 # macOS
 .DS_Store
 project.godot
+addons/*
+!addons/gut/
+
+CLAUDE.md
