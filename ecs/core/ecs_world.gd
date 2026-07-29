@@ -153,6 +153,7 @@ func reset() -> void:
 	_storage_index = GF_EcsStorageIndex.new()
 	_next_entity_id = 1
 	_version = 0
+	content_def = null
 
 
 # ============================================================
