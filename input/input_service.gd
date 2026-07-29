@@ -26,17 +26,32 @@ func configure(_p_adapter = null) -> GF_OperationResult:
 	return GF_OperationResult.ok()
 
 
+func _on_dispose() -> GF_OperationResult:
+	destroy_router()
+	return GF_OperationResult.ok()
+
+
 ## 注入 GF_UIService（供 GF_InputPolicy 查询面板状态）。
 func set_ui_service(p_ui) -> void:
 	_policy.set_ui_service(p_ui)
 
 
-## 创建 GF_InputRouter Node。调用方负责挂到场景树。
-func create_router() -> GF_InputRouter:
+## 获取或创建 GF_InputRouter Node（懒汉单例）。
+## 调用方负责挂到场景树。销毁用 destroy_router()。
+func get_or_create_router() -> GF_InputRouter:
 	if _router == null:
 		_router = GF_InputRouter.new()
 		_router.configure(_resolver)
 	return _router
+
+
+## 销毁 GF_InputRouter，从场景树移除并释放。
+func destroy_router() -> void:
+	if _router != null:
+		_router.set_enabled(false)
+		if _router.is_inside_tree():
+			_router.queue_free()
+		_router = null
 
 
 # ============================================================

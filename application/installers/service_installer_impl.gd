@@ -46,6 +46,12 @@ func install(p_deps: Dictionary) -> GF_OperationResult:
 	bs._track_module(input_service)
 	if not bs._cfg_or_fail("GF_InputService", input_service.configure(ia), input_service): return _fail()
 
+	# GF_InputRouter — 自动创建并挂到场景树
+	var input_router := input_service.get_or_create_router()
+	input_router.name = "GF_InputRouter"
+	bs.add_child(input_router)
+	bs._track_node(input_router)
+
 	# GF_AudioRuntime + GF_AudioService
 	var audio_runtime := GF_AudioRuntime.new()
 	audio_runtime.name = "GF_AudioRuntime"
@@ -86,6 +92,9 @@ func install(p_deps: Dictionary) -> GF_OperationResult:
 	if not bs._init_or_fail(ui_service): return _fail()
 	bs._track_module(ui_service)
 	if not bs._cfg_or_fail("GF_UIService", ui_service.configure(ui_context), ui_service): return _fail()
+
+	# 注入 UI 服务到输入系统（供 GF_InputPolicy 查询面板状态）
+	input_service.set_ui_service(ui_service)
 
 	# GF_UIDragManager — 挂到场景树接收 _input 事件
 	var drag_manager := ui_service.get_drag_manager()

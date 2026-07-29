@@ -1,6 +1,5 @@
-## GF_InputRouter — 输入路由器 Node（v4.0）。
+## GF_InputRouter — 输入路由器 Node。
 ## 统一入口：_input 采集所有 Godot 事件，_process 驱动每帧合成。
-## 替代 v3.0 的 GF_InputProvider。
 class_name GF_InputRouter
 extends Node
 
