@@ -175,7 +175,6 @@ class _ArchetypeManager:
 
 		for arch_idx in affected_archs:
 			var arch: Dictionary = _archetypes[arch_idx]
-			var col: int = _column_index(arch_idx, p_type_id)
 			if arch["type_ids"].size() == 1:
 				# 只有这一个类型 → 实体全部移除
 				for e in arch["entities"]:
