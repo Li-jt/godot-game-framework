@@ -106,8 +106,23 @@ func _on_ghost_attached(p_ghost: GF_UIDragGhost) -> void:
 			system_layer.add_child(p_ghost)
 
 
+## 返回当前拖拽事件，空闲时返回 null。
+func get_current_event() -> GF_UIDragEvent:
+	return _event
+
+
+## 返回当前拖拽处理器，空闲时返回 null。
+func get_current_handler() -> GF_UIDragHandler:
+	return _handler
+
+
+## 判断是否正在拖拽中。
+func is_dragging() -> bool:
+	return _event != null
+
+
 ## 清理拖拽状态。由 GF_UIService 在拖拽结束时调用。
-func _clear() -> void:
+func clear_drag_state() -> void:
 	if _ghost != null:
 		if is_instance_valid(_ghost):
 			_ghost.dismiss()

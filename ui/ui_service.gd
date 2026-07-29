@@ -344,7 +344,7 @@ func begin_drag(p_handler: GF_UIDragHandler, p_screen_pos: Vector2, p_source: GF
 		return GF_OperationResult.fail(GF_OperationResult.ERR_INTERNAL, "GF_UIDragManager 未初始化", module_name)
 	if p_handler == null:
 		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "handler 不能为 null", module_name)
-	if _drag_manager._event != null:
+	if _drag_manager.is_dragging():
 		cancel_drag()
 	_drag_manager.begin(p_handler, p_screen_pos, MOUSE_BUTTON_LEFT, p_source)
 	return GF_OperationResult.ok()
@@ -354,30 +354,30 @@ func begin_drag(p_handler: GF_UIDragHandler, p_screen_pos: Vector2, p_source: GF
 func cancel_drag() -> void:
 	if _drag_manager == null:
 		return
-	if _drag_manager._event != null:
-		var event := _drag_manager._event
+	if _drag_manager.is_dragging():
+		var event := _drag_manager.get_current_event()
 		event.drop_receiver = null
 
-		if is_instance_valid(_drag_manager._handler):
-			_drag_manager._handler.on_end_drag(event)
+		if is_instance_valid(_drag_manager.get_current_handler()):
+			_drag_manager.get_current_handler().on_end_drag(event)
 
 		if _last_hovered != null:
 			if _last_hovered.on_leave.is_valid():
 				_last_hovered.on_leave.call()
 			_last_hovered = null
 
-		_drag_manager._clear()
+		_drag_manager.clear_drag_state()
 
 
 ## 当前是否有活跃拖拽（供 GF_InputPolicy 查询）
 func is_dragging() -> bool:
-	return _drag_manager != null and _drag_manager._event != null
+	return _drag_manager != null and _drag_manager.is_dragging()
 
 
 ## 获取当前拖拽位置（游戏层在 on_drop 中用来计算世界坐标）
 func get_drag_position() -> Vector2:
-	if _drag_manager != null and _drag_manager._event != null:
-		return _drag_manager._event.position
+	if _drag_manager != null and _drag_manager.is_dragging():
+		return _drag_manager.get_current_event().position
 	return Vector2.ZERO
 
 
@@ -424,11 +424,11 @@ func _on_drag_motion(p_mouse_pos: Vector2) -> void:
 			_last_hovered.on_leave.call()
 		_last_hovered = hovered
 		if hovered != null and hovered.on_hover.is_valid():
-			hovered.on_hover.call(_drag_manager._event.drag_data)
+			hovered.on_hover.call(_drag_manager.get_current_event().drag_data)
 
 
 func _on_drag_drop(p_mouse_pos: Vector2) -> void:
-	var event := _drag_manager._event
+	var event := _drag_manager.get_current_event()
 	var hit_target := _hit_test_target(p_mouse_pos)
 
 	# 1. 调 DropTarget.on_drop
@@ -440,12 +440,12 @@ func _on_drag_drop(p_mouse_pos: Vector2) -> void:
 			event.drop_receiver = null
 
 	# 2. 调 handler.on_drop（拖拽源处理）
-	if is_instance_valid(_drag_manager._handler):
-		_drag_manager._handler.on_drop(event)
+	if is_instance_valid(_drag_manager.get_current_handler()):
+		_drag_manager.get_current_handler().on_drop(event)
 
 	# 3. 调 handler.on_end_drag（无论如何）
-	if is_instance_valid(_drag_manager._handler):
-		_drag_manager._handler.on_end_drag(event)
+	if is_instance_valid(_drag_manager.get_current_handler()):
+		_drag_manager.get_current_handler().on_end_drag(event)
 
 	# 4. 清理 hover
 	if _last_hovered != null:
@@ -453,7 +453,7 @@ func _on_drag_drop(p_mouse_pos: Vector2) -> void:
 			_last_hovered.on_leave.call()
 		_last_hovered = null
 
-	_drag_manager._clear()
+	_drag_manager.clear_drag_state()
 
 
 func _hit_test_target(p_mouse_pos: Vector2) -> GF_UIDropTarget:
@@ -471,7 +471,7 @@ func _hit_test_target(p_mouse_pos: Vector2) -> GF_UIDropTarget:
 
 			# 先调业务判断（可能非常轻量，如字符串比较）
 			if target.accept_filter.is_valid():
-				if not target.accept_filter.call(_drag_manager._event.drag_data):
+				if not target.accept_filter.call(_drag_manager.get_current_event().drag_data):
 					continue
 
 			# 再算几何
