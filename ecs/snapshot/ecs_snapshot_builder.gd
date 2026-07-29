@@ -29,13 +29,20 @@ func build(p_world: GF_EcsWorld) -> GF_EcsWorldSnapshot:
 				continue
 			var type_name: StringName = registry.type_name_of(type_id)
 			var component: Variant = storage.get_data(entity)
-			if component != null and component.has_method("serialize"):
-				entity_data["components"][type_name] = component.serialize()
-			else:
-				entity_data["components"][type_name] = _fallback_serialize(component)
+			entity_data["components"][type_name] = _serialize_component(component)
 		snapshot.entities.append(entity_data)
 
 	return snapshot
+
+
+## 序列化单个组件。支持 Object（有 serialize 方法）和 Dictionary/Array 等基础类型。
+func _serialize_component(p_component) -> Variant:
+	if p_component == null:
+		return null
+	# Object 子类（如 GF_EcsComponentBase）可能有自定义 serialize()
+	if p_component is Object and p_component.has_method("serialize"):
+		return p_component.serialize()
+	return _fallback_serialize(p_component)
 
 
 ## 非 GF_EcsComponentBase 类型的降级序列化。
@@ -47,3 +54,8 @@ func _fallback_serialize(p_component) -> Variant:
 	if p_component is Array:
 		return p_component.duplicate(true)
 	return str(p_component)
+
+
+## 检查组件是否支持 serialize() 方法。
+func _can_serialize(p_component) -> bool:
+	return p_component != null and p_component is Object and p_component.has_method("serialize")

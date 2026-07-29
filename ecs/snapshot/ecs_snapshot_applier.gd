@@ -7,7 +7,10 @@ extends RefCounted
 ## 将快照应用到指定世界（覆盖式恢复）。
 ## [param p_factory] 可选组件工厂，用于从序列化数据重建组件实例。
 ##   为 null 时降级为直接使用原始数据（向后兼容）。
-func apply(p_world: GF_EcsWorld, p_snapshot: GF_EcsWorldSnapshot, p_factory: GF_EcsComponentFactory = null) -> GF_OperationResult:
+## [param p_factory] 可选组件工厂，用于从序列化数据重建组件实例。
+##   为 null 时降级为直接使用原始数据（向后兼容）。
+##   类型为 Variant 以避开 class_name 解析顺序，实际传入 GF_EcsComponentFactory 实例。
+func apply(p_world: GF_EcsWorld, p_snapshot: GF_EcsWorldSnapshot, p_factory: Variant = null) -> GF_OperationResult:
 	if p_world == null:
 		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "世界不能为空", "GF_EcsSnapshotApplier")
 	if p_snapshot == null:
@@ -40,7 +43,7 @@ func apply(p_world: GF_EcsWorld, p_snapshot: GF_EcsWorldSnapshot, p_factory: GF_
 
 
 ## 从序列化数据重建组件实例。有工厂则用工厂，否则返回原始数据。
-func _reconstruct(p_factory: GF_EcsComponentFactory, p_type_name: StringName, p_data) -> Variant:
+func _reconstruct(p_factory, p_type_name: StringName, p_data) -> Variant:
 	if p_factory != null and p_factory.has_factory(p_type_name):
 		return p_factory.create(p_type_name, p_data)
 	return p_data
