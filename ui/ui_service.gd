@@ -644,10 +644,12 @@ func _remove_from_order(p_name: String) -> void:
 
 
 func _save_current_focus() -> void:
-	var vp := get_viewport()
+	if _scene_host == null or not is_instance_valid(_scene_host):
+		return
+	var vp: Viewport = _scene_host.get_viewport()
 	if vp == null:
 		return
-	var owner := vp.gui_get_focus_owner()
+	var owner: Control = vp.gui_get_focus_owner()
 	if owner != null:
 		_focus_stack.push_back(owner)
 
@@ -655,7 +657,7 @@ func _save_current_focus() -> void:
 func _restore_last_focus() -> void:
 	if _focus_stack.is_empty():
 		return
-	var prev := _focus_stack.pop_back()
+	var prev: Control = _focus_stack.pop_back()
 	if is_instance_valid(prev):
 		prev.grab_focus()
 
