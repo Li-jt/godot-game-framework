@@ -19,6 +19,7 @@ var _write_to_file: bool = false
 var _log_root: String = "./logs"
 var _sinks: Array[GF_LogSink] = []
 var _memory_sink: GF_MemoryLogSink = null
+var suppress_push_errors: bool = false
 
 var _active_files: Dictionary = {}
 var _active_file_paths: Dictionary = {}
@@ -120,7 +121,8 @@ func _print_rich_line(p_level: GF_LogLevel.Level, p_line: String) -> void:
 			push_warning(p_line)
 		GF_LogLevel.Level.ERROR:
 			print_rich("[bgcolor=#c62828][color=white]%s[/color][/bgcolor]" % p_line)
-			push_error(p_line)
+			if not suppress_push_errors:
+				push_error(p_line)
 
 
 # ============================================================

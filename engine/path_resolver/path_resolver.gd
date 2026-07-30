@@ -140,26 +140,43 @@ func user_path(p_relative: String) -> String:
 	return _to_user(p_relative)
 
 
-## 路径标准化：去 `./`、合并 `//`、统一斜杠
+## 路径标准化：去开头的 `./`、去 `/./`、合并 `//`、统一斜杠。
+## 注意：保护 res:// 和 user:// 前缀不被误修改。
 static func normalize(p_path: String) -> String:
 	var s := p_path.replace("\\", "/")
+	var prefix := ""
+	if s.begins_with("res://"):
+		prefix = "res://"
+		s = s.substr(6)
+	elif s.begins_with("user://"):
+		prefix = "user://"
+		s = s.substr(7)
+	# 去掉开头的 ./
+	if s.begins_with("./"):
+		s = s.substr(2)
 	while s.find("//") >= 0:
 		s = s.replace("//", "/")
 	while s.find("/./") >= 0:
 		s = s.replace("/./", "/")
-	return s.strip_edges()
+	s = s.strip_edges()
+	return prefix + s
 
 
 ## 校验路径未越出指定根目录。包含 `../` 的路径会被拒绝。
+## 自动确保 p_root 以 / 结尾以便 begins_with 比较。
 static func ensure_under_root(p_path: String, p_root: String) -> GF_OperationResult:
 	var normalized := normalize(p_path)
+	# 确保 root 以 / 结尾，避免 "res://data" 无法匹配 "res://data/file.json"
+	var root := p_root
+	if not root.ends_with("/"):
+		root += "/"
 	if normalized.find("../") >= 0:
 		return GF_OperationResult.fail(
 			GF_OperationResult.ERR_FORBIDDEN,
 			"路径包含越界引用 ../: %s" % p_path,
 			"GF_PathResolver"
 		)
-	if not normalized.begins_with(p_root):
+	if not normalized.begins_with(root):
 		return GF_OperationResult.fail(
 			GF_OperationResult.ERR_FORBIDDEN,
 			"路径不在允许的根目录下: %s (root: %s)" % [p_path, p_root],
