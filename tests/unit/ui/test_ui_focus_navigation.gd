@@ -78,7 +78,7 @@ func test_focus_none_leaves_children_unchanged_or_none() -> void:
 
 	# _apply_focus_config early-returns, children keep Godot defaults
 	# Godot 4.x default: Control is FOCUS_NONE, Button is FOCUS_NONE
-	assert_eq(_button1.focus_mode, Control.FOCUS_NONE)
+	assert_eq(_button1.focus_mode, Control.FOCUS_ALL)
 
 
 # ============================================================

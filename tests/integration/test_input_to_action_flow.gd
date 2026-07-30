@@ -8,9 +8,9 @@ func test_key_press_to_action_just_pressed() -> void:
 	resolver.set_policy(policy)
 
 	var def := GF_InputActionDef.new("jump", GF_InputActionDef.ActionType.BINARY)
+	def.bind_key(KEY_SPACE, 1.0, GF_InputBinding.Mode.IMPULSE)
 	resolver.register_action_def(def)
 
-	# 模拟按键 — feed_event 需要 Godot InputEvent
 	resolver.begin_frame()
 
 	var event := InputEventKey.new()
@@ -28,9 +28,11 @@ func test_axis_from_key_pair() -> void:
 	resolver.set_policy(policy)
 
 	var move_right := GF_InputActionDef.new("move_right", GF_InputActionDef.ActionType.AXIS_1D)
+	move_right.bind_key(KEY_D, 1.0, GF_InputBinding.Mode.IMPULSE)
 	resolver.register_action_def(move_right)
 
 	var move_left := GF_InputActionDef.new("move_left", GF_InputActionDef.ActionType.AXIS_1D)
+	move_left.bind_key(KEY_A, 1.0, GF_InputBinding.Mode.IMPULSE)
 	resolver.register_action_def(move_left)
 
 	resolver.begin_frame()

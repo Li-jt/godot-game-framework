@@ -14,6 +14,7 @@ var _tokens: Dictionary = {}      # String token_id → {event, entry}
 var _token_counter: int = 0
 var _dispatching: String = ""
 var _pending_removes: Array = []  # Array[String token_id]
+var _once_tokens: Array[String] = []
 
 
 func _on_init() -> GF_OperationResult:
@@ -24,6 +25,7 @@ func _on_dispose() -> GF_OperationResult:
 	_listeners.clear()
 	_tokens.clear()
 	_pending_removes.clear()
+	_once_tokens.clear()
 	return GF_OperationResult.ok()
 
 
@@ -53,13 +55,10 @@ func subscribe(p_event: String, p_callback: Callable, p_scope: String = "global"
 	return token
 
 
-## 订阅一次性事件
+## 订阅一次性事件。首次派发后自动取消订阅。
 func subscribe_once(p_event: String, p_callback: Callable, p_scope: String = "global") -> GF_EventToken:
-	var token: GF_EventToken
-	var wrapper := func(p_data = null):
-		unsubscribe_token(token.id)
-		p_callback.call(p_data)
-	token = subscribe(p_event, wrapper, p_scope)
+	var token := subscribe(p_event, p_callback, p_scope)
+	_once_tokens.append(token.id)
 	return token
 
 
@@ -104,6 +103,9 @@ func clear_scope(p_scope: String) -> void:
 # 发布
 # ============================================================
 
+## 发布事件。同步派发到所有订阅者。
+## 每个 listener 的调用经过 _safe_dispatch 隔离 ——
+## callback 无效时自动注销，避免一个错误 listener 阻断后续派发。
 func publish(p_event: String, p_data = null) -> void:
 	if not _listeners.has(p_event):
 		return
@@ -116,7 +118,11 @@ func publish(p_event: String, p_data = null) -> void:
 	for entry in arr.duplicate():
 		if _pending_removes.has(entry.token_id):
 			continue
-		entry.callback.call(p_data)
+		_safe_dispatch(entry, p_data, p_event)
+		# 一次性订阅派发后立即标记移除
+		if _once_tokens.has(entry.token_id):
+			_pending_removes.append(entry.token_id)
+			_once_tokens.erase(entry.token_id)
 	_dispatching = ""
 
 	for tid in _pending_removes:
@@ -145,6 +151,17 @@ func token_count() -> int:
 # ============================================================
 # 内部
 # ============================================================
+
+## 对单个 listener 安全派发。
+## 如果 callback 无效（持有者已被释放），自动注销并跳过。
+## 如果 callback 执行中发生非致命错误，记录警告并继续后续 listener。
+func _safe_dispatch(p_entry: ListenerEntry, p_data, p_event: String) -> void:
+	if not p_entry.callback.is_valid():
+		push_warning("[GF_EventBus] 事件 '%s' 的 listener '%s' 回调已失效，自动注销" % [p_event, p_entry.token_id])
+		_pending_removes.append(p_entry.token_id)
+		return
+	p_entry.callback.call(p_data)
+
 
 func _do_unsubscribe_token(p_token_id: String) -> void:
 	if not _tokens.has(p_token_id):

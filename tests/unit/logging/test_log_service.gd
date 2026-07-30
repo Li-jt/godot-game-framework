@@ -10,6 +10,7 @@ func before_each() -> void:
 	_log = GF_LogService.new()
 	_log.module_name = "TestLog"
 	_log.init_module()
+	_log.suppress_push_errors = true
 	_log.register_sink(_sink)
 
 

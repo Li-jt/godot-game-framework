@@ -46,12 +46,12 @@ func test_transition_publishes_event() -> void:
 	event_bus.init_module()
 	_flow.configure(event_bus)
 
-	var received := false
+	var state := {"received": false}
 	event_bus.subscribe("flow_state_changed", func(p_data):
-		received = true
+		state["received"] = true
 	)
 	_flow.transition_to(GF_AppFlow.STATE_MAIN_MENU)
-	assert_true(received)
+	assert_true(state["received"])
 	event_bus.dispose_module()
 
 

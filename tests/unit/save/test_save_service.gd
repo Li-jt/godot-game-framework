@@ -99,20 +99,24 @@ func test_load_and_restore_distributes_correctly() -> void:
 	var meta := GF_SaveMeta.new()
 	_service.save_all(1, meta)
 
-	var h_loaded := false
-	var m_loaded := false
-	_service.register_saveable(_make_saveable_cb("hero", {"hp": 0}, func(d): h_loaded = true))
-	_service.register_saveable(_make_saveable_cb("map", {"seed": 0}, func(d): m_loaded = true))
+	# 用新的 saveable 替换旧的，通过 was_loaded 断言 on_load 被调用
+	var hero2 = _make_saveable("hero", {"hp": 0})
+	var map2 = _make_saveable("map", {"seed": 0})
+	_service.register_saveable(hero2)
+	_service.register_saveable(map2)
 	_service.load_and_restore(1)
-	assert_true(h_loaded)
-	assert_true(m_loaded)
+	assert_true(hero2.was_loaded)
+	assert_true(map2.was_loaded)
 
 
 func test_load_and_restore_orders_by_priority() -> void:
 	var order: Array[String] = []
-	_service.register_saveable(_make_saveable_cb("late", {}, func(_d): order.append("late"), 100))
-	_service.register_saveable(_make_saveable_cb("early", {}, func(_d): order.append("early"), 1))
-	_service.register_saveable(_make_saveable_cb("mid", {}, func(_d): order.append("mid"), 50))
+	var early := _make_saveable_cb("early", {}, func(_d): order.append("early"), 1)
+	var mid := _make_saveable_cb("mid", {}, func(_d): order.append("mid"), 50)
+	var late := _make_saveable_cb("late", {}, func(_d): order.append("late"), 100)
+	_service.register_saveable(early)
+	_service.register_saveable(mid)
+	_service.register_saveable(late)
 	var meta := GF_SaveMeta.new()
 	_service.save_all(1, meta)
 	_service.load_and_restore(1)
@@ -142,19 +146,10 @@ func _make_saveable(p_key: String, p_data: Dictionary, p_priority: int = 100):
 
 
 func _make_saveable_cb(p_key: String, p_data: Dictionary, p_on_load, p_priority: int = 100):
-	var s := GDScript.new()
-	s.source_code = """
-extends GF_ISaveable
-var _key: String
-var _data: Dictionary
-var _priority: int
-var _on_load
-func _init(p_key: String, p_data: Dictionary, p_on_load, p_priority: int):
-	_key = p_key; _data = p_data; _on_load = p_on_load; _priority = p_priority
-func save_key() -> String: return _key
-func on_save() -> Dictionary: return _data
-func on_load(p_data: Dictionary) -> void: if _on_load and _on_load.is_valid(): _on_load.call(p_data)
-func restore_priority() -> int: return _priority
-"""
-	s.reload()
-	return s.new(p_key, p_data, p_on_load, p_priority)
+	var saveable_script: GDScript = load("res://tests/helpers/dynamic_saveable.gd")
+	var s = saveable_script.new()
+	s.s_key = p_key
+	s.s_data = p_data
+	s.s_on_load = p_on_load
+	s.s_priority = p_priority
+	return s

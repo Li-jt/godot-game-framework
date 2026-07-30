@@ -18,6 +18,7 @@ var _had_input_this_frame: bool = false
 
 
 func begin_frame() -> void:
+	value = 0.0
 	_impulse_acc = 0.0
 	_analog_acc = 0.0
 	_was_pressed = pressed

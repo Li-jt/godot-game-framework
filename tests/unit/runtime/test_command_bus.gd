@@ -1,4 +1,6 @@
 # tests/unit/runtime/test_command_bus.gd
+## 使用 dynamic_command.was_executed / dynamic_handler.was_handled 断言，
+## 避免 GDScript 闭包对 bool 值类型按值捕获的问题。
 extends GutTest
 
 var _bus: GF_CommandBus
@@ -13,27 +15,19 @@ func after_each() -> void:
 
 
 func test_execute_calls_command_execute() -> void:
-	var executed := false
-	var cmd = _make_command(null, func(_ctx):
-		executed = true
-		return GF_OperationResult.ok()
-	)
+	var cmd = _make_command(null)
 	var result := _bus.execute(cmd, {})
 	assert_true(result.is_ok())
-	assert_true(executed)
+	assert_true(cmd.was_executed)
 
 
 func test_execute_routes_to_registered_handler() -> void:
-	var handler_called := false
-	var handler = _make_handler("test.type", func(_cmd, _ctx):
-		handler_called = true
-		return GF_OperationResult.ok()
-	)
+	var handler = _make_handler("test.type")
 	_bus.register_handler(handler)
 	var cmd = _make_command("test.type")
 	var result := _bus.execute(cmd, {})
 	assert_true(result.is_ok())
-	assert_true(handler_called)
+	assert_true(handler.was_handled)
 
 
 func test_handler_fail_propagates() -> void:
@@ -52,49 +46,22 @@ func test_execute_null_command_fails() -> void:
 
 
 # ============================================================
-# Dynamic helpers
+# 辅助
 # ============================================================
 
 func _make_command(p_key, p_execute_fn = null):
-	var s := GDScript.new()
-	var execute_body := ""
-	if p_execute_fn:
-		execute_body = "	if _execute_fn: return _execute_fn.call(p_context)\n	return GF_OperationResult.ok()"
-	else:
-		execute_body = "	return GF_OperationResult.ok()"
-	var key_part := ""
-	if p_key:
-		key_part = "func command_key() -> String: return '%s'" % p_key
-	else:
-		key_part = "func command_key() -> String: return ''"
-
-	s.source_code = """
-extends GF_ICommand
-var _execute_fn
-""" + key_part + """
-func validate(p_context: Dictionary) -> GF_OperationResult:
-	return GF_OperationResult.ok()
-func execute(p_context: Dictionary) -> GF_OperationResult:
-""" + execute_body
-	s.reload()
-	var cmd = s.new()
+	var cmd_script: GDScript = load("res://tests/helpers/dynamic_command.gd")
+	var cmd = cmd_script.new()
+	cmd._command_key = p_key if p_key else ""
 	if p_execute_fn:
 		cmd._execute_fn = p_execute_fn
 	return cmd
 
 
-func _make_handler(p_key: String, p_handle_fn):
-	var s := GDScript.new()
-	s.source_code = """
-extends RefCounted
-var _handle_fn
-func command_key() -> String: return '%s'
-func handle(p_command, p_context: Dictionary) -> GF_OperationResult:
-	if _handle_fn: return _handle_fn.call(p_command, p_context)
-	return GF_OperationResult.ok()
-""" % p_key
-	s.reload()
-	var h = s.new()
+func _make_handler(p_key: String, p_handle_fn = null):
+	var handler_script: GDScript = load("res://tests/helpers/dynamic_handler.gd")
+	var h = handler_script.new()
+	h._command_key = p_key
 	if p_handle_fn:
 		h._handle_fn = p_handle_fn
 	return h
