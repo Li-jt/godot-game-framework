@@ -66,7 +66,8 @@ func register_cues(p_defs: Array[GF_AudioCueDef]) -> void:
 
 func play_cue(p_id: String) -> void:
 	if not _cue_defs.has(p_id):
-		_log.warning("Audio", "Cue 未注册: %s" % p_id)
+		if _log != null:
+			_log.warning("Audio", "Cue 未注册: %s" % p_id)
 		return
 	var def: GF_AudioCueDef = _cue_defs[p_id]
 	if not _check_cooldown(def):
@@ -86,7 +87,8 @@ func stop_cue(p_id: String) -> void:
 	if not _cue_defs.has(p_id):
 		return
 	var def: GF_AudioCueDef = _cue_defs[p_id]
-	_runtime.stop(def.channel)
+	if _runtime != null:
+		_runtime.stop(def.channel)
 	_cue_active_counts[p_id] = 0
 
 
