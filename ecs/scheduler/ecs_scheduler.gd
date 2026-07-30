@@ -14,14 +14,14 @@ const FRAMEWORK_BIND_PRIORITY: int = -100
 var _groups: Dictionary = {}  # StringName -> GF_EcsSystemGroup
 var _group_order: Array[StringName] = []
 var _world: GF_EcsWorld = null
-var _ecb_pool: GF_EcsCommandBufferPool = null
+var _ecb_pool: GF_ObjectPool = null
 var _active: bool = false
 var _framework_handle: GF_Scheduler.TickHandle = null
 
 
 func _init(p_world: GF_EcsWorld = null) -> void:
 	_world = p_world
-	_ecb_pool = GF_EcsCommandBufferPool.new()
+	_ecb_pool = _make_ecb_pool()
 	# 预设三组默认顺序
 	add_group(GROUP_INITIALIZATION)
 	add_group(GROUP_SIMULATION)
@@ -171,3 +171,10 @@ func stop_ecs_scheduler() -> void:
 
 func _framework_tick(p_delta: float) -> void:
 	tick(p_delta)
+
+
+func _make_ecb_pool() -> GF_ObjectPool:
+	var pool := GF_ObjectPool.new()
+	pool.create_fn = func(): return GF_EcsCommandBuffer.new()
+	pool.reset_fn = func(buf): buf.clear()
+	return pool

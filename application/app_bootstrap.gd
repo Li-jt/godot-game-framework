@@ -67,53 +67,71 @@ func _ready() -> void: _run_boot_sequence()
 
 func _run_boot_sequence() -> void:
 	state = BootState.LOADING
-
 	_on_before_any_install()
 
-	# 创建 GF_AppConfig。Game 层可覆写 _create_app_config() 来注入自定义配置。
 	var config := _create_app_config()
-
-	# 创建 Registry 提前（各 Installer 通过 deps 传递引用用于 add_required）
 	var registry := GF_ServiceRegistry.new()
 
-	# Phase 1: Core
+	var core_deps := _boot_phase_core(config, registry)
+	if core_deps.is_empty(): return
+
+	var engine_deps := _boot_phase_engine(core_deps, registry)
+	if engine_deps.is_empty(): return
+
+	var ecs_deps := _boot_phase_ecs(engine_deps, registry)
+	if ecs_deps.is_empty(): return
+
+	var svc_deps := _boot_phase_services(engine_deps, ecs_deps, registry)
+	if svc_deps.is_empty(): return
+
+	_boot_phase_finalize(svc_deps, ecs_deps, registry)
+
+
+func _boot_phase_core(p_config: GF_AppConfig, p_registry: GF_ServiceRegistry) -> Dictionary:
 	_on_before_core_install()
-	var core_result := GF_CoreInstaller.new().install({"_bootstrap": self, "_app_config": config, "_registry": registry})
-	if core_result.is_fail(): return
-	_on_after_core_install(core_result.data)
+	var result := GF_CoreInstaller.new().install({"_bootstrap": self, "_app_config": p_config, "_registry": p_registry})
+	if result.is_fail(): return {}
+	_on_after_core_install(result.data)
+	return result.data
 
-	# Phase 2: Engine
-	_on_before_engine_install(core_result.data)
-	var engine_result := GF_EngineInstaller.new().install({"_bootstrap": self, "_core_deps": core_result.data, "_registry": registry})
-	if engine_result.is_fail(): return
-	_on_after_engine_install(engine_result.data)
 
-	# Phase 2.5: ECS
-	_on_before_ecs_install(engine_result.data)
-	var ecs_result := GF_EcsInstaller.new().install({"_bootstrap": self, "_engine_deps": engine_result.data, "_registry": registry})
-	if ecs_result.is_fail(): return
-	_on_after_ecs_install(ecs_result.data)
+func _boot_phase_engine(p_core_deps: Dictionary, p_registry: GF_ServiceRegistry) -> Dictionary:
+	_on_before_engine_install(p_core_deps)
+	var result := GF_EngineInstaller.new().install({"_bootstrap": self, "_core_deps": p_core_deps, "_registry": p_registry})
+	if result.is_fail(): return {}
+	_on_after_engine_install(result.data)
+	return result.data
 
-	# Phase 3: Services
-	_on_before_service_install(engine_result.data)
-	var svc_result := GF_ServiceInstallerImpl.new().install({"_bootstrap": self, "_engine_deps": engine_result.data, "_ecs_deps": ecs_result.data, "_registry": registry})
-	if svc_result.is_fail(): return
-	_on_after_service_install(svc_result.data)
-	var deps: Dictionary = svc_result.data
-	deps.merge(ecs_result.data)
 
-	# Registry — 注册所有服务
-	var reg_result := registry.register_all(_build_registry_entries(deps))
+func _boot_phase_ecs(p_engine_deps: Dictionary, p_registry: GF_ServiceRegistry) -> Dictionary:
+	_on_before_ecs_install(p_engine_deps)
+	var result := GF_EcsInstaller.new().install({"_bootstrap": self, "_engine_deps": p_engine_deps, "_registry": p_registry})
+	if result.is_fail(): return {}
+	_on_after_ecs_install(result.data)
+	return result.data
+
+
+func _boot_phase_services(p_engine_deps: Dictionary, p_ecs_deps: Dictionary, p_registry: GF_ServiceRegistry) -> Dictionary:
+	_on_before_service_install(p_engine_deps)
+	var result := GF_ServiceInstallerImpl.new().install({"_bootstrap": self, "_engine_deps": p_engine_deps, "_ecs_deps": p_ecs_deps, "_registry": p_registry})
+	if result.is_fail(): return {}
+	_on_after_service_install(result.data)
+	return result.data
+
+
+func _boot_phase_finalize(p_svc_deps: Dictionary, p_ecs_deps: Dictionary, p_registry: GF_ServiceRegistry) -> void:
+	var deps: Dictionary = p_svc_deps.duplicate()
+	deps.merge(p_ecs_deps)
+
+	var reg_result := p_registry.register_all(_build_registry_entries(deps))
 	if reg_result.is_fail(): _fail_boot("Registry", reg_result); return
 
-	# 校验 — 此时 Mod 已通过 Hook 完成注册
-	var verify_result := registry.verify_pending()
+	var verify_result := p_registry.verify_pending()
 	if verify_result.is_fail(): _fail_boot("GF_ServiceRegistry.verify", verify_result); return
 
 	var log: GF_LogService = deps.log
-	log.info("Bootstrap", "服务注册中心已创建，当前注册 %d 个服务" % registry.count())
+	log.info("Bootstrap", "服务注册中心已创建，当前注册 %d 个服务" % p_registry.count())
 
-	# GF_GameServices — 从 deps 字典按需取用，避免位置参数过多
 	var context := _build_game_services(deps)
 
 	_print_banner(deps.config, log)
@@ -128,8 +146,6 @@ func _run_boot_sequence() -> void:
 
 	state = BootState.READY
 	log.info("Bootstrap", "启动完成")
-
-	# Mod 加载 / 应用就绪
 	_on_app_ready(context)
 
 
@@ -142,7 +158,7 @@ func is_failed() -> bool: return state == BootState.FAILED
 func _create_app_config() -> GF_AppConfig:
 	var r := GF_AppConfigLoader.new().load("res://")
 	if r.is_fail():
-		printerr("FATAL: 配置加载失败: " + r.error.message)
+		push_error("FATAL: 配置加载失败: " + r.error.message)
 	return r.data if r.is_ok() else GF_AppConfig.new()
 
 

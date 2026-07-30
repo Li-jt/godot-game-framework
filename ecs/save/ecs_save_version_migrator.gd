@@ -45,7 +45,7 @@ func migrate(p_data: Dictionary, p_from_version: int, p_to_version: int) -> GF_O
 	var current_version := p_from_version
 
 	while current_version < p_to_version:
-		var next: MigrationStep = _find_migration(current_version)
+		var next := _find_migration(current_version)
 		if next == null:
 			push_warning("[GF_EcsSaveVersionMigrator] 版本 %d 无迁移步骤" % current_version)
 			break

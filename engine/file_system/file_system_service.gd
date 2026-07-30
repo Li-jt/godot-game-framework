@@ -22,6 +22,13 @@ func file_exists(p_path: String) -> bool:
 	return FileAccess.file_exists(p_path)
 
 
+## 获取文件最后修改时间（Unix 时间戳）。文件不存在返回 0。
+func get_modified_time(p_path: String) -> int:
+	if not FileAccess.file_exists(p_path):
+		return 0
+	return FileAccess.get_modified_time(p_path)
+
+
 ## 目录是否存在
 func dir_exists(p_path: String) -> bool:
 	return DirAccess.dir_exists_absolute(p_path)
