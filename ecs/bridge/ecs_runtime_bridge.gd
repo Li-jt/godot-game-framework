@@ -7,7 +7,7 @@ extends RefCounted
 enum ExecuteMode { LOCAL, REMOTE, HYBRID }
 
 var _mode: int = ExecuteMode.LOCAL
-var _ecb_pool: GF_EcsCommandBufferPool = null
+var _ecb_pool: GF_ObjectPool = null
 var _snapshot_builder: GF_EcsSnapshotBuilder = null
 var _snapshot_applier: GF_EcsSnapshotApplier = null
 ## Hybrid 模式下的预测快照栈（用于回滚）
@@ -16,7 +16,7 @@ var _prediction_stack: Array[GF_EcsWorldSnapshot] = []
 
 func _init(p_mode: int = ExecuteMode.LOCAL) -> void:
 	_mode = p_mode
-	_ecb_pool = GF_EcsCommandBufferPool.new()
+	_ecb_pool = _make_ecb_pool()
 	_snapshot_builder = GF_EcsSnapshotBuilder.new()
 	_snapshot_applier = GF_EcsSnapshotApplier.new()
 
@@ -70,3 +70,10 @@ func is_remote() -> bool:
 ## 是否为混合预测模式。
 func is_hybrid() -> bool:
 	return _mode == ExecuteMode.HYBRID
+
+
+func _make_ecb_pool() -> GF_ObjectPool:
+	var pool := GF_ObjectPool.new()
+	pool.create_fn = func(): return GF_EcsCommandBuffer.new()
+	pool.reset_fn = func(buf): buf.clear()
+	return pool

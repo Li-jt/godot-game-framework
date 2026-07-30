@@ -130,30 +130,30 @@ func end_frame(p_delta: float) -> void:
 # 录制/回放
 # ============================================================
 
-	## 开始录制。如果已在录制中则不做任何事（防止误触丢失数据）。
-	## 如需强制重录，使用 restart_recording()。
-	func start_recording() -> void:
-		if _is_recording:
-			return
-		_is_recording = true
-		_recorded_frames.clear()
+## 开始录制。如果已在录制中则不做任何事（防止误触丢失数据）。
+## 如需强制重录，使用 restart_recording()。
+func start_recording() -> void:
+	if _is_recording:
+		return
+	_is_recording = true
+	_recorded_frames.clear()
 
 
-	## 强制重新开始录制（清除已有数据）。
-	func restart_recording() -> void:
-		_is_recording = true
-		_recorded_frames.clear()
+## 强制重新开始录制（清除已有数据）。
+func restart_recording() -> void:
+	_is_recording = true
+	_recorded_frames.clear()
 
 
-	## 停止录制，返回录制数据 Dictionary。
-	func stop_recording() -> Dictionary:
-		_is_recording = false
-		return {"frames": _recorded_frames.duplicate(true)}
+## 停止录制，返回录制数据 Dictionary。
+func stop_recording() -> Dictionary:
+	_is_recording = false
+	return {"frames": _recorded_frames.duplicate(true)}
 
 
-	## 获取当前录制数据的快照，不停止录制。
-	func snapshot_recording() -> Dictionary:
-		return {"frames": _recorded_frames.duplicate(true)}
+## 获取当前录制数据的快照，不停止录制。
+func snapshot_recording() -> Dictionary:
+	return {"frames": _recorded_frames.duplicate(true)}
 
 
 ## 是否正在录制。

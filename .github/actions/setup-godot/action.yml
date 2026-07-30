@@ -1,0 +1,41 @@
+name: Setup Godot
+description: Download and install Godot Engine for CI
+
+inputs:
+  version:
+    description: "Godot version (e.g. 4.7, 4.7.1)"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Cache Godot
+      id: cache-godot
+      uses: actions/cache@v4
+      with:
+        path: /usr/local/bin/godot
+        key: godot-${{ inputs.version }}-linux
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -qq -y --no-install-recommends \
+          libx11-dev libxcursor-dev libxrandr-dev libxi-dev libasound2-dev \
+          libpulse-dev libudev-dev libgl1-mesa-dev
+
+    - name: Download Godot
+      if: steps.cache-godot.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        URL="https://github.com/godotengine/godot-builds/releases/download/${{ inputs.version }}-stable/Godot_v${{ inputs.version }}-stable_linux.x86_64.zip"
+        echo "Downloading $URL"
+        curl -fSL -o godot.zip "$URL"
+        unzip -o godot.zip
+        sudo mv Godot_v${{ inputs.version }}-stable_linux.x86_64 /usr/local/bin/godot
+        sudo chmod +x /usr/local/bin/godot
+        rm godot.zip
+
+    - name: Verify
+      shell: bash
+      run: godot --version
