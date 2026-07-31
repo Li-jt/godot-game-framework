@@ -8,5 +8,7 @@
 project.godot
 addons/*
 !addons/gut/
+!addons/gf_editor_tools/
 
 CLAUDE.md
+framework_comparison_with_unity_ue.md
