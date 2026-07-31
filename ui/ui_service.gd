@@ -693,22 +693,21 @@ func _get_def(p_name: String) -> GF_UIPanelDef:
 # 内部：L2 默认 DragHandler
 # ============================================================
 
-class _DefaultDragHandler
-extends GF_UIDragHandler
+class _DefaultDragHandler extends GF_UIDragHandler:
 
-var _data: Dictionary = {}
-var _icon: Texture2D = null
-var _offset: Vector2 = Vector2.ZERO
-var _ghost: GF_UIDragGhost = null
-
-
-func _init(p_data: Dictionary, p_icon: Texture2D, p_offset: Vector2) -> void:
-	_data = p_data
-	_icon = p_icon
-	_offset = p_offset
+	var _data: Dictionary = {}
+	var _icon: Texture2D = null
+	var _offset: Vector2 = Vector2.ZERO
+	var _ghost: GF_UIDragGhost = null
 
 
-func on_begin_drag(event: GF_UIDragEvent) -> void:
-	event.drag_data = _data
-	if _icon != null:
-		_ghost = event.show_ghost_texture(_icon, _offset)
+	func _init(p_data: Dictionary, p_icon: Texture2D, p_offset: Vector2) -> void:
+		_data = p_data
+		_icon = p_icon
+		_offset = p_offset
+
+
+	func on_begin_drag(event: GF_UIDragEvent) -> void:
+		event.drag_data = _data
+		if _icon != null:
+			_ghost = event.show_ghost_texture(_icon, _offset)

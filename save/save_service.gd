@@ -22,7 +22,7 @@ var _path_resolver: GF_PathResolver = null
 var _log: GF_LogService = null
 
 var _migrators: Dictionary = {}
-var _saveables: Dictionary = {}  # String key → GF_ISaveable
+var _saveables: Dictionary = {}  # String key → Variant（GF_ISaveable 或 Node 子类）
 
 
 func _on_init() -> GF_OperationResult:
@@ -56,10 +56,10 @@ func register_migrator(p_migrator: GF_SaveVersionMigrator) -> void:
 # ============================================================
 
 ## 注册 GF_ISaveable 实例。存盘时 save_all() 自动收集其 on_save() 数据。
-## 适用于非 Node 的纯数据 GF_ISaveable、Service 持有的全局 GF_ISaveable、Mod 注册的 GF_ISaveable。
-## Node-based GF_ISaveable 推荐使用 collect_from_node() 自动扫描注册。
-func register_saveable(p_saveable: GF_ISaveable) -> void:
-	var key := p_saveable.save_key()
+## 适用于：GF_ISaveable 子类（RefCounted）、实现 GF_ISaveable 接口的 Node、Mod 注册的 saveable。
+## accept 任何实现了 save_key() / on_save() / on_load() 的对象（鸭子类型）。
+func register_saveable(p_saveable) -> void:
+	var key: String = p_saveable.save_key()
 	if key.is_empty():
 		_log.warning("Save", "GF_ISaveable.save_key() 为空，跳过注册")
 		return
@@ -126,16 +126,15 @@ func on_world_switch(p_old_root: Node, p_new_root: Node, p_prefix: String = "wor
 		collect_from_node(p_new_root)
 
 
-## 从一组 GF_ISaveable 实例中批量注册。
-## 每个实例的 save_key() 必须唯一且非空。
+## 从一组对象中批量注册（鸭子类型：只要实现了 save_key/on_save/on_load 即可）。
 func collect_from(p_saveables: Array) -> GF_OperationResult:
 	var errors: Array[String] = []
 	for obj in p_saveables:
-		if not obj is GF_ISaveable:
+		if not _is_saveable(obj):
 			continue
-		var key := (obj as GF_ISaveable).save_key()
+		var key: String = obj.save_key()
 		if key.is_empty():
-			errors.append("GF_ISaveable %s 的 save_key() 返回空字符串" % str(obj))
+			errors.append("save_key() 返回空字符串: %s" % str(obj))
 			continue
 		register_saveable(obj)
 	if not errors.is_empty():
@@ -240,7 +239,7 @@ func delete_slot(p_slot: int) -> GF_OperationResult:
 func _build_save_data() -> Dictionary:
 	var data := {}
 	for key in _saveables.keys():
-		var saveable: GF_ISaveable = _saveables[key]
+		var saveable: Variant = _saveables[key]
 		data[key] = saveable.on_save()
 	_log.info("Save", "构建存档数据完成，模块数: %d" % data.size())
 	return data
@@ -251,7 +250,7 @@ func _restore_save_data(p_data: Dictionary) -> void:
 	var sorted: Array = []
 	for key in p_data.keys():
 		if _saveables.has(key):
-			var saveable: GF_ISaveable = _saveables[key]
+			var saveable: Variant = _saveables[key]
 			sorted.append({"key": key, "saveable": saveable, "priority": saveable.restore_priority()})
 
 	sorted.sort_custom(func(a, b): return a["priority"] < b["priority"])
@@ -260,7 +259,7 @@ func _restore_save_data(p_data: Dictionary) -> void:
 	var skipped := 0
 	for entry in sorted:
 		var key: String = entry["key"]
-		var saveable: GF_ISaveable = entry["saveable"]
+		var saveable: Variant = entry["saveable"]
 		saveable.on_load(p_data[key])
 		restored += 1
 
@@ -272,11 +271,10 @@ func _restore_save_data(p_data: Dictionary) -> void:
 	_log.info("Save", "恢复存档数据完成，恢复模块数: %d，跳过: %d" % [restored, skipped])
 
 
-## 递归扫描节点树，收集 GF_ISaveable 后代节点。
-## p_count 为 int 引用：GDScript 中基础类型非引用传递，调用方用返回值替代。
+## 递归扫描节点树，收集实现了 GF_ISaveable 接口的后代节点。
 func _collect_recursive(p_node: Node, p_count: int) -> void:
-	if p_node is GF_ISaveable:
-		register_saveable(p_node as GF_ISaveable)
+	if _is_saveable(p_node):
+		register_saveable(p_node)
 		p_count += 1
 	for child in p_node.get_children():
 		_collect_recursive(child, p_count)
@@ -284,12 +282,18 @@ func _collect_recursive(p_node: Node, p_count: int) -> void:
 
 ## child_entering_tree 回调：新节点挂入时自动注册。
 func _on_saveable_child_entered(p_child: Node) -> void:
-	if p_child is GF_ISaveable:
-		register_saveable(p_child as GF_ISaveable)
+	if _is_saveable(p_child):
+		register_saveable(p_child)
 
 
 ## child_exiting_tree 回调：节点移出时自动注销。
 func _on_saveable_child_exited(p_child: Node) -> void:
-	if p_child is GF_ISaveable:
-		var key := (p_child as GF_ISaveable).save_key()
+	if _is_saveable(p_child):
+		var key := p_child.save_key() as String
 		unregister_saveable(key)
+
+
+## 鸭子类型检查：对象是否实现了 GF_ISaveable 所需的方法。
+## Node 和 RefCounted 是不同的继承链，不能用 is 检查，故用方法存在性判断。
+func _is_saveable(p_obj) -> bool:
+	return p_obj.has_method("save_key") and p_obj.has_method("on_save") and p_obj.has_method("on_load")
