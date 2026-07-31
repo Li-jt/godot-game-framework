@@ -39,6 +39,7 @@
 ```bash
 # 方式一：Git Submodule（推荐）
 cd your-game
+git init   # 如果还不是 Git 仓库，先初始化
 git submodule add https://github.com/Li-jt/godot-game-framework.git src/framework
 
 # 方式二：直接复制

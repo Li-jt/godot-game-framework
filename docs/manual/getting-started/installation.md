@@ -8,8 +8,11 @@ Git Submodule 可以精确控制框架版本，同时方便同步更新。
 # 在游戏项目根目录
 cd your-game
 
+# 如果项目还不是 Git 仓库，先初始化
+git init
+
 # 添加 framework 为 submodule
-git submodule add https://github.com/your-org/godot-game-framework.git src/framework
+git submodule add https://github.com/Li-jt/godot-game-framework.git src/framework
 
 # 提交 .gitmodules 和 submodule 引用
 git commit -m "chore: 添加 godot-game-framework 作为 submodule"
