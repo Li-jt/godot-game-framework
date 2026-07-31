@@ -64,7 +64,7 @@ your-game/
         ├── ui/
         ├── save/
         ├── ...
-        └── plugin.cfg          # 确保此文件存在
+        └── plugin.cfg          # 框架元信息
 ```
 
 ## 目录结构要求
@@ -96,36 +96,14 @@ your-game/
 │       ├── environment/        # AppConfig 加载
 │       ├── runtime/            # 运行时模式
 │       ├── docs/               # 框架文档（可选保留）
-│       └── plugin.cfg          # 插件描述文件
+│       └── plugin.cfg          # 框架元信息（非编辑器插件）
 ```
 
-**为什么目录结构不能改**：框架所有类型通过 `class_name` 全局注册，Godot 在启动时扫描所有 `.gd` 文件来解析 `class_name`。只要文件在 `res://` 下，Godot 就能找到。但框架内部的 `plugin.cfg` 也会被 Godot 扫描，我们用它来声明框架为插件。
+**为什么目录结构不能改**：框架所有类型通过 `class_name` 全局注册，Godot 在启动时扫描所有 `.gd` 文件来解析 `class_name`。只要文件在 `res://` 下，Godot 就能找到。无需额外配置，不需要启用任何插件。
 
 ## project.godot 配置
 
-### 1. 启用框架插件
-
-在 Godot 编辑器中：**项目 → 项目设置 → 插件**，勾选 **Godot Game Framework**。
-
-或者直接编辑 `project.godot`：
-
-```ini
-[editor_plugins]
-enabled=PackedStringArray("res://src/framework/plugin.cfg")
-```
-
-`plugin.cfg` 的内容：
-
-```ini
-[plugin]
-name="Godot Game Framework"
-description="2D Game Framework with ECS, DI, and unified error handling"
-author="Your Name"
-version="1.0.0"
-script="application/app_bootstrap.gd"
-```
-
-### 2. 配置主场景
+### 配置主场景
 
 在 `project.godot` 中指定你的主场景（根节点挂载了你的 `MyGameBootstrap` 脚本）：
 
@@ -134,7 +112,7 @@ script="application/app_bootstrap.gd"
 run/main_scene="res://scenes/main.tscn"
 ```
 
-### 3. Autoload 说明
+### Autoload 说明
 
 框架**不需要**任何 Autoload。所有服务由 `GF_AppBootstrap` 在启动时创建并注入。你的游戏代码通过 `GF_GameServices` 聚合对象获取服务引用，而不是通过全局 Autoload。
 
@@ -175,7 +153,6 @@ func _ready() -> void:
 | 问题 | 原因 | 解决 |
 |---|---|---|
 | `GF_OperationResult` 未定义 | Godot 未扫描到框架的 `.gd` 文件 | 确认 `src/framework/` 目录完整且文件存在 |
-| 插件未出现在列表中 | `plugin.cfg` 路径不对 | 确认 `plugin.cfg` 在 `src/framework/plugin.cfg` |
 | 编辑器报脚本错误 | Godot 版本低于 4.7 | 升级 Godot 到 4.7+ |
 | `class_name` 冲突 | 你的游戏定义了与框架同名的 `class_name` | 框架类都用 `GF_` 前缀，避免在你的代码中使用 `GF_` 前缀 |
 
