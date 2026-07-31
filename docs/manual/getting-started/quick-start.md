@@ -8,6 +8,42 @@
 - **GDScript 基础**（了解 `Node`、`RefCounted`、类型标注）
 - 框架已安装到项目的 `src/framework/` 目录下（参见[安装指南](installation.md)）
 
+## 关于主场景
+
+框架提供了一个预配置好的主场景文件 `engine/scene_host/scene_host.tscn`，包含以下预设节点结构：
+
+```
+SceneHost (GF_SceneHost)
+├── WorldMount   (Node2D)   — 游戏世界挂载点
+├── GameCamera   (Camera2D) — 游戏相机（默认 640×360，zoom 1.5）
+└── UiCanvas     (CanvasLayer)
+    └── UIRoot   (Control)
+        ├── HudLayer       — HUD 面板层（始终在最前）
+        ├── ScreenLayer    — 全屏面板层
+        ├── PopupLayer     — 弹窗层
+        ├── TooltipLayer   — 提示层
+        ├── SystemLayer    — 系统弹窗层（最高优先级）
+        └── DebugLayer     — 调试面板层
+```
+
+框架启动时会自动从 `src/framework/engine/scene_host/scene_host.tscn` 加载此场景，**大多数情况下你不需要手动操作**。
+
+如果你需要自定义 SceneHost 的节点结构（比如调整相机参数、增减 UI 层）：
+
+1. 将 `src/framework/engine/scene_host/scene_host.tscn` 复制到你的 `scenes/` 目录
+2. 在 Godot 编辑器中打开副本，按需调整
+3. 在 `config/app_config.json` 中通过 `path_resolver` 覆盖场景路径：
+
+```json
+{
+  "path_resolver": {
+    "scene_host": "res://scenes/scene_host.tscn"
+  }
+}
+```
+
+如果你不使用框架预设，则需要自己创建主场景，根节点挂载 `GF_AppBootstrap` 子类脚本，并确保场景中包含框架所需的世界挂载点、相机和 UI 层级。
+
 ## Step 1：创建 Application 入口
 
 首先创建一个继承 `GF_AppBootstrap` 的启动类。这是整个应用的入口，负责装配所有服务。
