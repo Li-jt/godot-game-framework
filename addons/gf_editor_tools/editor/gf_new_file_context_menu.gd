@@ -178,7 +178,7 @@ func _show_create_dialog(p_paths: PackedStringArray, p_tmpl: Dictionary) -> void
 	base_control.add_child(dialog)
 
 	dialog.confirmed.connect(func():
-		var raw_name: String = dialog.get_node("VBoxContainer/NameEdit").text.strip_edges()
+		var raw_name: String = name_edit.text.strip_edges()
 		if raw_name.is_empty():
 			_show_error("请输入名称")
 			return
@@ -196,8 +196,7 @@ func _show_create_dialog(p_paths: PackedStringArray, p_tmpl: Dictionary) -> void
 	dialog.canceled.connect(func(): dialog.queue_free())
 
 	dialog.popup_centered(Vector2i(450, 170))
-	var edit: LineEdit = dialog.get_node("VBoxContainer/NameEdit")
-	edit.grab_focus()
+	name_edit.grab_focus()
 
 
 # ============================================================
