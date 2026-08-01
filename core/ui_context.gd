@@ -20,8 +20,8 @@ var loc: GF_LocalizationService = null
 var save_service: GF_SaveService = null
 ## 游戏配置定义服务
 var config_service: GF_ConfigService = null
-## 应用运行配置
-var config: GF_AppConfig = null
+## 焦点导航全局默认模式。FOCUS_ALL = 全开，FOCUS_CLICK = 仅鼠标，FOCUS_NONE = 关闭。
+var focus_navigation_default_mode: Control.FocusMode = Control.FOCUS_ALL
 ## 应用流程状态机
 var app_flow: GF_AppFlow = null
 ## 调试服务

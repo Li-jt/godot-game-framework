@@ -59,18 +59,14 @@ func _on_init() -> GF_OperationResult:
 	return GF_OperationResult.ok()
 
 
-## 配置线程服务。
-func configure(p_config: GF_AppConfig.ThreadingSection, p_log: GF_LogService) -> GF_OperationResult:
-	if p_config == null:
-		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "threading_config 不能为 null", module_name)
-	if p_log == null:
-		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "log 不能为 null", module_name)
-	_enabled = p_config.enabled
-	_max_active_jobs = maxi(1, p_config.max_active_jobs)
-	_max_dispatch_per_tick = maxi(1, p_config.max_dispatch_per_tick)
-	_default_timeout_ms = maxi(1, p_config.default_timeout_ms)
-	_slow_job_warn_ms = maxi(1, p_config.slow_job_warn_ms)
-	_history_limit = maxi(32, p_config.history_limit)
+## 配置线程服务。所有参数有默认值，Game 层可按需覆盖。
+func configure(p_enabled: bool = true, p_max_active_jobs: int = 4, p_max_dispatch_per_tick: int = 2, p_default_timeout_ms: int = 30000, p_slow_job_warn_ms: int = 350, p_history_limit: int = 256, p_log: GF_LogService = null) -> GF_OperationResult:
+	_enabled = p_enabled
+	_max_active_jobs = maxi(1, p_max_active_jobs)
+	_max_dispatch_per_tick = maxi(1, p_max_dispatch_per_tick)
+	_default_timeout_ms = maxi(1, p_default_timeout_ms)
+	_slow_job_warn_ms = maxi(1, p_slow_job_warn_ms)
+	_history_limit = maxi(32, p_history_limit)
 	_log = p_log
 	return GF_OperationResult.ok()
 

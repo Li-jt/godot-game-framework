@@ -30,8 +30,8 @@ func install(p_deps: Dictionary) -> GF_OperationResult:
 	bs._track_module(config_svc)
 	if not bs._cfg_or_fail("GF_ConfigService", config_svc.configure(fs, log), config_svc): return _fail()
 
-	# GF_SaveService
-	var save_provider := _create_save_provider(bs, fs, pr, log, deps.config.save.provider)
+	# GF_SaveService — 默认本地存储，Game 层可通过 Hook 替换
+	var save_provider := _create_save_provider(fs, pr, log)
 	if save_provider.is_fail(): bs._fail_boot("GF_SaveProvider", save_provider); return save_provider
 	var save_service := GF_SaveService.new()
 	save_service.module_name = "SaveService"
@@ -64,12 +64,12 @@ func install(p_deps: Dictionary) -> GF_OperationResult:
 	bs._track_module(audio_service)
 	if not bs._cfg_or_fail("GF_AudioService", audio_service.configure(audio_runtime, resource_svc, log), audio_service): return _fail()
 
-	# GF_DebugService
+	# GF_DebugService — 默认跟随 Godot 调试模式
 	var debug_service := GF_DebugService.new()
 	debug_service.module_name = "DebugService"
 	if not bs._init_or_fail(debug_service): return _fail()
 	bs._track_module(debug_service)
-	if not bs._cfg_or_fail("GF_DebugService", debug_service.configure(deps.config.debug, log), debug_service): return _fail()
+	if not bs._cfg_or_fail("GF_DebugService", debug_service.configure(), debug_service): return _fail()
 	sch.register(GF_Scheduler.TickGroup.DEBUG, "DebugStats", debug_service.tick_stats, 0)
 
 	# GF_UiContext — 所有服务配置完成后构建，GF_UIService 自动注入到每个面板
@@ -79,7 +79,6 @@ func install(p_deps: Dictionary) -> GF_OperationResult:
 	ui_context.log = log
 	ui_context.event_bus = deps.event_bus
 	ui_context.loc = deps.loc_service
-	ui_context.config = deps.config
 	ui_context.app_flow = deps.app_flow
 	ui_context.save_service = save_service
 	ui_context.config_service = config_svc
@@ -121,15 +120,12 @@ func install(p_deps: Dictionary) -> GF_OperationResult:
 	return GF_OperationResult.ok(deps)
 
 
-func _create_save_provider(p_bs: GF_AppBootstrap, p_fs: GF_FileSystemService, p_pr: GF_PathResolver, p_log: GF_LogService, p_mode: String) -> GF_OperationResult:
-	match p_mode.to_lower():
-		"local":
-			var provider := GF_LocalSaveProvider.new()
-			var r := provider.configure(p_fs, p_pr.get_save_root(), p_log)
-			if r.is_fail(): return r
-			return GF_OperationResult.ok(provider)
-		_:
-			return GF_OperationResult.fail(GF_OperationResult.ERR_CONFIG, "不支持的 GF_SaveProvider: %s" % p_mode, "Bootstrap")
+## 创建 SaveProvider。默认本地存储。Game 层可覆写 _on_before_service_install Hook 替换。
+func _create_save_provider(p_fs: GF_FileSystemService, p_pr: GF_PathResolver, p_log: GF_LogService) -> GF_OperationResult:
+	var provider := GF_LocalSaveProvider.new()
+	var r := provider.configure(p_fs, p_pr.get_save_root(), p_log)
+	if r.is_fail(): return r
+	return GF_OperationResult.ok(provider)
 
 
 func _fail() -> GF_OperationResult:

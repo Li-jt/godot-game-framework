@@ -92,7 +92,7 @@ func is_pointer_over_game_input_blocking_area(p_global_mouse_pos: Vector2) -> bo
 
 ## 根据全局配置和面板定义，递归设置子控件的 focus_mode，并自动聚焦 default_focus。
 func _apply_focus_config() -> void:
-	var cfg: Control.FocusMode = ctx.config.ui.focus_navigation.default_mode
+	var cfg: Control.FocusMode = ctx.focus_navigation_default_mode
 	var mode: Control.FocusMode = mini(cfg, _focus_mode)
 	if mode == Control.FOCUS_NONE:
 		return

@@ -10,7 +10,7 @@ class_name GF_GameServices
 extends RefCounted
 
 ## Game 层可读取的最终运行配置
-var config: GF_AppConfig = null
+
 ## 统一日志服务
 var log: GF_LogService = null
 ## 场景宿主（世界 / UI / 弹窗挂载点）
@@ -52,7 +52,6 @@ var content_def: GF_ContentDefRegistry = null
 ## 内容定义 ID 注册表（Economy/Resource/Building/WorkJob 等 ID 统一注册和查询）
 var def_id: GF_DefIdRegistry = null
 
-
 # ============================================================
 # 窄上下文工厂（子系统按需取用，避免拿到不该拿的服务）
 # ============================================================
@@ -60,7 +59,7 @@ var def_id: GF_DefIdRegistry = null
 func create_gameplay_context() -> GF_GameplayContext:
 	var c := GF_GameplayContext.new()
 	c.log = log; c.event_bus = event_bus; c.app_flow = app_flow
-	c.scene_host = scene_host; c.input = input; c.config = config
+	c.scene_host = scene_host; c.input = input
 	return c
 
 func create_ui_context() -> GF_UiContext:
@@ -68,11 +67,11 @@ func create_ui_context() -> GF_UiContext:
 	c.log = log; c.ui = ui; c.input = input
 	c.event_bus = event_bus; c.scene_host = scene_host; c.loc = loc
 	c.save_service = save_service; c.config_service = config_service
-	c.config = config; c.app_flow = app_flow; c.debug = debug; c.audio = audio
+	c.app_flow = app_flow; c.debug = debug; c.audio = audio
 	return c
 
 func create_save_context() -> GF_SaveContext:
 	var c := GF_SaveContext.new()
 	c.log = log; c.save_service = save_service
-	c.config_service = config_service; c.config = config
+	c.config_service = config_service
 	return c

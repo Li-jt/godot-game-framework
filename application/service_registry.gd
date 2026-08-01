@@ -20,7 +20,6 @@ const KEY_ASSET_LOADING: String = "AssetLoading"
 const KEY_THREADING: String = "Threading"
 const KEY_FILE_SYSTEM: String = "FileSystem"
 const KEY_PATH_RESOLVER: String = "GF_PathResolver"
-const KEY_CONFIG: String = "Config"
 const KEY_CONFIG_SERVICE: String = "GF_ConfigService"
 const KEY_LOG: String = "Log"
 const KEY_EVENT_BUS: String = "GF_EventBus"
@@ -46,11 +45,9 @@ var _owners: Dictionary = {}            ## {String: String}  key → owner_name
 var _priorities: Dictionary = {}        ## {String: int}     key → priority
 var _pending_required: Array[String] = []  ## 待校验的必需 key 列表
 
-
 ## 注册一个服务（默认 priority=100）。
 func register(p_key: String, p_service: Object) -> GF_OperationResult:
 	return register_with_priority(p_key, p_service, "system", 100)
-
 
 ## 注册所有条目。
 func register_all(p_entries: Array) -> GF_OperationResult:
@@ -62,7 +59,6 @@ func register_all(p_entries: Array) -> GF_OperationResult:
 		if result.is_fail():
 			return result
 	return GF_OperationResult.ok()
-
 
 ## 带优先级和服务所有者标识的注册方法。
 ## p_priority: 数值越小优先级越高。同名 key 覆盖时，只有更高优先级的可以覆盖。
@@ -93,7 +89,6 @@ func register_with_priority(p_key: String, p_service: Object, p_owner: String = 
 	_priorities[p_key] = p_priority
 	return GF_OperationResult.ok()
 
-
 ## 注销服务。Mod 卸载时使用。p_owner 非空时会校验所有权。
 func unregister(p_key: String, p_owner: String = "") -> GF_OperationResult:
 	if not _services.has(p_key):
@@ -104,7 +99,6 @@ func unregister(p_key: String, p_owner: String = "") -> GF_OperationResult:
 	_owners.erase(p_key)
 	_priorities.erase(p_key)
 	return GF_OperationResult.ok()
-
 
 ## 按 owner 批量注销所有服务。Mod 卸载时使用。
 func unregister_by_owner(p_owner: String) -> int:
@@ -120,12 +114,10 @@ func unregister_by_owner(p_owner: String) -> int:
 		removed += 1
 	return removed
 
-
 ## 添加一个必需 key 到待校验列表。各 Installer 负责调用。
 func add_required(p_key: String) -> void:
 	if not _pending_required.has(p_key):
 		_pending_required.append(p_key)
-
 
 ## 校验所有通过 add_required 声明的必需 key 是否已注册且就绪。
 func verify_pending() -> GF_OperationResult:
@@ -146,7 +138,6 @@ func verify_pending() -> GF_OperationResult:
 		return GF_OperationResult.fail(GF_OperationResult.ERR_NOT_FOUND, "GF_ServiceRegistry", "缺失必需服务: %s" % ", ".join(missing))
 	return GF_OperationResult.ok()
 
-
 ## 向后兼容：从外部数组校验必需 key。
 func verify_required(p_keys: Array[String]) -> GF_OperationResult:
 	# 将外部声明的 key 合并到 pending 列表，然后统一校验
@@ -155,26 +146,20 @@ func verify_required(p_keys: Array[String]) -> GF_OperationResult:
 			_pending_required.append(key)
 	return verify_pending()
 
-
 func get_service(p_key: String) -> Variant:
 	return _services.get(p_key, null)
-
 
 func has(p_key: String) -> bool:
 	return _services.has(p_key)
 
-
 func count() -> int:
 	return _services.size()
-
 
 ## 获取服务的注册者。
 func owner_of(p_key: String) -> String:
 	return _owners.get(p_key, "")
 
-
 # 类型化便捷访问器
-func get_config() -> GF_AppConfig: return _services.get(KEY_CONFIG, null) as GF_AppConfig
 func get_audio_runtime() -> GF_AudioRuntime: return _services.get(KEY_AUDIO_RUNTIME, null) as GF_AudioRuntime
 func get_input_adapter() -> GF_InputAdapter: return _services.get(KEY_INPUT_ADAPTER, null) as GF_InputAdapter
 func get_scheduler() -> GF_Scheduler: return _services.get(KEY_SCHEDULER, null) as GF_Scheduler

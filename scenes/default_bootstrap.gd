@@ -8,8 +8,7 @@ extends GF_AppBootstrap
 
 func _on_post_boot(context: GF_GameServices) -> GF_OperationResult:
 	context.log.info("Framework", "Godot Game Framework 就绪！")
-	context.log.info("Framework", "  应用: %s v%s" % [context.config.app.name, context.config.app.version])
-	context.log.info("Framework", "  运行模式: %s" % context.config.runtime.mode)
+	context.log.info("Framework", "  运行模式: %s" % context.runtime.get_mode_name())
 	context.log.info("Framework", "")
 	context.log.info("Framework", "接下来你可以：")
 	context.log.info("Framework", "  1. 创建自己的 AppBootstrap 子类覆盖 _on_post_boot()")

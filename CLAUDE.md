@@ -50,7 +50,6 @@ godot-game-framework/
 ├── core/                      ← 通用基类、OperationResult、上下文
 ├── ecs/                       ← ECS 基础设施
 ├── engine/                    ← Godot 适配层
-├── environment/               ← AppConfig 加载/合并/校验
 ├── event/                     ← EventBus
 ├── flow/                      ← AppFlow 状态机
 ├── input/                     ← 输入服务
@@ -86,8 +85,6 @@ your-game/
 │   ├── ui/
 │   ├── defs/
 │   └── ...
-├── config/
-│   └── app_config.json
 └── tests/
 ```
 
