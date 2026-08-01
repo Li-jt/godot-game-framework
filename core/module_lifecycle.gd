@@ -33,6 +33,23 @@ var state: GF_CoreLifecycleState.State = GF_CoreLifecycleState.State.UNINITIALIZ
 ## 模块名称，初始化前由外部设置，用于日志和错误追踪
 var module_name: String = ""
 
+## GF_Bootstrap 引用。register 时自动注入，configure() 中通过此引用获取依赖。
+var _bootstrap = null
+
+## 由 GF_Bootstrap.register() 时自动调用，注入 bootstrap 引用。
+func _set_bootstrap(p_bs) -> void:
+	_bootstrap = p_bs
+
+## 声明依赖的服务类型。GF_Bootstrap 按此做拓扑排序，保证依赖先于本服务配置。
+## 子类按需重写。返回 class_name 引用数组，如 [GF_LogService, GF_PathResolver]。
+func dependencies() -> Array:
+	return []
+
+## 配置服务。此时 dependencies() 声明的依赖已就绪，可通过 _bootstrap.service() 获取。
+## 子类按需重写。
+func configure() -> GF_OperationResult:
+	return GF_OperationResult.ok()
+
 ## 执行初始化。幂等：重复调用 READY 状态不会重新初始化。
 ## 失败后不允许再次调用，需由上层决定降级或退出。
 func init_module() -> GF_OperationResult:

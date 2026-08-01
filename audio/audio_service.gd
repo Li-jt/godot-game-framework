@@ -29,21 +29,25 @@ var _cue_active_counts: Dictionary = {}
 var _buses: Dictionary = {}
 
 
+func _set_bootstrap(p_bs) -> void:
+	_bootstrap = p_bs
+	if _bootstrap.service(GF_ResourceService) == null:
+		_bootstrap.register(GF_ResourceService.new())
+
+
 func _on_init() -> GF_OperationResult:
 	_setup_default_buses()
 	return GF_OperationResult.ok()
 
 
-func configure(p_runtime: GF_AudioRuntime, p_resource: GF_ResourceService, p_log: GF_LogService) -> GF_OperationResult:
-	if p_runtime == null:
-		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "configure: runtime 不能为 null", module_name)
-	if p_resource == null:
-		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "configure: resource 不能为 null", module_name)
-	if p_log == null:
-		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "configure: log 不能为 null", module_name)
-	_runtime = p_runtime
-	_resource = p_resource
-	_log = p_log
+
+func dependencies() -> Array:
+	return [GF_AudioRuntime, GF_ResourceService, GF_LogService]
+
+func configure() -> GF_OperationResult:
+	_runtime = _bootstrap.service(GF_AudioRuntime) as GF_AudioRuntime
+	_resource = _bootstrap.service(GF_ResourceService) as GF_ResourceService
+	_log = _bootstrap.service(GF_LogService) as GF_LogService
 	return GF_OperationResult.ok()
 
 

@@ -1,31 +1,30 @@
-# 2D Game Framework (Godot 4.7)
+# Godot Game Framework (Godot 4.7)
 
 分层架构 2D 游戏框架。所有类通过 `class_name` 全局注册，无需 `load()` 或路径导入。
 
 ## 版本
 
 - **引擎要求**: Godot 4.7+
-- **框架版本**: 0.1.0
+- **框架版本**: 0.3.0
 
 ## 分层
 
 | 层 | 职责 |
 |----|------|
-| Application | 启动、生命周期、服务装配 |
-| Core | 通用基类、OperationResult、GameServices、上下文 |
-| ECS | 实体组件系统（World/Query/Command/Scheduler/Snapshot/Save） |
+| Application | 启动入口 `GF_AppBootstrap`，声明式服务装配 |
+| Core | 通用基类、`ModuleLifecycle`、`OperationResult` |
+| ECS | 实体组件系统（World/Query/CommandBuffer/Scheduler/Snapshot/Save） |
 | Config | 配置加载、Def 校验 |
-| Environment | AppConfig 加载/合并/校验 |
 | Event | 事件总线 |
 | Flow | 应用状态机 |
 | Input | 输入服务、上下文栈、键位重绑定 |
 | Logging | 日志服务 |
-| UI | 面板管理、拖拽系统、输入阻挡 |
+| UI | 面板管理、6 层 Canvas、拖拽系统、输入阻挡 |
 | Audio | 音频服务 |
-| Engine | Godot 适配层（资源、场景、路径、调度、寻路） |
+| Engine | Godot 适配层（调度、路径、场景、寻路） |
 | Threading | 后台任务调度（优先级、取消、超时、重试、回调） |
 | Resource | 资源缓存与加载 |
-| Runtime | 运行时模式（Local/Remote/Hybrid） |
+| Runtime | 运行时模式（Local/Remote/Hybrid）+ CommandBus |
 | Save | 存档服务、版本迁移 |
 | Network | 网络请求抽象 |
 | DataAccess | Repository 接口 |
@@ -39,11 +38,38 @@
 ```bash
 # 方式一：Git Submodule（推荐）
 cd your-game
-git init   # 如果还不是 Git 仓库，先初始化
 git submodule add https://github.com/Li-jt/godot-game-framework.git addons/godot-game-framework
 
 # 方式二：直接复制
 cp -r godot-game-framework addons/godot-game-framework
+```
+
+### 创建自己的 Bootstrap
+
+```gdscript
+# my_game.gd
+class_name MyGame
+extends GF_AppBootstrap
+
+func _assemble() -> void:
+    # 框架内置了 6 个基础服务（开箱即用）
+    # Log、EventBus、PathResolver、Scheduler、FileSystem、RuntimeService
+
+    # 按需注册你需要的模块 — 不注册就不存在
+    register(GF_EcsWorld.new())
+    register(GF_EcsScheduler.new())
+    register(GF_SaveService.new())      # LocalSaveProvider 自动级联注册
+    register(GF_InputService.new())      # InputAdapter 自动级联注册
+
+    # 不想要 UI？不注册 GF_UIService 就行
+
+
+func _on_ready() -> void:
+    var log := service(GF_LogService) as GF_LogService
+    log.info("MyGame", "启动完成")
+
+    # 发送命令（Command 是一等公民）
+    send_command(SpawnEntityCommand.new())
 ```
 
 ### 项目结构
@@ -52,15 +78,13 @@ cp -r godot-game-framework addons/godot-game-framework
 your-game/
 ├── project.godot
 ├── src/
-│   ├── application/    # 你的 Application 层
+│   ├── application/    # 你的 Bootstrap 子类和业务入口
 │   ├── game/           # 你的 Game 层（ECS 组件/系统/命令）
 │   └── shared/
 ├── content/
 │   ├── scenes/
 │   ├── ui/
 │   └── defs/
-├── config/             # （可选）覆盖默认配置
-│   └── app_config.json
 └── addons/
     └── godot-game-framework/  # ← 框架（来自本仓库）
 ```
@@ -70,24 +94,51 @@ your-game/
 1. 安装框架到 `addons/godot-game-framework/`
 2. 在 `project.godot` 中设置 `run/main_scene="res://addons/godot-game-framework/scenes/default_main.tscn"`
 3. 点击运行 — 框架自带默认配置，开箱即用
-4. 创建你自己的 `AppBootstrap` 子类来构建游戏逻辑
+4. 创建你自己的 `GF_AppBootstrap` 子类来构建游戏逻辑
 
 ### 编辑器工具（可选）
 
 安装后可右键快速创建框架文件，详见 [安装指南](docs/manual/getting-started/installation.md#编辑器工具可选)。
 
+## 核心 API
+
+```gdscript
+# 注册服务（自动识别单个实例或数组）
+register(GF_SaveService.new())
+register([GF_EcsWorld.new(), GF_EcsScheduler.new()])
+
+# 获取服务（class_name 引用，类型安全）
+var log := service(GF_LogService) as GF_LogService
+var world := service(GF_EcsWorld) as GF_EcsWorld
+
+# 发送命令
+send_command(MyCommand.new())
+
+# Service 统一写法
+class_name MyService
+extends GF_ModuleLifecycle
+
+func dependencies() -> Array:
+    return [GF_LogService, GF_PathResolver]
+
+func configure() -> GF_OperationResult:
+    var log: GF_LogService = _bootstrap.service(GF_LogService) as GF_LogService
+    return GF_OperationResult.ok()
+```
+
 ## 当前实现状态
 
 ### 已完成
 
-- 启动装配链路：Core → Engine → ECS → Services，ECS 默认接入
-- ECS 核心：World、SparseSet/Archetype 双存储、Query、CommandBuffer、Scheduler、Snapshot、Save 适配
-- ThreadingService：后台任务提交与主线程回收（优先级、取消、超时、重试）
-- InputService v4.0：Action 归一化、上下文栈、键位重绑定、录制回放
-- SaveService：ISaveable 自注册、多槽位、版本迁移链、恢复优先级、原子写入
-- UI：面板管理（6 层 Canvas）、拖拽系统、输入阻挡策略
-- 寻路框架：IPathGraph + ITraversal + IHeuristic 三层可插拔 A\*
-- AudioService：Cue 播放、Bus 分组、SFX 池化
+- **声明式启动装配**：`_assemble()` 中按需 `register()`，依赖自动拓扑排序初始化
+- **ECS 核心**：World、SparseSet/Archetype 双存储、Query、CommandBuffer、Scheduler、Snapshot、Save 适配
+- **ThreadingService**：后台任务提交与主线程回收（优先级、取消、超时、重试）
+- **InputService v4.0**：Action 归一化、上下文栈、键位重绑定、录制回放
+- **SaveService**：ISaveable 自注册、多槽位、版本迁移链、恢复优先级、原子写入
+- **UI**：面板管理（6 层 Canvas）、拖拽系统、输入阻挡策略、SceneHost 代码自动创建或编辑器注入
+- **寻路框架**：IPathGraph + ITraversal + IHeuristic 三层可插拔 A\*
+- **AudioService**：Cue 播放、Bus 分组、SFX 池化
+- **Command 一等公民**：`send_command()` 直接挂载在 Bootstrap 上
 
 ### 尚未完整
 
@@ -129,5 +180,6 @@ git pull origin main
 - **所有公共 API 返回 `OperationResult`** — 不返回裸 `bool` 或 `null`
 - **ECS 组件是纯数据** — 不持有 Node 引用
 - **系统通过 CommandBuffer 写入 World** — 不直接修改存储
+- **服务注册使用 class_name 引用，禁止字符串 key** — `service(GF_LogService)` 不是 `service("Log")`
 
 详见 [CLAUDE.md](CLAUDE.md)。

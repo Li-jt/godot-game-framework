@@ -91,15 +91,34 @@ your-game/
 ## 2.3 各层职责边界
 
 ### Application
-负责启动装配、服务注册、生命周期、配置加载。**Game 层定义的 AppBootstrap 子类放在这里**。
+`GF_AppBootstrap` — 框架唯一启动入口。Game 层继承此类，在 `_assemble()` 中声明式注册服务：
+
+```gdscript
+class_name MyGame
+extends GF_AppBootstrap
+
+func _assemble() -> void:
+    register(GF_SaveService.new())   # 不注册就不存在
+    register(GF_EcsWorld.new())
+    # 依赖自动级联（SaveService → LocalSaveProvider）
+```
+
+核心 API：
+- `register(p_what)` — 注册服务，自动识别单个实例或 Array
+- `service(GF_XxxService)` — 按 class_name 引用获取服务（禁止字符串 key）
+- `send_command(p_command)` — 发送命令（Command 一等公民）
+- `_assemble()` / `_on_ready()` — 子类重写的生命周期钩子
+
+内置 6 个基础服务（自动安装，无需手动注册）：
+Log、EventBus、PathResolver、Scheduler、FileSystemService、RuntimeService
 
 ### Core
 通用基类，不依赖任何 Godot 场景树：
-- `ModuleLifecycle` — 所有服务的生命周期状态机
-- `OperationResult` + `ErrorInfo` — 统一错误处理
-- `GameServices` / `UiContext` / `GameplayContext` / `SaveContext` — 窄上下文
-- `ContentDefRegistry` / `DefIdRegistry` — 通用内容注册表
-- `DefJsonLoader` — JSON 加载工具
+- `GF_ModuleLifecycle` — 服务生命周期 + `dependencies()` + `configure()` 统一签名
+- `_set_bootstrap(p_bs)` — register 时自动注入，configure() 中通过 `_bootstrap.service(X)` 获取依赖
+- `GF_OperationResult` + `GF_ErrorInfo` — 统一错误处理
+- `GF_ContentDefRegistry` / `GF_DefIdRegistry` — 通用内容注册表
+- `GF_DefJsonLoader` — JSON 加载工具
 
 ### ECS
 ECS 基础设施（SparseSet 存储），全部是 RefCounted：
@@ -109,10 +128,11 @@ ECS 基础设施（SparseSet 存储），全部是 RefCounted：
 
 ### Engine
 Godot 引擎适配层，**有限度的适配**，不是重型封装：
-- SceneHost / SceneFactory / Scheduler / ThreadingService
-- PathResolver / FileSystemService / AssetLoadingService
-- AudioRuntime / NodePool / RuntimeUtilities
-- Pathfinder（A* 实现）
+- `GF_SceneHost` — 场景宿主。支持 @export 注入或代码默认创建。6 层 UI Canvas（Hud / Screen / Popup / Tooltip / System / Debug），用户可在编辑器中直接编辑节点树
+- `GF_SceneFactory` / `GF_Scheduler` / `GF_ThreadingService`
+- `GF_PathResolver` / `GF_FileSystemService` / `GF_AssetLoadingService`
+- `GF_AudioRuntime` / `GF_NodePool` / `GF_RuntimeUtilities`
+- `GF_Pathfinder`（A* 实现）
 
 ### Services
 各领域服务（都继承 ModuleLifecycle）：

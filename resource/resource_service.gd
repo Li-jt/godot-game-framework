@@ -36,17 +36,23 @@ const MAX_UNCACHED: int = 200
 var _release_policy: ReleasePolicy = ReleasePolicy.LRU_ONLY
 
 
+func _set_bootstrap(p_bs) -> void:
+	_bootstrap = p_bs
+	if _bootstrap.service(GF_AssetLoadingService) == null:
+		_bootstrap.register(GF_AssetLoadingService.new())
+
+
 func _on_init() -> GF_OperationResult:
 	return GF_OperationResult.ok()
 
 
-func configure(p_asset_loading: GF_AssetLoadingService, p_log: GF_LogService) -> GF_OperationResult:
-	if p_asset_loading == null:
-		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "configure: asset_loading 不能为 null", module_name)
-	if p_log == null:
-		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "configure: log 不能为 null", module_name)
-	_asset_loading = p_asset_loading
-	_log = p_log
+
+func dependencies() -> Array:
+	return [GF_AssetLoadingService, GF_LogService]
+
+func configure() -> GF_OperationResult:
+	_asset_loading = _bootstrap.service(GF_AssetLoadingService) as GF_AssetLoadingService
+	_log = _bootstrap.service(GF_LogService) as GF_LogService
 	return GF_OperationResult.ok()
 
 

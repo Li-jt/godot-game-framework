@@ -60,14 +60,18 @@ func _on_init() -> GF_OperationResult:
 
 
 ## 配置线程服务。所有参数有默认值，Game 层可按需覆盖。
-func configure(p_enabled: bool = true, p_max_active_jobs: int = 4, p_max_dispatch_per_tick: int = 2, p_default_timeout_ms: int = 30000, p_slow_job_warn_ms: int = 350, p_history_limit: int = 256, p_log: GF_LogService = null) -> GF_OperationResult:
+func dependencies() -> Array:
+	return [GF_LogService]
+
+
+func configure(p_enabled: bool = true, p_max_active_jobs: int = 4, p_max_dispatch_per_tick: int = 2, p_default_timeout_ms: int = 30000, p_slow_job_warn_ms: int = 350, p_history_limit: int = 256) -> GF_OperationResult:
+	_log = _bootstrap.service(GF_LogService) as GF_LogService
 	_enabled = p_enabled
 	_max_active_jobs = maxi(1, p_max_active_jobs)
 	_max_dispatch_per_tick = maxi(1, p_max_dispatch_per_tick)
 	_default_timeout_ms = maxi(1, p_default_timeout_ms)
 	_slow_job_warn_ms = maxi(1, p_slow_job_warn_ms)
 	_history_limit = maxi(32, p_history_limit)
-	_log = p_log
 	return GF_OperationResult.ok()
 
 

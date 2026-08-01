@@ -15,13 +15,13 @@ var _path_resolver: GF_PathResolver = null
 var _log: GF_LogService = null
 
 
-func configure(p_path_resolver: GF_PathResolver, p_log: GF_LogService) -> GF_OperationResult:
-	if p_path_resolver == null:
-		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "configure: path_resolver 不能为 null", module_name)
-	if p_log == null:
-		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "configure: log 不能为 null", module_name)
-	_path_resolver = p_path_resolver
-	_log = p_log
+
+func dependencies() -> Array:
+	return [GF_PathResolver, GF_LogService]
+
+func configure() -> GF_OperationResult:
+	_path_resolver = _bootstrap.service(GF_PathResolver) as GF_PathResolver
+	_log = _bootstrap.service(GF_LogService) as GF_LogService
 	return GF_OperationResult.ok()
 
 

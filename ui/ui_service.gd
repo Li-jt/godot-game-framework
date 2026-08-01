@@ -15,9 +15,6 @@ var _cache: Dictionary = {}
 var _cache_order: Array[String] = []
 var _open_order: Array[String] = []
 
-## 面板上下文。configure 时由上层传入，每次面板实例化后自动设置到 panel.ctx。
-var _panel_context: GF_UiContext = null
-
 # ============================================================
 # 拖拽
 # ============================================================
@@ -28,30 +25,23 @@ var _last_hovered: GF_UIDropTarget = null
 ## 焦点栈：打开面板时保存当前焦点，关闭面板时恢复。
 var _focus_stack: Array[Control] = []
 
-
 func _on_init() -> GF_OperationResult:
 	return GF_OperationResult.ok()
 
-
 ## 配置 UI 服务。p_ui_context 为上层装配器构建的 GF_UiContext，
 ## GF_UIService 将其存储为 _panel_context，后续所有面板实例化后自动注入。
-func configure(p_ui_context: GF_UiContext) -> GF_OperationResult:
-	if p_ui_context == null:
-		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "ui_context 不能为 null", module_name)
-	if p_ui_context.scene_host == null:
-		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "ui_context.scene_host 不能为 null", module_name)
-	if p_ui_context.input == null:
-		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "ui_context.input 不能为 null", module_name)
-	if p_ui_context.log == null:
-		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "ui_context.log 不能为 null", module_name)
+func dependencies() -> Array:
+	return [GF_SceneHost, GF_InputService, GF_LogService]
 
-	_panel_context = p_ui_context
-	_panel_context.ui = self
+func configure() -> GF_OperationResult:
+	_scene_host = _bootstrap.service(GF_SceneHost) as GF_SceneHost
+	_input_service = _bootstrap.service(GF_InputService) as GF_InputService
+	_log = _bootstrap.service(GF_LogService) as GF_LogService
 
-	_scene_host = p_ui_context.scene_host
-	_input_service = p_ui_context.input
+	if _scene_host == null or _input_service == null or _log == null:
+		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "UI 依赖未满足", module_name)
+
 	_input_service.set_game_input_blocker(_should_block_game_action)
-	_log = p_ui_context.log
 
 	# 初始化 GF_UIDragManager
 	_drag_manager = GF_UIDragManager.new()
@@ -59,7 +49,6 @@ func configure(p_ui_context: GF_UiContext) -> GF_OperationResult:
 	_drag_manager.configure(self)
 
 	return GF_OperationResult.ok()
-
 
 # ============================================================
 # 注册
@@ -72,7 +61,6 @@ func register(p_def: GF_UIPanelDef) -> GF_OperationResult:
 	_panel_defs[p_def.name] = p_def
 	return GF_OperationResult.ok()
 
-
 ## 批量注册面板定义
 func register_all(p_defs: Array[GF_UIPanelDef]) -> GF_OperationResult:
 	for def in p_defs:
@@ -81,7 +69,6 @@ func register_all(p_defs: Array[GF_UIPanelDef]) -> GF_OperationResult:
 	_log.info("GF_UIService", "面板注册完成，共 %d 个" % _panel_defs.size())
 	_prewarm_deferred()
 	return GF_OperationResult.ok()
-
 
 # ============================================================
 # 打开
@@ -121,7 +108,7 @@ func open(p_name: String, p_data: Dictionary = {}) -> GF_OperationResult:
 		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "根节点不是 GF_UIPanel: %s" % p_name, module_name)
 
 	panel.panel_name = p_name
-	panel.ctx = _panel_context
+	panel._bootstrap = _bootstrap
 	panel._panel_def = def
 	panel.set_focus_config(def.focus_mode, def.default_focus)
 	_log.debug("GF_UIService", "open panel: %s mode=%d blocked=%s" % [p_name, def.input_block_mode, str(def.blocked_action_ids)])
@@ -129,7 +116,6 @@ func open(p_name: String, p_data: Dictionary = {}) -> GF_OperationResult:
 	panel.open(p_data)
 	_on_opened(p_name)
 	return GF_OperationResult.ok(panel)
-
 
 # ============================================================
 # 关闭
@@ -147,7 +133,6 @@ func close(p_name: String) -> GF_OperationResult:
 	_do_close(p_name, def)
 	return GF_OperationResult.ok()
 
-
 ## 强制关闭面板（跳过生命周期限制）
 func force_close(p_name: String) -> GF_OperationResult:
 	var def := _get_def(p_name)
@@ -155,7 +140,6 @@ func force_close(p_name: String) -> GF_OperationResult:
 		return GF_OperationResult.fail(GF_OperationResult.ERR_NOT_FOUND, "面板未注册: %s" % p_name, module_name)
 	_do_close(p_name, def)
 	return GF_OperationResult.ok()
-
 
 # ============================================================
 # 显隐
@@ -169,7 +153,6 @@ func show(p_name: String) -> GF_OperationResult:
 	_recalculate_input_block()
 	return GF_OperationResult.ok()
 
-
 ## 隐藏已打开的面板
 func hide(p_name: String) -> GF_OperationResult:
 	if not _active_panels.has(p_name):
@@ -177,7 +160,6 @@ func hide(p_name: String) -> GF_OperationResult:
 	(_active_panels[p_name] as GF_UIPanel).hide()
 	_recalculate_input_block()
 	return GF_OperationResult.ok()
-
 
 # ============================================================
 # 批量
@@ -203,7 +185,6 @@ func close_top() -> GF_OperationResult:
 		return GF_OperationResult.ok()
 	return GF_OperationResult.ok()
 
-
 ## 关闭所有非 PERSISTENT/MANAGED_BY_FLOW 面板
 func close_all() -> void:
 	for name in _active_panels.keys():
@@ -213,7 +194,6 @@ func close_all() -> void:
 		_do_close_quiet(name, def)
 	_recalculate_input_block()
 
-
 ## 关闭指定 UI 层的全部面板
 func clear_layer(p_kind: StringName) -> void:
 	for name in _active_panels.keys():
@@ -222,13 +202,11 @@ func clear_layer(p_kind: StringName) -> void:
 			_do_close_quiet(name, def)
 	_recalculate_input_block()
 
-
 ## 关闭游戏内面板（SCREEN/POPUP/TOOLTIP），保留 HUD/系统
 func clear_gameplay_ui() -> void:
 	for kind in [GF_UIPanelDef.KIND_SCREEN, GF_UIPanelDef.KIND_POPUP, GF_UIPanelDef.KIND_TOOLTIP]:
 		_clear_layer_suppressed(kind)
 	_recalculate_input_block()
-
 
 ## 关闭所有 UI 面板（含 HUD）
 func clear_all_ui() -> void:
@@ -238,14 +216,12 @@ func clear_all_ui() -> void:
 			_do_close_quiet(name, def)
 	_recalculate_input_block()
 
-
 ## 隐藏所有 HUD 面板。返回主菜单时调用
 func hide_hud() -> void:
 	for name in _active_panels.keys():
 		var def := _get_def(name)
 		if def != null and def.kind == GF_UIPanelDef.KIND_HUD:
 			hide(name)
-
 
 ## 显示所有 HUD 面板。进入游戏时调用。
 func show_hud() -> void:
@@ -261,7 +237,6 @@ func show_hud() -> void:
 		if def != null and def.kind == GF_UIPanelDef.KIND_HUD:
 			show(name)
 
-
 # ============================================================
 # 查询
 # ============================================================
@@ -269,10 +244,8 @@ func show_hud() -> void:
 func is_open(p_name: String) -> bool:
 	return _active_panels.has(p_name)
 
-
 func get_panel(p_name: String) -> GF_UIPanel:
 	return _active_panels.get(p_name, null) as GF_UIPanel
-
 
 ## 返回所有活跃面板列表（供 GF_InputPolicy 查询）。
 func get_active_panels() -> Array[GF_UIPanel]:
@@ -292,7 +265,6 @@ func _get_panel_safe(p_name: String) -> GF_UIPanel:
 		return null
 	return panel_obj as GF_UIPanel
 
-
 func _get_cached_safe(p_name: String) -> GF_UIPanel:
 	if not _cache.has(p_name):
 		return null
@@ -302,14 +274,12 @@ func _get_cached_safe(p_name: String) -> GF_UIPanel:
 		return null
 	return panel_obj as GF_UIPanel
 
-
 ## 返回所有活跃面板名称。
 func get_active_panel_names() -> Array[String]:
 	var result: Array[String] = []
 	for name in _active_panels.keys():
 		result.append(str(name))
 	return result
-
 
 # ============================================================
 # 拖拽 API
@@ -326,7 +296,6 @@ func begin_drag(p_handler: GF_UIDragHandler, p_screen_pos: Vector2, p_source: GF
 		cancel_drag()
 	_drag_manager.begin(p_handler, p_screen_pos, MOUSE_BUTTON_LEFT, p_source)
 	return GF_OperationResult.ok()
-
 
 ## 取消当前拖拽。触发 handler.on_end_drag(event) 且 event.drop_receiver = null。
 func cancel_drag() -> void:
@@ -346,18 +315,15 @@ func cancel_drag() -> void:
 
 		_drag_manager.clear_drag_state()
 
-
 ## 当前是否有活跃拖拽（供 GF_InputPolicy 查询）
 func is_dragging() -> bool:
 	return _drag_manager != null and _drag_manager.is_dragging()
-
 
 ## 获取当前拖拽位置（游戏层在 on_drop 中用来计算世界坐标）
 func get_drag_position() -> Vector2:
 	if _drag_manager != null and _drag_manager.is_dragging():
 		return _drag_manager.get_current_event().position
 	return Vector2.ZERO
-
 
 ## 注册放置目标（面板在 _on_open 中调用）
 func register_drop_target(p_target: GF_UIDropTarget) -> GF_OperationResult:
@@ -368,7 +334,6 @@ func register_drop_target(p_target: GF_UIDropTarget) -> GF_OperationResult:
 	_drop_targets.append(p_target)
 	return GF_OperationResult.ok()
 
-
 ## 注销属于某面板的所有放置目标（框架在面板关闭时自动调用）
 func unregister_panel_targets(p_panel: GF_UIPanel) -> void:
 	var filtered: Array[GF_UIDropTarget] = []
@@ -377,18 +342,15 @@ func unregister_panel_targets(p_panel: GF_UIPanel) -> void:
 			filtered.append(t)
 	_drop_targets = filtered
 
-
 ## 获取 GF_UIDragManager Node（供 GF_ServiceInstallerImpl 挂到场景树）
 func get_drag_manager() -> GF_UIDragManager:
 	return _drag_manager
-
 
 ## [L2] 简化拖拽：给 data + icon，框架全管。返回 GF_UIDragHandler 供连接信号。
 func begin_simple_drag(p_data: Dictionary, p_icon: Texture2D, p_offset: Vector2 = Vector2(-24, -24), p_source: GF_UIPanel = null) -> GF_UIDragHandler:
 	var handler := _DefaultDragHandler.new(p_data, p_icon, p_offset)
 	begin_drag(handler, _get_global_mouse_pos(), p_source)
 	return handler
-
 
 # ============================================================
 # 内部：拖拽（GF_UIDragManager 回调）
@@ -402,7 +364,6 @@ func _on_drag_motion(p_mouse_pos: Vector2) -> void:
 		_last_hovered = hovered
 		if hovered != null and hovered.on_hover.is_valid():
 			hovered.on_hover.call(_drag_manager.get_current_event().drag_data)
-
 
 func _on_drag_drop(p_mouse_pos: Vector2) -> void:
 	var event := _drag_manager.get_current_event()
@@ -428,7 +389,6 @@ func _on_drag_drop(p_mouse_pos: Vector2) -> void:
 
 	_drag_manager.clear_drag_state()
 
-
 func _hit_test_target(p_mouse_pos: Vector2) -> GF_UIDropTarget:
 	for i in range(_open_order.size() - 1, -1, -1):
 		var panel := _get_panel_safe(_open_order[i])
@@ -449,12 +409,10 @@ func _hit_test_target(p_mouse_pos: Vector2) -> GF_UIDropTarget:
 
 	return null
 
-
 func _get_global_mouse_pos() -> Vector2:
 	if _scene_host != null and is_instance_valid(_scene_host):
 		return _scene_host.get_viewport().get_mouse_position()
 	return Vector2.ZERO
-
 
 # ============================================================
 # 内部：关闭
@@ -481,17 +439,14 @@ func _do_close(p_name: String, p_def: GF_UIPanelDef, p_suppress_recalc: bool = f
 	if not p_suppress_recalc:
 		_recalculate_input_block()
 
-
 func _do_close_quiet(p_name: String, p_def: GF_UIPanelDef) -> void:
 	_do_close(p_name, p_def, true)
-
 
 func _clear_layer_suppressed(p_kind: StringName) -> void:
 	for name in _active_panels.keys():
 		var def := _get_def(name)
 		if def != null and def.kind == p_kind:
 			_do_close_quiet(name, def)
-
 
 # ============================================================
 # 内部：缓存
@@ -512,7 +467,6 @@ func _cached_store(p_name: String, p_panel: GF_UIPanel) -> void:
 	_cache[p_name] = p_panel
 	_cache_order.append(p_name)
 
-
 # ============================================================
 # 内部：预热
 # ============================================================
@@ -522,7 +476,6 @@ func _prewarm_deferred() -> void:
 		var def: GF_UIPanelDef = _panel_defs[name]
 		if def.prewarm and def.lifecycle in [GF_UIPanelDef.Lifecycle.HIDE_ON_CLOSE, GF_UIPanelDef.Lifecycle.PERSISTENT]:
 			_prewarm_one.call_deferred(name)
-
 
 func _prewarm_one(p_name: String) -> void:
 	if not is_instance_valid(self):
@@ -537,7 +490,7 @@ func _prewarm_one(p_name: String) -> void:
 	if panel == null: return
 
 	panel.panel_name = p_name
-	panel.ctx = _panel_context
+	panel._bootstrap = _bootstrap
 	panel._panel_def = def
 	panel.set_focus_config(def.focus_mode, def.default_focus)
 
@@ -546,7 +499,6 @@ func _prewarm_one(p_name: String) -> void:
 
 	panel.hide()
 	_cached_store(p_name, panel)
-
 
 # ============================================================
 # 内部：输入
@@ -599,7 +551,6 @@ func _recalculate_input_block() -> void:
 		_input_service.pop_context()
 		_ui_block_context = null
 
-
 func _should_block_game_action(p_action_id: String) -> bool:
 	for name in _active_panels.keys():
 		var def := _get_def(name)
@@ -614,12 +565,10 @@ func _should_block_game_action(p_action_id: String) -> bool:
 			return true
 	return false
 
-
 func _def_blocks_action(p_def: GF_UIPanelDef, p_action_id: String) -> bool:
 	if p_def.blocked_action_ids.has("*"):
 		return true
 	return p_def.blocked_action_ids.has(p_action_id)
-
 
 # ============================================================
 # 内部：辅助
@@ -633,15 +582,12 @@ func _on_opened(p_name: String) -> void:
 		_apply_layer_order(def.kind)
 	_recalculate_input_block()
 
-
 func _bring_to_front(p_name: String) -> void:
 	_remove_from_order(p_name)
 	_open_order.append(p_name)
 
-
 func _remove_from_order(p_name: String) -> void:
 	_open_order.erase(p_name)
-
 
 func _save_current_focus() -> void:
 	if _scene_host == null or not is_instance_valid(_scene_host):
@@ -653,14 +599,12 @@ func _save_current_focus() -> void:
 	if owner != null:
 		_focus_stack.push_back(owner)
 
-
 func _restore_last_focus() -> void:
 	if _focus_stack.is_empty():
 		return
 	var prev: Control = _focus_stack.pop_back()
 	if is_instance_valid(prev):
 		prev.grab_focus()
-
 
 func _apply_layer_order(p_kind: StringName) -> void:
 	var layer = _scene_host.get_ui_layer(p_kind)
@@ -675,7 +619,6 @@ func _apply_layer_order(p_kind: StringName) -> void:
 	for i in children.size():
 		layer.move_child(children[i], i)
 
-
 func _get_layer_order(p_node: Node) -> int:
 	if p_node is GF_UIPanel:
 		var name: String = (p_node as GF_UIPanel).panel_name
@@ -684,10 +627,8 @@ func _get_layer_order(p_node: Node) -> int:
 			return def.layer_order
 	return 0
 
-
 func _get_def(p_name: String) -> GF_UIPanelDef:
 	return _panel_defs.get(p_name, null) as GF_UIPanelDef
-
 
 # ============================================================
 # 内部：L2 默认 DragHandler
@@ -700,12 +641,10 @@ class _DefaultDragHandler extends GF_UIDragHandler:
 	var _offset: Vector2 = Vector2.ZERO
 	var _ghost: GF_UIDragGhost = null
 
-
 	func _init(p_data: Dictionary, p_icon: Texture2D, p_offset: Vector2) -> void:
 		_data = p_data
 		_icon = p_icon
 		_offset = p_offset
-
 
 	func on_begin_drag(event: GF_UIDragEvent) -> void:
 		event.drag_data = _data
