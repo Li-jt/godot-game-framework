@@ -96,7 +96,7 @@ static func _find_ui_service(p_control: Control) -> GF_UIService:
 # 内部：轻量级 DragHandler
 # ═══════════════════════════════════════════════════
 
-class _QuickDragHandler
+class _QuickDragHandler:
 extends GF_UIDragHandler
 
 var _data: Dictionary = {}

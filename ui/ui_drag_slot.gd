@@ -257,7 +257,7 @@ func _get_parent_panel() -> GF_UIPanel:
 # 内部 handler
 # ════════════════════════════════════════════
 
-class _SlotDragHandler
+class _SlotDragHandler:
 extends GF_UIDragHandler
 
 var _slot: GF_UIDragSlot = null

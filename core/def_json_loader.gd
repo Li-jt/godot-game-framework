@@ -10,7 +10,10 @@ static func load_file(p_fs: GF_FileSystemService, p_path: String) -> Dictionary:
 	if not p_fs.file_exists(p_path):
 		push_warning("[GF_DefJsonLoader] 文件不存在: %s" % p_path)
 		return {}
-	var text := p_fs.read_text(p_path)
+	var text_result := p_fs.read_text(p_path)
+	if text_result.is_fail():
+		return {}
+	var text: String = text_result.data
 	if text.is_empty():
 		return {}
 	var json := JSON.new()
