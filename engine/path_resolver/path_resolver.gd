@@ -61,7 +61,7 @@ func get_cache_root() -> String:
 	return cache_root
 
 # ============================================================
-功（或已存在）
+## 确保目录存在，返回是否成功（或已存在）
 func ensure_dir(p_path: String) -> bool:
 	if DirAccess.dir_exists_absolute(p_path):
 		return true
