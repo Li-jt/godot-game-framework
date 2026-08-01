@@ -29,6 +29,21 @@ func _init(p_world: GF_EcsWorld = null) -> void:
 
 
 ## 设置 ECS 世界引用。
+func dependencies() -> Array:
+	return [GF_EcsWorld, GF_Scheduler]
+
+
+func configure() -> GF_OperationResult:
+	_world = _bootstrap.service(GF_EcsWorld) as GF_EcsWorld
+	return GF_OperationResult.ok()
+
+
+func bind_to_scheduler() -> GF_OperationResult:
+	var sched := _bootstrap.service(GF_Scheduler) as GF_Scheduler
+	if sched == null:
+		return GF_OperationResult.fail(GF_OperationResult.ERR_PRECONDITION, "GF_Scheduler not registered", module_name)
+	return bind_to_framework_scheduler(sched)
+
 func set_world(p_world: GF_EcsWorld) -> void:
 	_world = p_world
 

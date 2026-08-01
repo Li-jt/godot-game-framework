@@ -37,10 +37,12 @@ func _on_init() -> GF_OperationResult:
 	return GF_OperationResult.ok()
 
 
-func configure(p_event_bus: GF_EventBus) -> GF_OperationResult:
-	if p_event_bus == null:
-		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "configure: event_bus 不能为 null", module_name)
-	_event_bus = p_event_bus
+
+func dependencies() -> Array:
+	return [GF_EventBus]
+
+func configure() -> GF_OperationResult:
+	_event_bus = _bootstrap.service(GF_EventBus) as GF_EventBus
 	return GF_OperationResult.ok()
 
 

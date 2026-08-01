@@ -25,20 +25,29 @@ var _migrators: Dictionary = {}
 var _saveables: Dictionary = {}  # String key → Variant（GF_ISaveable 或 Node 子类）
 
 
+func _set_bootstrap(p_bs) -> void:
+	_bootstrap = p_bs
+	if _bootstrap.service(GF_SaveProvider) == null:
+		_bootstrap.register(GF_LocalSaveProvider.new())
+
+
 func _on_init() -> GF_OperationResult:
 	return GF_OperationResult.ok()
 
 
-func configure(p_provider: GF_SaveProvider, p_path_resolver: GF_PathResolver, p_log: GF_LogService) -> GF_OperationResult:
-	if p_provider == null:
-		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "provider 不能为 null", module_name)
-	if p_path_resolver == null:
-		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "path_resolver 不能为 null", module_name)
-	if p_log == null:
-		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "log 不能为 null", module_name)
-	_provider = p_provider
-	_path_resolver = p_path_resolver
-	_log = p_log
+
+func dependencies() -> Array:
+	return [GF_SaveProvider, GF_PathResolver, GF_LogService]
+
+func configure() -> GF_OperationResult:
+	_provider = _bootstrap.service(GF_SaveProvider) as GF_SaveProvider
+	_path_resolver = _bootstrap.service(GF_PathResolver) as GF_PathResolver
+	_log = _bootstrap.service(GF_LogService) as GF_LogService
+
+	# 配置 Provider（非 ModuleLifecycle，需手动调用 configure）
+	if _provider != null and _provider.has_method("configure"):
+		var fs: GF_FileSystemService = _bootstrap.service(GF_FileSystemService) as GF_FileSystemService
+		_provider.configure(fs, _path_resolver.get_save_root(), _log)
 	return GF_OperationResult.ok()
 
 

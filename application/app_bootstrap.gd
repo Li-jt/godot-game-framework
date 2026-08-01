@@ -1,243 +1,169 @@
-## GF_AppBootstrap（Application 层启动基类）
-## 使用 Installer 模式装配 Framework 服务。
-## 提供 10 个可重写的生命周期 Hook，允许 Game 层和 Mod 在各安装阶段之间注入逻辑。
+## GF_AppBootstrap
+## 框架启动入口。Game 层继承此类，在 _assemble() 中按需注册服务。
 class_name GF_AppBootstrap
 extends Node
 
-enum BootState { COLD, LOADING, READY, FAILED }
-var state: BootState = BootState.COLD
-var _boot_modules: Array[GF_ModuleLifecycle] = []
-var _boot_nodes: Array[Node] = []
+var focus_navigation_default_mode: Control.FocusMode = Control.FOCUS_ALL
+var _services: Array = []
+var _builtins_installed: bool = false
+
+
+func _ready() -> void:
+	_ensure_builtins()
+	_assemble()
+	_init_all()
+	_on_ready()
+
+
+func _ensure_builtins() -> void:
+	if _builtins_installed:
+		return
+	_install_builtins()
+	_builtins_installed = true
+
 
 # ============================================================
-# 生命周期 Hook 方法（按执行顺序，子类可覆写）
+# 子类重写
 # ============================================================
 
-## 在任何 Installer 运行之前调用。
-func _on_before_any_install() -> void:
+func _assemble() -> void:
 	pass
 
-## GF_CoreInstaller 运行前调用。
-func _on_before_core_install() -> void:
+
+func _on_ready() -> void:
 	pass
 
-## GF_CoreInstaller 运行后调用。可以在此注册 Mod 的基础服务。
-func _on_after_core_install(p_deps: Dictionary) -> void:
-	pass
 
-## GF_EngineInstaller 运行前调用。
-func _on_before_engine_install(p_deps: Dictionary) -> void:
-	pass
+# ============================================================
+# 公开 API
+# ============================================================
 
-## GF_EngineInstaller 运行后调用。可以在此注册 Mod 的引擎级依赖。
-func _on_after_engine_install(p_deps: Dictionary) -> void:
-	pass
+func register(p_what) -> GF_OperationResult:
+	_ensure_builtins()
+	if p_what is Array:
+		for item in p_what:
+			var r: GF_OperationResult = register(item)
+			if r.is_fail(): return r
+		return GF_OperationResult.ok()
 
-## GF_EcsInstaller 运行前调用。
-func _on_before_ecs_install(p_deps: Dictionary) -> void:
-	pass
-
-## GF_EcsInstaller 运行后调用。可以在此注册 Mod 的 ECS 系统/组件。
-func _on_after_ecs_install(p_deps: Dictionary) -> void:
-	pass
-
-## GF_ServiceInstaller 运行前调用。
-func _on_before_service_install(p_deps: Dictionary) -> void:
-	pass
-
-## GF_ServiceInstaller 运行后调用。可以在此注册 Mod 的高级服务（UI/Audio/Input）。
-func _on_after_service_install(p_deps: Dictionary) -> void:
-	pass
-
-## 所有 Installer + verify 完成后调用。Game 层初始化入口。
-func _on_post_boot(context: GF_GameServices) -> GF_OperationResult:
+	if p_what == null:
+		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "服务不能为 null", "GF_AppBootstrap")
+	var cls: Variant = p_what.get_script()
+	for svc: Variant in _services:
+		if svc.get_script() == cls:
+			return GF_OperationResult.fail(
+				GF_OperationResult.ERR_CONFLICT,
+				"服务已注册: %s" % cls.resource_path,
+				"GF_AppBootstrap"
+			)
+	_services.append(p_what)
+	if p_what.has_method("_set_bootstrap"):
+		p_what._set_bootstrap(self)
 	return GF_OperationResult.ok()
 
-## 应用完全就绪后调用（GF_AppFlow 已切换到 MAIN_MENU）。Mod 初始化入口。
-func _on_app_ready(p_context: GF_GameServices) -> void:
-	pass
 
-# ============================================================
-# 启动流程
-# ============================================================
-
-
-func _ready() -> void: _run_boot_sequence()
+func service(p_class) -> Variant:
+	_ensure_builtins()
+	for svc in _services:
+		if is_instance_of(svc, p_class):
+			return svc
+	return null
 
 
-func _run_boot_sequence() -> void:
-	state = BootState.LOADING
-	_on_before_any_install()
-
-	var registry := GF_ServiceRegistry.new()
-
-	var core_deps := _boot_phase_core(registry)
-	if core_deps.is_empty(): return
-
-	var engine_deps := _boot_phase_engine(core_deps, registry)
-	if engine_deps.is_empty(): return
-
-	var ecs_deps := _boot_phase_ecs(engine_deps, registry)
-	if ecs_deps.is_empty(): return
-
-	var svc_deps := _boot_phase_services(engine_deps, ecs_deps, registry)
-	if svc_deps.is_empty(): return
-
-	_boot_phase_finalize(svc_deps, ecs_deps, registry)
-
-
-func _boot_phase_core(p_registry: GF_ServiceRegistry) -> Dictionary:
-	_on_before_core_install()
-	var result := GF_CoreInstaller.new().install({"_bootstrap": self, "_registry": p_registry})
-	if result.is_fail(): return {}
-	_on_after_core_install(result.data)
-	return result.data
-
-
-func _boot_phase_engine(p_core_deps: Dictionary, p_registry: GF_ServiceRegistry) -> Dictionary:
-	_on_before_engine_install(p_core_deps)
-	var result := GF_EngineInstaller.new().install({"_bootstrap": self, "_core_deps": p_core_deps, "_registry": p_registry})
-	if result.is_fail(): return {}
-	_on_after_engine_install(result.data)
-	return result.data
-
-
-func _boot_phase_ecs(p_engine_deps: Dictionary, p_registry: GF_ServiceRegistry) -> Dictionary:
-	_on_before_ecs_install(p_engine_deps)
-	var result := GF_EcsInstaller.new().install({"_bootstrap": self, "_engine_deps": p_engine_deps, "_registry": p_registry})
-	if result.is_fail(): return {}
-	_on_after_ecs_install(result.data)
-	return result.data
-
-
-func _boot_phase_services(p_engine_deps: Dictionary, p_ecs_deps: Dictionary, p_registry: GF_ServiceRegistry) -> Dictionary:
-	_on_before_service_install(p_engine_deps)
-	var result := GF_ServiceInstallerImpl.new().install({"_bootstrap": self, "_engine_deps": p_engine_deps, "_ecs_deps": p_ecs_deps, "_registry": p_registry})
-	if result.is_fail(): return {}
-	_on_after_service_install(result.data)
-	return result.data
-
-
-func _boot_phase_finalize(p_svc_deps: Dictionary, p_ecs_deps: Dictionary, p_registry: GF_ServiceRegistry) -> void:
-	var deps: Dictionary = p_svc_deps.duplicate()
-	deps.merge(p_ecs_deps)
-
-	var reg_result := p_registry.register_all(_build_registry_entries(deps))
-	if reg_result.is_fail(): _fail_boot("Registry", reg_result); return
-
-	var verify_result := p_registry.verify_pending()
-	if verify_result.is_fail(): _fail_boot("GF_ServiceRegistry.verify", verify_result); return
-
-	var log: GF_LogService = deps.log
-	log.info("Bootstrap", "服务注册中心已创建，当前注册 %d 个服务" % p_registry.count())
-
-	var context := _build_game_services(deps)
-
-	var post_result := _on_post_boot(context)
-	if post_result.is_fail(): _fail_boot("GameBootstrap", post_result); return
-
-	var app_flow: GF_AppFlow = deps.app_flow
-	var fr := app_flow.transition_to(GF_AppFlow.STATE_MAIN_MENU)
-	if fr.is_fail(): _fail_boot("GF_AppFlow.transition", fr); return
-
-	state = BootState.READY
-	log.info("Bootstrap", "启动完成")
-	_on_app_ready(context)
-
-
-func is_ready() -> bool: return state == BootState.READY
-func is_failed() -> bool: return state == BootState.FAILED
-
-
-# ============================================================
-# 公开 Installer 调用的 helpers
-# ============================================================
-
-func _fail_boot(p_source: String, p_result: GF_OperationResult) -> void:
-	state = BootState.FAILED
-	push_error("FATAL [%s]: %s" % [p_source, p_result.error.message])
-	_cleanup_on_fail()
-
-func _init_or_fail(p_module: GF_ModuleLifecycle) -> bool:
-	var r := p_module.init_module()
-	if r.is_fail(): _fail_boot(p_module.module_name, r); return false
-	return true
-
-func _cfg_or_fail(p_name: String, p_result: GF_OperationResult, p_module: GF_ModuleLifecycle = null) -> bool:
-	if p_result.is_fail():
-		if p_module != null: p_module.fail_configuration(p_result)
-		_fail_boot(p_name, p_result); return false
-	if p_module != null: p_module.finalize_configuration()
-	return true
-
-func _track_module(p_module: GF_ModuleLifecycle) -> void:
-	if not _boot_modules.has(p_module): _boot_modules.append(p_module)
-
-func _track_node(p_node: Node) -> void:
-	if not _boot_nodes.has(p_node): _boot_nodes.append(p_node)
-
-
-func _cleanup_on_fail() -> void:
-	for i in range(_boot_modules.size() - 1, -1, -1):
-		var m := _boot_modules[i]
-		if m != null and m.is_ready():
-			m.dispose_module()
-	for child in _boot_nodes:
-		if GF_RuntimeUtilities.is_node_valid(child):
-			child.queue_free()
-	_boot_modules.clear()
-	_boot_nodes.clear()
+## 发送命令。Command 是改变状态的一等公民入口。
+## 内部委托给 GF_RuntimeService 的策略执行。
+## 用法：var r := send_command(MyCommand.new())
+func send_command(p_command, p_context: Dictionary = {}) -> GF_OperationResult:
+	var runtime: GF_RuntimeService = service(GF_RuntimeService) as GF_RuntimeService
+	if runtime == null:
+		return GF_OperationResult.fail(GF_OperationResult.ERR_PRECONDITION, "GF_RuntimeService 未就绪", "GF_AppBootstrap")
+	var strategy_result: GF_OperationResult = runtime.get_command_strategy()
+	if strategy_result.is_fail():
+		return strategy_result
+	var strategy = strategy_result.data
+	return strategy.execute(p_command, p_context)
 
 
 # ============================================================
 # 内部
 # ============================================================
 
-func _build_registry_entries(p_deps: Dictionary) -> Array:
-	return [
-		[GF_ServiceRegistry.KEY_RUNTIME,       p_deps.runtime_svc],
-		[GF_ServiceRegistry.KEY_PATH_RESOLVER,  p_deps.path_resolver],
-		[GF_ServiceRegistry.KEY_FILE_SYSTEM,    p_deps.file_system],
-		[GF_ServiceRegistry.KEY_EVENT_BUS,      p_deps.event_bus],
-		[GF_ServiceRegistry.KEY_LOCALIZATION,   p_deps.loc_service],
-		[GF_ServiceRegistry.KEY_DEBUG,          p_deps.debug_service],
-		[GF_ServiceRegistry.KEY_FLOW,           p_deps.app_flow],
-		[GF_ServiceRegistry.KEY_SAVE,           p_deps.save_service],
-		[GF_ServiceRegistry.KEY_CONFIG_SERVICE, p_deps.config_svc],
-		[GF_ServiceRegistry.KEY_RESOURCE,       p_deps.resource_svc],
-		[GF_ServiceRegistry.KEY_ASSET_LOADING,  p_deps.asset_loading],
-		[GF_ServiceRegistry.KEY_THREADING,      p_deps.threading_svc],
-		[GF_ServiceRegistry.KEY_SCENE_FACTORY,  p_deps.scene_factory],
-		[GF_ServiceRegistry.KEY_UI,             p_deps.ui_service],
-		[GF_ServiceRegistry.KEY_SCENE_HOST,     p_deps.scene_host],
-		[GF_ServiceRegistry.KEY_SCHEDULER,      p_deps.scheduler],
-		[GF_ServiceRegistry.KEY_INPUT,          p_deps.input_service],
-		[GF_ServiceRegistry.KEY_INPUT_ADAPTER,  p_deps.input_adapter],
-		[GF_ServiceRegistry.KEY_AUDIO,          p_deps.audio_service],
-		[GF_ServiceRegistry.KEY_AUDIO_RUNTIME,  p_deps.audio_runtime],
-		[GF_ServiceRegistry.KEY_LOG,            p_deps.log],
-		[GF_ServiceRegistry.KEY_ECS_WORLD,      p_deps.ecs_world],
-		[GF_ServiceRegistry.KEY_ECS_SCHEDULER,  p_deps.ecs_scheduler],
-	]
+func _install_builtins() -> void:
+	_add_builtin(GF_LogService.new())
+	_add_builtin(GF_EventBus.new())
+	_add_builtin(GF_PathResolver.new())
 
-func _build_game_services(p_deps: Dictionary) -> GF_GameServices:
-	var s := GF_GameServices.new()
-	s.log = p_deps.log
-	s.scene_host = p_deps.scene_host
-	s.save_service = p_deps.save_service
-	s.input = p_deps.input_service
-	s.ui = p_deps.ui_service
-	s.audio = p_deps.audio_service
-	s.config_service = p_deps.config_svc
-	s.resource = p_deps.resource_svc
-	s.event_bus = p_deps.event_bus
-	s.loc = p_deps.loc_service
-	s.debug = p_deps.debug_service
-	s.app_flow = p_deps.app_flow
-	s.scheduler = p_deps.scheduler
-	s.runtime = p_deps.runtime_svc
-	s.threading = p_deps.threading_svc
-	s.ecs_world = p_deps.ecs_world
-	s.ecs_scheduler = p_deps.ecs_scheduler
-	s.file_system = p_deps.file_system
-	return s
+	var scheduler: GF_Scheduler = GF_Scheduler.new()
+	scheduler.name = "GF_Scheduler"
+	add_child(scheduler)
+	_add_builtin(scheduler)
+
+	_add_builtin(GF_FileSystemService.new())
+	_add_builtin(GF_RuntimeService.new())
+
+
+func _add_builtin(p_service) -> void:
+	_services.append(p_service)
+	if p_service.has_method("_set_bootstrap"):
+		p_service._set_bootstrap(self)
+
+
+func _init_all() -> void:
+	for svc: Variant in _services:
+		if svc is GF_ModuleLifecycle and not svc.is_ready():
+			var r: GF_OperationResult = svc.init_module()
+			if r.is_fail():
+				push_error("GF_AppBootstrap: init 失败")
+
+	var sorted: Array = _topo_sort()
+
+	for svc: Variant in sorted:
+		if svc is GF_ModuleLifecycle:
+			if svc.has_method("configure"):
+				svc.configure()
+			svc.finalize_configuration()
+
+
+func _topo_sort() -> Array:
+	var in_degree: Dictionary = {}
+	var deps_graph: Dictionary = {}
+
+	for svc: Variant in _services:
+		var deps: Array = svc.dependencies() if svc.has_method("dependencies") else []
+		deps_graph[svc] = deps
+		if not in_degree.has(svc):
+			in_degree[svc] = 0
+
+		for dep_class in deps:
+			var dep_svc: Variant = _find_svc_by_class(dep_class)
+			if dep_svc == null:
+				push_warning("GF_AppBootstrap: dep missing")
+				continue
+			in_degree[svc] = in_degree.get(svc, 0) + 1
+
+	var queue: Array = []
+	for svc: Variant in _services:
+		if in_degree.get(svc, 0) == 0:
+			queue.append(svc)
+
+	var result: Array = []
+	while not queue.is_empty():
+		var svc: Variant = queue.pop_front()
+		result.append(svc)
+
+		for other in deps_graph:
+			var other_deps: Array = deps_graph[other]
+			for dep_class in other_deps:
+				if is_instance_of(svc, dep_class):
+					in_degree[other] = in_degree[other] - 1
+					if in_degree[other] == 0:
+						queue.append(other)
+
+	return result
+
+
+func _find_svc_by_class(p_class) -> Variant:
+	for s: Variant in _services:
+		if is_instance_of(s, p_class):
+			return s
+	return null

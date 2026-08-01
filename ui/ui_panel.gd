@@ -4,11 +4,11 @@
 ## 生命周期（由 GF_UIService 调用，子类重写带下划线的方法）：
 ##
 ##   destroy 策略（默认）：
-##     实例化 → ctx 注入 → _on_factory_init(data) → open(data) → _on_open(data)
+##     实例化 → _bootstrap 注入 → _on_factory_init(data) → open(data) → _on_open(data)
 ##     close() → _on_close() → queue_free
 ##
 ##   cache 策略：
-##     首次实例化 → ctx 注入 → open(data) → _on_open(data)
+##     首次实例化 → _bootstrap 注入 → open(data) → _on_open(data)
 ##     关闭 → _on_hide() → hide（留在内存）
 ##     再次 open(data) → _on_reopen(data) → show
 ##     缓存满被回收 → _on_close() → queue_free
@@ -20,7 +20,7 @@
 ##
 ##   func _on_open(p_data: Dictionary) -> void:
 ##       $Label.text = str(p_data.get("id", ""))
-##       ctx.log.info("面板打开")  # 直接使用 self.ctx
+##       _bootstrap.service(GF_LogService).info("面板打开")
 ##   [/codeblock]
 class_name GF_UIPanel
 extends Control
@@ -43,9 +43,9 @@ func set_focus_config(p_mode: Control.FocusMode, p_default_focus: NodePath) -> v
 	_default_focus_path = p_default_focus
 
 
-## GF_GameServices 上下文。由 GF_UIService 在面板实例化后自动注入。
-## 子类在 _on_open / _on_reopen 中可直接使用。
-var ctx: GF_UiContext = null
+## GF_AppBootstrap 引用。由 GF_UIService 在面板实例化后自动注入。
+## 子类在 _on_open / _on_reopen 中通过 _bootstrap.service(GF_XxxService) 获取所需服务。
+var _bootstrap = null
 
 
 ## GF_SceneFactory 钩子：实例化后自动调用。p_data 为 GF_SceneFactory.create() 传入的 init_data。
@@ -92,7 +92,8 @@ func is_pointer_over_game_input_blocking_area(p_global_mouse_pos: Vector2) -> bo
 
 ## 根据全局配置和面板定义，递归设置子控件的 focus_mode，并自动聚焦 default_focus。
 func _apply_focus_config() -> void:
-	var cfg: Control.FocusMode = ctx.focus_navigation_default_mode
+	# 全局焦点默认值（从 Bootstrap 读取），面板通过 _focus_mode 只能降级
+	var cfg: Control.FocusMode = _bootstrap.focus_navigation_default_mode if _bootstrap != null else Control.FOCUS_ALL
 	var mode: Control.FocusMode = mini(cfg, _focus_mode)
 	if mode == Control.FOCUS_NONE:
 		return

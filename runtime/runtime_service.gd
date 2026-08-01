@@ -27,8 +27,11 @@ func _on_init() -> GF_OperationResult:
 ## 配置运行时模式。默认 LOCAL。
 ## Game 层可通过 Bootstrap Hook 覆盖：
 ##   runtime_svc.configure(GF_RuntimeMode.Mode.REMOTE)
-func configure(p_mode: GF_RuntimeMode.Mode = GF_RuntimeMode.Mode.LOCAL) -> GF_OperationResult:
-	_mode = p_mode
+
+func dependencies() -> Array:
+	return []
+
+func configure() -> GF_OperationResult:
 	return GF_OperationResult.ok()
 
 

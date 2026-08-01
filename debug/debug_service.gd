@@ -31,9 +31,12 @@ func _on_init() -> GF_OperationResult:
 
 
 ## 配置调试服务。默认跟随 Godot 调试模式。
-func configure(p_enabled: bool = OS.is_debug_build(), p_log: GF_LogService = null) -> GF_OperationResult:
-	enabled = p_enabled
-	_log = p_log
+
+func dependencies() -> Array:
+	return [GF_LogService]
+
+func configure() -> GF_OperationResult:
+	_log = _bootstrap.service(GF_LogService) as GF_LogService
 	return GF_OperationResult.ok()
 
 

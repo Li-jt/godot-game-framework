@@ -11,6 +11,12 @@ var _gesture: GF_InputGestureEngine = null
 var _rebind: GF_InputRebindService = null
 
 
+func _set_bootstrap(p_bs) -> void:
+	_bootstrap = p_bs
+	if _bootstrap.service(GF_InputAdapter) == null:
+		_bootstrap.register(GF_InputAdapter.new())
+
+
 func _on_init() -> GF_OperationResult:
 	_resolver = GF_ActionResolver.new()
 	_policy = GF_InputPolicy.new()
@@ -22,7 +28,11 @@ func _on_init() -> GF_OperationResult:
 	return GF_OperationResult.ok()
 
 
-func configure(_p_adapter = null) -> GF_OperationResult:
+func dependencies() -> Array:
+	return [GF_InputAdapter]
+
+
+func configure() -> GF_OperationResult:
 	return GF_OperationResult.ok()
 
 

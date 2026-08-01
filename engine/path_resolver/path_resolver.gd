@@ -25,8 +25,7 @@ var save_root: String = "user://saves/"
 var log_root: String = "user://logs/"
 var cache_root: String = "user://cache/"
 
-
-## 显式配置各路径。所有参数有默认值。
+式配置各路径。所有参数有默认值。
 func configure(p_resource_base: String = "content", p_save_root: String = "saves", p_cache_root: String = "cache", p_log_root: String = "logs") -> GF_OperationResult:
 	if p_resource_base.is_empty():
 		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "configure: resource_base 不能为空", "GF_PathResolver")
@@ -42,7 +41,6 @@ func configure(p_resource_base: String = "content", p_save_root: String = "saves
 	cache_root = _to_user(p_cache_root)
 	return GF_OperationResult.ok()
 
-
 # ============================================================
 # 路径获取
 # ============================================================
@@ -50,22 +48,17 @@ func configure(p_resource_base: String = "content", p_save_root: String = "saves
 func get_config_root() -> String:
 	return config_root
 
-
 func get_resource_root() -> String:
 	return resource_root
-
 
 func get_save_root() -> String:
 	return save_root
 
-
 func get_log_root() -> String:
 	return log_root
 
-
 func get_cache_root() -> String:
 	return cache_root
-
 
 # ============================================================
 # 工具方法
@@ -78,16 +71,13 @@ func ensure_dir(p_path: String) -> bool:
 	var err := DirAccess.make_dir_recursive_absolute(p_path)
 	return err == OK
 
-
 ## 在 res:// 下拼接路径并确保以 / 结尾
 func res_path(p_relative: String) -> String:
 	return _to_res(p_relative)
 
-
 ## 在 user:// 下拼接路径并确保以 / 结尾
 func user_path(p_relative: String) -> String:
 	return _to_user(p_relative)
-
 
 ## 路径标准化：去开头的 `./`、去 `/./`、合并 `//`、统一斜杠。
 ## 注意：保护 res:// 和 user:// 前缀不被误修改。
@@ -109,7 +99,6 @@ static func normalize(p_path: String) -> String:
 		s = s.replace("/./", "/")
 	s = s.strip_edges()
 	return prefix + s
-
 
 ## 校验路径未越出指定根目录。包含 `../` 的路径会被拒绝。
 ## 自动确保 p_root 以 / 结尾以便 begins_with 比较。
@@ -133,7 +122,6 @@ static func ensure_under_root(p_path: String, p_root: String) -> GF_OperationRes
 		)
 	return GF_OperationResult.ok()
 
-
 # ============================================================
 # 内部
 # ============================================================
@@ -142,11 +130,9 @@ func _to_res(p_relative: String) -> String:
 	var cleaned := _strip_dot_slash(p_relative)
 	return "res://%s/" % cleaned if not cleaned.ends_with("/") else "res://%s" % cleaned
 
-
 func _to_user(p_relative: String) -> String:
 	var cleaned := _strip_dot_slash(p_relative)
 	return "user://%s/" % cleaned if not cleaned.ends_with("/") else "user://%s" % cleaned
-
 
 func _strip_dot_slash(p_path: String) -> String:
 	var s := p_path.strip_edges()

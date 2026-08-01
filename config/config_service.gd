@@ -37,13 +37,13 @@ func _on_init() -> GF_OperationResult:
 	return GF_OperationResult.ok()
 
 
-func configure(p_file_system: GF_FileSystemService, p_log: GF_LogService) -> GF_OperationResult:
-	if p_file_system == null:
-		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "configure: file_system 不能为 null", module_name)
-	if p_log == null:
-		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "configure: log 不能为 null", module_name)
-	_file_system = p_file_system
-	_log = p_log
+
+func dependencies() -> Array:
+	return [GF_FileSystemService, GF_LogService]
+
+func configure() -> GF_OperationResult:
+	_file_system = _bootstrap.service(GF_FileSystemService) as GF_FileSystemService
+	_log = _bootstrap.service(GF_LogService) as GF_LogService
 	return GF_OperationResult.ok()
 
 

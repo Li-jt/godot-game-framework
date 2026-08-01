@@ -1,88 +1,173 @@
 ## GF_SceneHost
-## 场景宿主。管理持久挂载点、相机和 UI 层级，协调场景切换。
+## 场景宿主。管理相机、UI 层级和场景切换。
 ##
-## 节点结构定义在 scene_host.tscn 中，编辑器可直接查看和调整。
+## 节点树可通过两种方式提供：
+##   1. @export 注入：用户在编辑器里建好节点，拖到 SceneHost 的导出变量槽位
+##   2. 代码默认：什么都不设，框架在 _ready() 中自动建一棵默认树
 ##
-## 场景树：
-##   Main (GameBootstrap)
-##   └── GF_SceneHost
-##       ├── GF_WorldRoot   (Node2D)     — 游戏世界挂载点，受 GameCamera 影响
-##       ├── GameCamera  (Camera2D)   — 游戏世界相机（用户可拖动/缩放）
-##       └── UiCanvas    (CanvasLayer) — UI 层（独立于游戏相机，固定屏幕渲染）
-##           └── UIRoot  (Control)
-##               ├── HudLayer
-##               ├── ScreenLayer
-##               ├── PopupLayer
-##               ├── TooltipLayer
-##               ├── SystemLayer
-##               └── DebugLayer
+## 默认场景树：
+##   GF_SceneHost
+##   ├── WorldMount (Node2D)
+##   ├── GameCamera (Camera2D)
+##   └── UiCanvas (CanvasLayer)
+##       └── UIRoot (Control)
+##           ├── HudLayer
+##           ├── ScreenLayer
+##           ├── PopupLayer
+##           ├── TooltipLayer
+##           ├── SystemLayer
+##           └── DebugLayer
 class_name GF_SceneHost
 extends Node
 
-var world_root: Node2D
-var game_camera: Camera2D
-var ui_canvas: CanvasLayer
-var ui_root: Control
+# ============================================================
+# @export — 用户可在编辑器注入，不填则框架自动创建
+# ============================================================
 
-var hud_layer: Control
-var screen_layer: Control
-var popup_layer: Control
-var tooltip_layer: Control
-var system_layer: Control
-var debug_layer: Control
+@export var world_mount: Node2D
+@export var game_camera: Camera2D
+@export var ui_canvas: CanvasLayer
+@export var ui_root: Control
 
+@export var hud_layer: Control
+@export var screen_layer: Control
+@export var popup_layer: Control
+@export var tooltip_layer: Control
+@export var system_layer: Control
+@export var debug_layer: Control
+
+
+# ============================================================
+# 内部状态
+# ============================================================
+
+var _bootstrap = null
 var _scene_factory: GF_SceneFactory = null
 var _log: GF_LogService = null
+var _ui_layers: Dictionary = {}
+var _auto_built: bool = false
 
-## 世界上下文。Game 层通过 set_world_context() 注入，后续所有世界加载自动传入。
-var _world_context: GF_GameServices = null
+## 世界根节点引用（兼容旧名 world_root）
+var world_root: Node2D:
+	get: return world_mount
+
+var _world_context = null
 
 
-func configure(p_scene_factory: GF_SceneFactory, p_log: GF_LogService) -> GF_OperationResult:
-	if p_scene_factory == null:
-		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "configure: scene_factory 不能为 null", name)
-	if p_log == null:
-		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "configure: log 不能为 null", name)
-	_scene_factory = p_scene_factory
-	_log = p_log
+# ============================================================
+# 生命周期
+# ============================================================
+
+func _set_bootstrap(p_bs) -> void:
+	_bootstrap = p_bs
+
+
+func dependencies() -> Array:
+	return [GF_SceneFactory, GF_LogService]
+
+
+func configure() -> GF_OperationResult:
+	_scene_factory = _bootstrap.service(GF_SceneFactory) as GF_SceneFactory
+	_log = _bootstrap.service(GF_LogService) as GF_LogService
 	return GF_OperationResult.ok()
 
 
 func _ready() -> void:
-	world_root = $WorldMount as Node2D
-	game_camera = $GameCamera as Camera2D
+	_build_default_tree()
+
+
+## 构建默认节点树。如果用户已通过 @export 注入则跳过对应节点。
+func _build_default_tree() -> void:
+	if _auto_built:
+		return
+	_auto_built = true
+
+	if world_mount == null:
+		world_mount = _add_child_node(Node2D.new(), "WorldMount")
+
+	if game_camera == null:
+		game_camera = _add_child_node(Camera2D.new(), "GameCamera")
+		game_camera.position = Vector2(640, 360)
 	game_camera.enabled = true
 	game_camera.make_current()
 
-	ui_canvas = $UiCanvas as CanvasLayer
-	ui_root = $UiCanvas/UIRoot as Control
+	if ui_canvas == null:
+		ui_canvas = _add_child_node(CanvasLayer.new(), "UiCanvas")
+		ui_canvas.layer = 100
 
-	hud_layer = $UiCanvas/UIRoot/HudLayer as Control
-	screen_layer = $UiCanvas/UIRoot/ScreenLayer as Control
-	popup_layer = $UiCanvas/UIRoot/PopupLayer as Control
-	tooltip_layer = $UiCanvas/UIRoot/TooltipLayer as Control
-	system_layer = $UiCanvas/UIRoot/SystemLayer as Control
-	debug_layer = $UiCanvas/UIRoot/DebugLayer as Control
+	if ui_root == null:
+		ui_root = _make_full_rect("UIRoot")
+		ui_canvas.add_child(ui_root)
+
+	_ensure_layer(&"hud",     hud_layer,     "HudLayer")
+	_ensure_layer(&"screen",  screen_layer,  "ScreenLayer")
+	_ensure_layer(&"popup",   popup_layer,   "PopupLayer")
+	_ensure_layer(&"tooltip", tooltip_layer, "TooltipLayer")
+	_ensure_layer(&"system",  system_layer,  "SystemLayer")
+	_ensure_layer(&"debug",   debug_layer,   "DebugLayer")
+
+
+func _ensure_layer(p_kind: StringName, p_exported: Control, p_default_name: String) -> void:
+	var layer := p_exported
+	if layer == null:
+		layer = _make_full_rect(p_default_name)
+		ui_root.add_child(layer)
+	_ui_layers[p_kind] = layer
+	match p_kind:
+		&"hud":     hud_layer = layer
+		&"screen":  screen_layer = layer
+		&"popup":   popup_layer = layer
+		&"tooltip": tooltip_layer = layer
+		&"system":  system_layer = layer
+		&"debug":   debug_layer = layer
+
+
+func _add_child_node(p_node: Node, p_name: String) -> Node:
+	p_node.name = p_name
+	add_child(p_node)
+	return p_node
+
+
+func _make_full_rect(p_name: String) -> Control:
+	var c := Control.new()
+	c.name = p_name
+	c.set_anchors_preset(Control.PRESET_FULL_RECT)
+	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return c
 
 
 func is_runtime_ready() -> bool:
-	return world_root != null and ui_root != null and hud_layer != null
+	return world_mount != null and ui_root != null and hud_layer != null
+
+
+# ============================================================
+# 自定义层级
+# ============================================================
+
+## 注册自定义 UI 层级。p_layer 必须是 ui_root 的子节点，按 add_child 顺序决定 z-order。
+func register_ui_layer(p_kind: StringName, p_layer: Control) -> GF_OperationResult:
+	if _ui_layers.has(p_kind):
+		return GF_OperationResult.fail(GF_OperationResult.ERR_CONFLICT, "层级已存在: %s" % p_kind, "GF_SceneHost")
+	if p_layer == null:
+		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "layer 不能为 null", "GF_SceneHost")
+	_ui_layers[p_kind] = p_layer
+	return GF_OperationResult.ok()
 
 
 # ============================================================
 # 世界上下文
 # ============================================================
 
-func set_world_context(p_ctx: GF_GameServices) -> void:
-	_world_context = p_ctx
+func set_world_context(p_bs) -> void:
+	_world_context = p_bs
 
 
 # ============================================================
-# 挂载点
+# 挂载点获取
 # ============================================================
 
 func get_world_root() -> Node2D:
-	return world_root
+	return world_mount
 
 
 func get_camera() -> Camera2D:
@@ -98,6 +183,10 @@ func get_ui_canvas() -> CanvasLayer:
 
 
 func get_ui_layer(p_kind: StringName) -> Control:
+	var layer: Control = _ui_layers.get(p_kind, null)
+	if layer != null:
+		return layer
+	# 回退：按内建常量匹配
 	match p_kind:
 		GF_UIPanelDef.KIND_HUD:     return hud_layer
 		GF_UIPanelDef.KIND_SCREEN:  return screen_layer
@@ -113,8 +202,8 @@ func get_ui_layer(p_kind: StringName) -> Control:
 # ============================================================
 
 func load_world(p_scene_path: String, p_data: Dictionary = {}) -> GF_OperationResult:
-	_clear_children(world_root)
-	return _load_into(world_root, p_scene_path, p_data)
+	_clear_children(world_mount)
+	return _load_into(world_mount, p_scene_path, p_data)
 
 
 func load_ui_panel(p_kind: StringName, p_scene_path: String, p_data: Dictionary = {}) -> GF_OperationResult:
@@ -122,10 +211,10 @@ func load_ui_panel(p_kind: StringName, p_scene_path: String, p_data: Dictionary 
 
 
 func unload_world() -> void:
-	for child in world_root.get_children():
+	for child in world_mount.get_children():
 		if child.has_method("_on_world_exit"):
 			child._on_world_exit()
-	_clear_children(world_root)
+	_clear_children(world_mount)
 	_log.info("GF_SceneHost", "世界已卸载")
 
 
@@ -135,26 +224,26 @@ func replace_world(p_scene_path: String, p_data: Dictionary = {}) -> GF_Operatio
 		return node_result
 
 	var new_node: Node = node_result.data
-	var old_root: Node = world_root.get_child(0) if world_root.get_child_count() > 0 else null
+	var old_root: Node = world_mount.get_child(0) if world_mount.get_child_count() > 0 else null
 
 	if new_node is GF_WorldRoot and _world_context != null:
 		var wr := new_node as GF_WorldRoot
-		wr.ctx = _world_context
+		wr._bootstrap = _world_context
 		wr._on_world_setup()
 
-	# 存档系统：注销旧世界 GF_ISaveable，收集新世界 GF_ISaveable
-	if _world_context != null and _world_context.save_service != null:
-		_world_context.save_service.on_world_switch(old_root, new_node)
+	if _world_context != null:
+		var save_svc = _bootstrap.service(GF_SaveService) if _bootstrap != null else null
+		if save_svc != null and save_svc.has_method("on_world_switch"):
+			save_svc.on_world_switch(old_root, new_node)
 
 	unload_world()
-
-	world_root.add_child(new_node)
+	world_mount.add_child(new_node)
 	_log.info("GF_SceneHost", "世界已切换: %s" % p_scene_path)
 	return GF_OperationResult.ok(new_node)
 
 
 func clear_world() -> void:
-	_clear_children(world_root)
+	_clear_children(world_mount)
 
 
 func clear_layer(p_kind: StringName) -> void:
@@ -164,12 +253,14 @@ func clear_layer(p_kind: StringName) -> void:
 func _load_into(p_target: Node, p_scene_path: String, p_data: Dictionary) -> GF_OperationResult:
 	var result := _scene_factory.create(p_scene_path, p_data)
 	if result.is_fail():
-		_log.error("GF_SceneHost", "加载场景失败: %s — %s" % [p_scene_path, result.error.message])
+		if _log != null:
+			_log.error("GF_SceneHost", "加载场景失败: %s — %s" % [p_scene_path, result.error.message])
 		return result
 
 	var node: Node = result.data
 	p_target.add_child(node)
-	_log.info("GF_SceneHost", "已加载: %s" % p_scene_path)
+	if _log != null:
+		_log.info("GF_SceneHost", "已加载: %s" % p_scene_path)
 	return GF_OperationResult.ok(node)
 
 
