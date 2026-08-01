@@ -257,24 +257,23 @@ func _get_parent_panel() -> GF_UIPanel:
 # 内部 handler
 # ════════════════════════════════════════════
 
-class _SlotDragHandler:
-extends GF_UIDragHandler
+class _SlotDragHandler extends GF_UIDragHandler:
 
-var _slot: GF_UIDragSlot = null
-var _data: Dictionary = {}
-var _icon: Texture2D = null
-var _offset: Vector2 = Vector2.ZERO
-var _ghost: GF_UIDragGhost = null
-
-
-func on_begin_drag(event: GF_UIDragEvent) -> void:
-	event.drag_data = _data.duplicate()
-	event.drag_data["_source_slot"] = _slot
-	if _icon != null:
-		_ghost = event.show_ghost_texture(_icon, _offset)
+	var _slot: GF_UIDragSlot = null
+	var _data: Dictionary = {}
+	var _icon: Texture2D = null
+	var _offset: Vector2 = Vector2.ZERO
+	var _ghost: GF_UIDragGhost = null
 
 
-func on_end_drag(event: GF_UIDragEvent) -> void:
-	if event.drop_receiver == null:
-		_slot.slot_drag_cancelled.emit(_slot)
-	_slot.slot_drag_end.emit(_slot, event.drop_receiver != null)
+	func on_begin_drag(event: GF_UIDragEvent) -> void:
+		event.drag_data = _data.duplicate()
+		event.drag_data["_source_slot"] = _slot
+		if _icon != null:
+			_ghost = event.show_ghost_texture(_icon, _offset)
+
+
+	func on_end_drag(event: GF_UIDragEvent) -> void:
+		if event.drop_receiver == null:
+			_slot.slot_drag_cancelled.emit(_slot)
+		_slot.slot_drag_end.emit(_slot, event.drop_receiver != null)
