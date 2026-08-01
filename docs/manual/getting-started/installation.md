@@ -91,13 +91,9 @@ your-game/
 │       ├── debug/                # 调试服务
 │       ├── network/              # 网络抽象
 │       ├── data_access/          # 数据访问
-│       ├── environment/          # AppConfig 加载
 │       ├── runtime/              # 运行时模式
 │       ├── scenes/               # 默认主场景
-│       ├── default_app_config.json  # 框架默认配置
 │       └── plugin.cfg            # 编辑器元信息
-├── config/                       # （可选）覆盖默认配置
-│   └── app_config.json
 ├── content/                      # 游戏资源
 └── scenes/                       # 你的主场景
 ```
@@ -125,23 +121,96 @@ run/main_scene="res://scenes/main.tscn"
 
 ---
 
-## 自定义配置（可选）
+## 升级框架
 
-框架自带默认配置，开箱即用。如需覆盖，在项目根目录创建 `config/app_config.json`，只写你要改的字段：
+### 更新到最新版本
 
-```json
-{
-  "app": {
-    "name": "My Awesome Game",
-    "version": "1.0.0"
-  },
-  "logging": {
-    "level": "Info"
-  }
-}
+```bash
+# submodule 方式
+cd addons/godot-game-framework
+git checkout main
+git pull origin main
+cd ../..
+git add addons/godot-game-framework
+git commit -m "chore: 更新框架"
+
+# 手动复制方式
+# 重新下载最新 ZIP，覆盖 addons/godot-game-framework/
 ```
 
-完整配置项参见[配置参考](../core-concepts/configuration.md)。
+> **注意**：更新前请查看 [CHANGELOG](https://github.com/Li-jt/godot-game-framework/blob/main/CHANGELOG.md) 中的破坏性变更。
+
+### v0.3 迁移指南
+
+v0.3 是一次破坏性更新。如果你从 v0.2.x 升级，需要修改以下内容。
+
+**1. Bootstrap API 变更**
+
+```gdscript
+# ❌ 旧（v0.2）
+class_name MyGame
+extends GF_AppBootstrap
+
+func _on_post_boot(context: GF_GameServices) -> GF_OperationResult:
+    context.log.info("MyGame", "启动")
+    context.ecs_scheduler.register_system(...)
+    return GF_OperationResult.ok()
+
+# ✅ 新（v0.3）
+class_name MyGame
+extends GF_AppBootstrap
+
+func _assemble() -> void:
+    register(GF_EcsWorld.new())
+    register(GF_EcsScheduler.new())
+    register(GF_SaveService.new())  # 不注册就不存在
+
+func _on_ready() -> void:
+    var log := service(GF_LogService) as GF_LogService
+    log.info("MyGame", "启动")
+    var sched := service(GF_EcsScheduler) as GF_EcsScheduler
+    sched.register_system(...)
+```
+
+**2. 服务获取方式变更**
+
+```gdscript
+# ❌ 旧 — GF_GameServices context 对象
+var log := context.log
+var world := context.ecs_world
+
+# ✅ 新 — class_name 引用直接获取
+var log := service(GF_LogService) as GF_LogService
+var world := service(GF_EcsWorld) as GF_EcsWorld
+```
+
+**3. 配置文件移除**
+
+```gdscript
+# ❌ 旧 — config/app_config.json 不存在了
+# ✅ 新 — 代码默认值，在 _assemble() 中按需覆盖
+func _assemble() -> void:
+    var log := service(GF_LogService) as GF_LogService
+    log.configure("Info", true, "user://my_logs")
+```
+
+**4. 删除的类**
+
+以下类已被删除，需要用新方式替代：
+
+| 旧类 | 替代 |
+|------|------|
+| `GF_GameServices` | `service(GF_XxxService)` |
+| `GF_UiContext` | `_bootstrap.service(GF_XxxService)` |
+| `GF_SaveContext` | `_bootstrap.service(GF_XxxService)` |
+| `GF_GameplayContext` | `_bootstrap.service(GF_XxxService)` |
+| `GF_ServiceRegistry` | `GF_AppBootstrap.register()/service()` |
+| `GF_AppConfig` / `GF_AppConfigLoader` | 代码默认值 |
+| `GF_UIPanel.ctx` | `GF_UIPanel._bootstrap` |
+
+**5. SceneHost UI 节点树**
+
+`default_main.tscn` 现在内置了完整的 UI 节点树。如果你有自己的主场景，建议参考 `default_main.tscn` 添加 SceneHost 节点及其层级。SceneHost 支持 `@export` 注入或自动创建默认树，详见 [UI 指南](../feature-guides/ui.md)。
 
 ---
 
