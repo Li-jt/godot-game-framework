@@ -228,14 +228,7 @@ func _assemble() -> void:
 
 框架附带了一个编辑器工具 addon，安装后可以在 FileSystem 面板中**右键 → 新建**，快速创建 8 种常用框架文件模板。
 
-### 一键安装
-
-| 平台 | 操作 |
-|------|------|
-| **macOS** | 在 Finder 中双击 `addons/godot-game-framework/scripts/mac/setup_editor_tools.command` |
-| **Windows** | 在资源管理器中双击 `addons\godot-game-framework\scripts\win\setup_editor_tools.bat` |
-
-### 手动安装
+### 安装
 
 ```bash
 cp -r addons/godot-game-framework/addons/gf_editor_tools addons/gf_editor_tools
