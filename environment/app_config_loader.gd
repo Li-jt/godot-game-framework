@@ -19,7 +19,7 @@ func load(p_project_root: String, p_env_override: String = "") -> GF_OperationRe
 	var env := _resolve_env(p_env_override)
 
 	# --- framework 自带默认 app_config.json ---
-	var default_json := _load_json(p_project_root + "addons/godot-game-framework/default_app_config.json")
+	var default_json := _load_json(p_project_root + "default_app_config.json")
 	if default_json.is_ok():
 		_apply_json(config, default_json.data)
 

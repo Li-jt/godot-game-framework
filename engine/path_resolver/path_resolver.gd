@@ -86,7 +86,7 @@ func get_cache_root() -> String:
 # ============================================================
 
 ## 解析 GF_SceneHost 场景路径。优先取配置覆盖值，否则返回默认路径。
-func resolve_scene_host_path(p_default: String = "res://addons/godot-game-framework/engine/scene_host/scene_host.tscn") -> String:
+func resolve_scene_host_path(p_default: String = "res://engine/scene_host/scene_host.tscn") -> String:
 	if _app_config != null:
 		var override := _app_config.path_overrides.scene_host
 		if not override.is_empty():
