@@ -31,10 +31,8 @@ func get_or_create_storage(p_type_id: int) -> GF_IEcsStorage:
 	return storage
 
 
-## 通过 load() 创建 Archetype 存储实例（避免 class_name 解析顺序问题）。
 func _create_archetype_storage(p_type_id: int) -> GF_IEcsStorage:
-	var cls = load("res://ecs/storage/ecs_archetype_storage.gd")
-	return cls.new(p_type_id)
+	return GF_EcsArchetypeStorage.new(p_type_id)
 
 
 ## 移除指定类型的所有存储数据。

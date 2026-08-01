@@ -154,11 +154,11 @@ func is_failed() -> bool: return state == BootState.FAILED
 
 
 ## 创建 GF_AppConfig。Game 层可覆写此方法注入自定义配置。
-## 默认行为：从 config/app_config.json 加载（向后兼容）。
+## 默认行为：优先加载框架默认配置，再合并用户 config/app_config.json。
 func _create_app_config() -> GF_AppConfig:
 	var r := GF_AppConfigLoader.new().load("res://")
 	if r.is_fail():
-		push_error("FATAL: 配置加载失败: " + r.error.message)
+		push_error("配置加载失败，使用默认值: " + r.error.message)
 	return r.data if r.is_ok() else GF_AppConfig.new()
 
 

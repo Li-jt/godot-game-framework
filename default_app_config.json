@@ -1,0 +1,25 @@
+{
+  "_comment": "Godot Game Framework 默认配置。用户可在项目根目录的 config/app_config.json 中覆盖任意字段。",
+  "app": {
+    "name": "My Game",
+    "environment": "dev",
+    "version": "0.1.0"
+  },
+  "runtime": {
+    "mode": "Local"
+  },
+  "resource": {
+    "basePath": "./content"
+  },
+  "save": {
+    "localSaveRoot": "./saves",
+    "localCacheRoot": "./cache"
+  },
+  "logging": {
+    "level": "Debug",
+    "logRoot": "./logs"
+  },
+  "debug": {
+    "enableDebugPanel": true
+  }
+}

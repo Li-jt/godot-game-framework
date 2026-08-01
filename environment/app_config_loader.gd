@@ -18,11 +18,17 @@ func load(p_project_root: String, p_env_override: String = "") -> GF_OperationRe
 	var config := GF_AppConfig.new()
 	var env := _resolve_env(p_env_override)
 
-	# --- app_config.json（必须存在） ---
+	# --- framework 自带默认 app_config.json ---
+	var default_json := _load_json(p_project_root + "addons/godot-game-framework/default_app_config.json")
+	if default_json.is_ok():
+		_apply_json(config, default_json.data)
+
+	# --- 用户项目 config/app_config.json（可选，覆盖默认值） ---
 	var base_json := _load_json(p_project_root + "config/app_config.json")
-	if base_json.is_fail():
+	if base_json.is_ok():
+		_apply_json(config, base_json.data)
+	elif base_json.status_code != GF_OperationResult.ERR_NOT_FOUND:
 		return base_json
-	_apply_json(config, base_json.data)
 
 	# --- app_config.{env}.json（可选） ---
 	var env_json := _load_json(p_project_root + "config/app_config.%s.json" % env)

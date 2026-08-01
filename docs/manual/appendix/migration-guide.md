@@ -31,7 +31,7 @@
 
 ```bash
 # 进入游戏项目的 framework 子模块目录
-cd src/framework
+cd addons/godot-game-framework
 
 # 拉取最新版本
 git fetch origin
@@ -41,7 +41,7 @@ git checkout v0.3.0  # 或 main 分支最新
 cd ../..
 
 # 提交子模块更新
-git add src/framework
+git add addons/godot-game-framework
 git commit -m "chore: 升级 framework 到 v0.3.0"
 ```
 
@@ -49,15 +49,15 @@ git commit -m "chore: 升级 framework 到 v0.3.0"
 
 ```bash
 # 删除旧版本
-rm -rf src/framework/
+rm -rf addons/godot-game-framework/
 
 # 复制新版本
-cp -r /path/to/godot-game-framework/ src/framework/
+cp -r /path/to/godot-game-framework/ addons/godot-game-framework/
 
 # 排除不需要的目录
-rm -rf src/framework/tests/
-rm -rf src/framework/docs/
-rm -rf src/framework/.git/
+rm -rf addons/godot-game-framework/tests/
+rm -rf addons/godot-game-framework/docs/
+rm -rf addons/godot-game-framework/.git/
 ```
 
 ### 升级后检查清单

@@ -65,7 +65,7 @@ framework/
 
 ## 使用者推荐目录树
 
-以下是推荐的游戏项目目录结构。游戏代码放在 `src/game/` 下，框架放在 `src/framework/` 下，二者物理分离。
+以下是推荐的游戏项目目录结构。游戏代码放在 `src/game/` 下，框架放在 `addons/godot-game-framework/` 下，二者物理分离。
 
 ```text
 your-game/
@@ -73,8 +73,12 @@ your-game/
 ├── .gitignore
 ├── .gitmodules                         # submodule 引用（如果用 submodule）
 │
-├── config/
-│   └── app_config.json                 # 应用配置（详见配置章节）
+├── config/                             # （可选）覆盖默认配置
+│   └── app_config.json
+│
+├── addons/
+│   └── godot-game-framework/           # 框架代码（submodule 或复制）
+│       └── ...                         # 内部目录结构不变
 │
 ├── content/                            # 游戏资产（非代码）
 │   ├── scenes/                         # .tscn 场景文件
@@ -86,17 +90,14 @@ your-game/
 │   │   ├── inventory_panel.tscn
 │   │   └── dialog_panel.tscn
 │   ├── defs/                           # 游戏内容定义（JSON）
-│   │   ├── items.json                  # 物品定义
-│   │   ├── buildings.json              # 建筑定义
-│   │   └── recipes.json                # 配方定义
+│   │   ├── items.json
+│   │   ├── buildings.json
+│   │   └── recipes.json
 │   ├── textures/                       # 贴图
 │   ├── audio/                          # 音频
 │   └── fonts/                          # 字体
 │
 ├── src/
-│   ├── framework/                      # 框架代码（submodule 或复制）
-│   │   └── ...                         # 内部目录结构不变
-│   │
 │   ├── application/                    # 应用层
 │   │   └── my_game_bootstrap.gd        # 你的 AppBootstrap 子类
 │   │
@@ -131,15 +132,15 @@ your-game/
 
 ## 各目录职责说明
 
-### `config/`
+### `config/`（可选）
 
-存放应用级别的 JSON 配置文件。最核心的是 `app_config.json`，定义游戏名、版本、日志级别、运行模式等。详见[配置文件](configuration.md)。
+框架自带默认配置，`config/` 目录仅在需要覆盖默认值时创建。`app_config.json` 定义游戏名、版本、日志级别、运行模式等，只需写要覆盖的字段。详见[配置文件](configuration.md)。
 
 ### `content/`
 
 存放所有游戏资产——场景、贴图、音频、字体、以及 JSON 格式的游戏内容定义（物品、建筑、配方等）。资产文件不包含代码逻辑。`defs/` 下的 JSON 文件通过 `GF_ContentDefRegistry` 加载和查询。
 
-### `src/framework/`
+### `addons/godot-game-framework/`
 
 框架代码。你不应该修改这里的任何文件。更新时替换整个目录即可。
 
@@ -172,7 +173,7 @@ your-game/
 
 ## 关键原则
 
-1. **框架代码不修改**：`src/framework/` 是第三方代码，更新时直接替换整个目录。
+1. **框架代码不修改**：`addons/godot-game-framework/` 是第三方代码，更新时直接替换整个目录。
 2. **游戏代码在 `game/` 下**：所有你自己写的逻辑放在 `src/game/`，与框架物理分离。
 3. **资产在 `content/` 下**：贴图、音频、场景文件等不包含代码逻辑。
 4. **配置在 `config/` 下**：JSON 配置文件，运行时加载，不编译。

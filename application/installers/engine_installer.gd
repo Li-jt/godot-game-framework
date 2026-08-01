@@ -3,7 +3,7 @@
 class_name GF_EngineInstaller
 extends GF_ServiceInstaller
 
-const SCENE_HOST_PATH := "res://src/framework/engine/scene_host/scene_host.tscn"
+const SCENE_HOST_PATH := "res://addons/godot-game-framework/engine/scene_host/scene_host.tscn"
 
 
 ## 返回 Dictionary 并合并 p_core_deps

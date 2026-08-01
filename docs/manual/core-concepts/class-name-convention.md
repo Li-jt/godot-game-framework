@@ -12,7 +12,7 @@ var world := GF_EcsWorld.new()
 var result := GF_OperationResult.ok()
 
 # ❌ 错误：通过路径引用
-const EcsWorld = preload("res://src/framework/ecs/core/ecs_world.gd")
+const EcsWorld = preload("res://addons/godot-game-framework/ecs/core/ecs_world.gd")
 var world := EcsWorld.new()
 ```
 
