@@ -25,7 +25,7 @@ var save_root: String = "user://saves/"
 var log_root: String = "user://logs/"
 var cache_root: String = "user://cache/"
 
-## 显式配置各路径。所有参数有默认值。
+式配置各路径。所有参数有默认值。
 func configure(p_resource_base: String = "content", p_save_root: String = "saves", p_cache_root: String = "cache", p_log_root: String = "logs") -> GF_OperationResult:
 	if p_resource_base.is_empty():
 		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "configure: resource_base 不能为空", "GF_PathResolver")
@@ -61,7 +61,11 @@ func get_cache_root() -> String:
 	return cache_root
 
 # ============================================================
+<<<<<<< Updated upstream
 工具方法
+=======
+# 工具方法
+>>>>>>> Stashed changes
 # ============================================================
 
 ## 确保目录存在，返回是否成功（或已存在）

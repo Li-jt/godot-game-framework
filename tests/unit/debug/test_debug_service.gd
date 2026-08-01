@@ -16,10 +16,7 @@ func before_each() -> void:
 	_debug.module_name = "DebugService"
 	_debug.init_module()
 
-	var config := GF_AppConfig.DebugSection.new()
-	config.enable_debug_panel = true
-	config.show_prediction_state = true
-	_debug.configure(config, _log)
+	_debug.configure(true, _log)
 
 
 func after_each() -> void:
