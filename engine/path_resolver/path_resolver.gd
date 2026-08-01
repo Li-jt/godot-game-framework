@@ -61,11 +61,7 @@ func get_cache_root() -> String:
 	return cache_root
 
 # ============================================================
-# 工具方法
-# ============================================================
-
-at(ui): SceneHost 支持 .tscn 节点树 + default_main.tscn 包含完整UI层级)
-## 确保目录存在，返回是否成功（或已存在）
+功（或已存在）
 func ensure_dir(p_path: String) -> bool:
 	if DirAccess.dir_exists_absolute(p_path):
 		return true

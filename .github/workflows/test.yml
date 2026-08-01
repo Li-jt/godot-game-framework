@@ -1,0 +1,74 @@
+name: Test
+
+on:
+  push:
+    branches: [main, test]
+  pull_request:
+    branches: [main, test]
+
+jobs:
+  unit:
+    name: Unit Tests (Godot 4)
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Godot
+        uses: ./.github/actions/setup-godot
+        with:
+          version: "4.7"
+
+      - name: Prepare project
+        run: cp ci/project.godot project.godot
+
+      - name: Run unit tests
+        run: |
+          godot --headless --path . --quit-after 1000 \
+            -s addons/gut/gut_cmdln.gd \
+            -gdir=res://tests/unit/ \
+            -glog=1 \
+            -gexit
+
+      - name: Run integration tests
+        run: |
+          godot --headless --path . --quit-after 1000 \
+            -s addons/gut/gut_cmdln.gd \
+            -gdir=res://tests/integration/ \
+            -glog=1 \
+            -gexit
+
+      - name: Run contract tests
+        run: |
+          godot --headless --path . --quit-after 1000 \
+            -s addons/gut/gut_cmdln.gd \
+            -gdir=res://tests/contract/ \
+            -glog=1 \
+            -gexit
+
+  syntax:
+    name: Syntax Check
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Godot
+        uses: ./.github/actions/setup-godot
+        with:
+          version: "4.7"
+
+      - name: Prepare project
+        run: cp ci/project.godot project.godot
+
+      - name: Check for print/printerr in framework code
+        run: |
+          echo "=== 检查框架代码中是否有 print / printerr ==="
+          ! grep -rn "^\s*print\b\|^\s*printerr" \
+            --include="*.gd" \
+            --exclude-dir=addons \
+            --exclude-dir=tests \
+            logging/ application/ core/ ecs/ engine/ event/ flow/ input/ \
+            ui/ save/ config/ audio/ resource/ localization/ debug/ network/ data_access/ \
+            2>/dev/null || \
+            (echo "ERROR: 框架代码中发现 print/printerr，应使用 GF_LogService 或 push_error" && exit 1)
