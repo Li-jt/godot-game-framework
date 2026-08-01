@@ -16,7 +16,10 @@ func before_each() -> void:
 	_debug.module_name = "DebugService"
 	_debug.init_module()
 
-	_debug.configure(true, _log)
+	# 绕过 bootstrap 直接注入，避免内置 LogService 覆盖 fake
+	_debug._log = _log
+	_debug.enabled = true
+	_debug.command_trace_enabled = true
 
 
 func after_each() -> void:

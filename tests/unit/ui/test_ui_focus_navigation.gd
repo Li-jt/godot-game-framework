@@ -9,7 +9,7 @@ var _button2: Button
 
 func before_each() -> void:
 	_panel = GF_UIPanel.new()
-	_panel.ctx = GF_UiContext.new()
+	_panel._bootstrap = GF_AppBootstrap.new()
 	
 	add_child(_panel)
 
@@ -32,7 +32,7 @@ func after_each() -> void:
 # ============================================================
 
 func test_focus_all_sets_children_to_focus_all() -> void:
-	_panel.ctx.focus_navigation_default_mode = Control.FOCUS_ALL
+	_panel._bootstrap.focus_navigation_default_mode = Control.FOCUS_ALL
 	_panel._focus_mode = Control.FOCUS_ALL
 	_panel._apply_focus_config()
 
@@ -40,7 +40,7 @@ func test_focus_all_sets_children_to_focus_all() -> void:
 	assert_eq(_button2.focus_mode, Control.FOCUS_ALL)
 
 func test_focus_all_grab_focus_on_default() -> void:
-	_panel.ctx.focus_navigation_default_mode = Control.FOCUS_ALL
+	_panel._bootstrap.focus_navigation_default_mode = Control.FOCUS_ALL
 	_panel._focus_mode = Control.FOCUS_ALL
 	_panel._default_focus_path = NodePath("Btn1")
 	_panel._apply_focus_config()
@@ -54,7 +54,7 @@ func test_focus_all_grab_focus_on_default() -> void:
 # ============================================================
 
 func test_focus_click_sets_children_to_focus_click() -> void:
-	_panel.ctx.focus_navigation_default_mode = Control.FOCUS_CLICK
+	_panel._bootstrap.focus_navigation_default_mode = Control.FOCUS_CLICK
 	_panel._focus_mode = Control.FOCUS_CLICK
 	_panel._apply_focus_config()
 
@@ -66,7 +66,7 @@ func test_focus_click_sets_children_to_focus_click() -> void:
 # ============================================================
 
 func test_focus_none_leaves_children_unchanged_or_none() -> void:
-	_panel.ctx.focus_navigation_default_mode = Control.FOCUS_NONE
+	_panel._bootstrap.focus_navigation_default_mode = Control.FOCUS_NONE
 	_panel._focus_mode = Control.FOCUS_NONE
 	_panel._apply_focus_config()
 
@@ -80,7 +80,7 @@ func test_focus_none_leaves_children_unchanged_or_none() -> void:
 
 func test_panel_focus_mode_can_only_downgrade() -> void:
 	# 全局 FOCUS_ALL，面板 FOCUS_CLICK → 结果应是 FOCUS_CLICK
-	_panel.ctx.focus_navigation_default_mode = Control.FOCUS_ALL
+	_panel._bootstrap.focus_navigation_default_mode = Control.FOCUS_ALL
 	_panel._focus_mode = Control.FOCUS_CLICK
 	_panel._apply_focus_config()
 
@@ -88,7 +88,7 @@ func test_panel_focus_mode_can_only_downgrade() -> void:
 
 func test_panel_cannot_upgrade_beyond_global() -> void:
 	# 全局 FOCUS_CLICK，面板 FOCUS_ALL → 面板不能升级，实际生效 FOCUS_CLICK
-	_panel.ctx.focus_navigation_default_mode = Control.FOCUS_CLICK
+	_panel._bootstrap.focus_navigation_default_mode = Control.FOCUS_CLICK
 	_panel._focus_mode = Control.FOCUS_ALL
 	_panel._apply_focus_config()
 
@@ -99,7 +99,7 @@ func test_panel_cannot_upgrade_beyond_global() -> void:
 # ============================================================
 
 func test_empty_default_focus_does_nothing() -> void:
-	_panel.ctx.focus_navigation_default_mode = Control.FOCUS_ALL
+	_panel._bootstrap.focus_navigation_default_mode = Control.FOCUS_ALL
 	_panel._focus_mode = Control.FOCUS_ALL
 	_panel._default_focus_path = NodePath()  # empty
 	_panel._apply_focus_config()
@@ -108,7 +108,7 @@ func test_empty_default_focus_does_nothing() -> void:
 	assert_eq(_button1.focus_mode, Control.FOCUS_ALL)
 
 func test_invalid_default_focus_path_does_not_crash() -> void:
-	_panel.ctx.focus_navigation_default_mode = Control.FOCUS_ALL
+	_panel._bootstrap.focus_navigation_default_mode = Control.FOCUS_ALL
 	_panel._focus_mode = Control.FOCUS_ALL
 	_panel._default_focus_path = NodePath("NonExistent")
 	_panel._apply_focus_config()
@@ -121,7 +121,7 @@ func test_invalid_default_focus_path_does_not_crash() -> void:
 # ============================================================
 
 func test_reopen_applies_focus_config() -> void:
-	_panel.ctx.focus_navigation_default_mode = Control.FOCUS_ALL
+	_panel._bootstrap.focus_navigation_default_mode = Control.FOCUS_ALL
 	_panel._focus_mode = Control.FOCUS_ALL
 	_panel._default_focus_path = NodePath("Btn2")
 
