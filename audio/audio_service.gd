@@ -19,8 +19,6 @@
 class_name GF_AudioService
 extends GF_ModuleLifecycle
 
-const BUS_SCRIPT_PATH := "res://audio/audio_bus.gd"
-
 var _runtime: GF_AudioRuntime = null
 var _resource: GF_ResourceService = null
 var _log: GF_LogService = null
@@ -99,8 +97,7 @@ func stop_cue(p_id: String) -> void:
 func register_bus(p_name: String, p_channel: int) -> GF_OperationResult:
 	if _buses.has(p_name):
 		return GF_OperationResult.fail(GF_OperationResult.ERR_CONFLICT, "Bus 已存在: %s" % p_name, module_name)
-	var bus_script: GDScript = load(BUS_SCRIPT_PATH)
-	var bus = bus_script.new()
+	var bus := GF_AudioBus.new()
 	bus.bus_name = p_name
 	bus.channel = p_channel
 	bus.current_volume_db = 0.0
@@ -252,8 +249,7 @@ func _setup_default_buses() -> void:
 
 
 func _register_bus_internal(p_name: String, p_channel: int) -> void:
-	var bus_script: GDScript = load(BUS_SCRIPT_PATH)
-	var bus = bus_script.new()
+	var bus := GF_AudioBus.new()
 	bus.bus_name = p_name
 	bus.channel = p_channel
 	bus.current_volume_db = 0.0

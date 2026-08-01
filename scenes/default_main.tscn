@@ -1,0 +1,8 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://addons/godot-game-framework/scenes/default_bootstrap.gd" id="1_default_bootstrap"]
+
+[node name="Main" type="Node"]
+
+[node name="DefaultBootstrap" type="Node" parent="."]
+script = ExtResource("1_default_bootstrap")

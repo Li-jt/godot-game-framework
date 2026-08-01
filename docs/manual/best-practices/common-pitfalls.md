@@ -86,7 +86,7 @@ world.add_component(entity, &"Visual", {"sprite_id": "player_01"})
 
 ```gdscript
 # ❌ 错误：路径引用
-const InputService = preload("res://src/framework/input/input_service.gd")
+const InputService = preload("res://addons/godot-game-framework/input/input_service.gd")
 var service := InputService.new()
 
 # ✅ 正确：使用 class_name 全局引用

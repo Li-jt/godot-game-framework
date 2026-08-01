@@ -40,10 +40,10 @@
 # 方式一：Git Submodule（推荐）
 cd your-game
 git init   # 如果还不是 Git 仓库，先初始化
-git submodule add https://github.com/Li-jt/godot-game-framework.git src/framework
+git submodule add https://github.com/Li-jt/godot-game-framework.git addons/godot-game-framework
 
 # 方式二：直接复制
-cp -r godot-game-framework src/framework
+cp -r godot-game-framework addons/godot-game-framework
 ```
 
 ### 项目结构
@@ -52,7 +52,6 @@ cp -r godot-game-framework src/framework
 your-game/
 ├── project.godot
 ├── src/
-│   ├── framework/      # ← 框架（来自本仓库）
 │   ├── application/    # 你的 Application 层
 │   ├── game/           # 你的 Game 层（ECS 组件/系统/命令）
 │   └── shared/
@@ -60,15 +59,18 @@ your-game/
 │   ├── scenes/
 │   ├── ui/
 │   └── defs/
-└── config/
-    └── app_config.json
+├── config/             # （可选）覆盖默认配置
+│   └── app_config.json
+└── addons/
+    └── godot-game-framework/  # ← 框架（来自本仓库）
 ```
 
-### 启动流程
+### 启动
 
-1. 创建主场景，根节点挂载你的 `AppBootstrap` 子类
-2. 实现 `_on_post_boot(context: GameServices)` 注册 ECS 系统、游戏服务
-3. 框架自动处理配置加载、服务装配、状态机初始化
+1. 安装框架到 `addons/godot-game-framework/`
+2. 在 `project.godot` 中设置 `run/main_scene="res://addons/godot-game-framework/scenes/default_main.tscn"`
+3. 点击运行 — 框架自带默认配置，开箱即用
+4. 创建你自己的 `AppBootstrap` 子类来构建游戏逻辑
 
 ### 编辑器工具（可选）
 
@@ -96,7 +98,7 @@ your-game/
 ## 升级框架
 
 ```bash
-cd src/framework
+cd addons/godot-game-framework
 git pull origin main
 ```
 

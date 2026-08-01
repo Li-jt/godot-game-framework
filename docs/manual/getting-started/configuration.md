@@ -1,6 +1,6 @@
 # 配置文件
 
-框架通过 `config/app_config.json` 管理应用级配置。你的游戏项目需要在项目根目录下创建此文件。
+框架通过 `config/app_config.json` 管理应用级配置。框架自带默认配置（`default_app_config.json`），此文件仅在需要覆盖默认值时创建，只写你要改的字段即可。
 
 ## 完整示例
 
