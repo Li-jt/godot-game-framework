@@ -96,29 +96,28 @@ static func _find_ui_service(p_control: Control) -> GF_UIService:
 # 内部：轻量级 DragHandler
 # ═══════════════════════════════════════════════════
 
-class _QuickDragHandler:
-extends GF_UIDragHandler
+class _QuickDragHandler extends GF_UIDragHandler:
 
-var _data: Dictionary = {}
-var _icon: Texture2D = null
-var _offset: Vector2 = Vector2.ZERO
-var _ghost: GF_UIDragGhost = null
-var _on_begin: Callable
-var _on_end: Callable
-var _on_cancel: Callable
-
-
-func on_begin_drag(event: GF_UIDragEvent) -> void:
-	event.drag_data = _data
-	if _icon != null:
-		_ghost = event.show_ghost_texture(_icon, _offset)
-	if _on_begin.is_valid():
-		_on_begin.call()
+	var _data: Dictionary = {}
+	var _icon: Texture2D = null
+	var _offset: Vector2 = Vector2.ZERO
+	var _ghost: GF_UIDragGhost = null
+	var _on_begin: Callable
+	var _on_end: Callable
+	var _on_cancel: Callable
 
 
-func on_end_drag(event: GF_UIDragEvent) -> void:
-	if event.drop_receiver == null:
-		if _on_cancel.is_valid():
-			_on_cancel.call()
-	if _on_end.is_valid():
-		_on_end.call(event.drop_receiver != null)
+	func on_begin_drag(event: GF_UIDragEvent) -> void:
+		event.drag_data = _data
+		if _icon != null:
+			_ghost = event.show_ghost_texture(_icon, _offset)
+		if _on_begin.is_valid():
+			_on_begin.call()
+
+
+	func on_end_drag(event: GF_UIDragEvent) -> void:
+		if event.drop_receiver == null:
+			if _on_cancel.is_valid():
+				_on_cancel.call()
+		if _on_end.is_valid():
+			_on_end.call(event.drop_receiver != null)
