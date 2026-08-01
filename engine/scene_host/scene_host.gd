@@ -76,42 +76,36 @@ func _ready() -> void:
 	_build_default_tree()
 
 
-## 构建默认节点树。如果用户已通过 @export 注入则跳过对应节点。
+## 构建默认节点树。优先级：@export > .tscn 已有节点 > 代码创建
 func _build_default_tree() -> void:
 	if _auto_built:
 		return
 	_auto_built = true
 
-	if world_mount == null:
-		world_mount = _add_child_node(Node2D.new(), "WorldMount")
-
-	if game_camera == null:
-		game_camera = _add_child_node(Camera2D.new(), "GameCamera")
-		game_camera.position = Vector2(640, 360)
+	world_mount = _find_or_create_child(world_mount, "WorldMount", func(): return Node2D.new())
+	game_camera = _find_or_create_child(game_camera, "GameCamera", func(): return Camera2D.new())
+	game_camera.position = Vector2(640, 360)
 	game_camera.enabled = true
 	game_camera.make_current()
 
-	if ui_canvas == null:
-		ui_canvas = _add_child_node(CanvasLayer.new(), "UiCanvas")
-		ui_canvas.layer = 100
+	ui_canvas = _find_or_create_child(ui_canvas, "UiCanvas", func(): return CanvasLayer.new())
+	ui_canvas.layer = 100
 
-	if ui_root == null:
-		ui_root = _make_full_rect("UIRoot")
-		ui_canvas.add_child(ui_root)
+	ui_root = _find_or_create_descendant(ui_root, ui_canvas, "UIRoot", func(): return _make_full_rect("UIRoot"))
 
-	_ensure_layer(&"hud",     hud_layer,     "HudLayer")
-	_ensure_layer(&"screen",  screen_layer,  "ScreenLayer")
-	_ensure_layer(&"popup",   popup_layer,   "PopupLayer")
-	_ensure_layer(&"tooltip", tooltip_layer, "TooltipLayer")
-	_ensure_layer(&"system",  system_layer,  "SystemLayer")
-	_ensure_layer(&"debug",   debug_layer,   "DebugLayer")
+	_ensure_layer(&"hud",     "HudLayer")
+	_ensure_layer(&"screen",  "ScreenLayer")
+	_ensure_layer(&"popup",   "PopupLayer")
+	_ensure_layer(&"tooltip", "TooltipLayer")
+	_ensure_layer(&"system",  "SystemLayer")
+	_ensure_layer(&"debug",   "DebugLayer")
 
 
-func _ensure_layer(p_kind: StringName, p_exported: Control, p_default_name: String) -> void:
-	var layer := p_exported
-	if layer == null:
-		layer = _make_full_rect(p_default_name)
-		ui_root.add_child(layer)
+func _ensure_layer(p_kind: StringName, p_default_name: String) -> void:
+	# 先检查 @export 字段
+	var exported: Control = _layer_by_kind(p_kind)
+	# 再检查 .tscn 已有节点
+	var layer := _find_or_create_descendant(exported, ui_root, p_default_name, func(): return _make_full_rect(p_default_name))
 	_ui_layers[p_kind] = layer
 	match p_kind:
 		&"hud":     hud_layer = layer
@@ -122,10 +116,41 @@ func _ensure_layer(p_kind: StringName, p_exported: Control, p_default_name: Stri
 		&"debug":   debug_layer = layer
 
 
-func _add_child_node(p_node: Node, p_name: String) -> Node:
-	p_node.name = p_name
-	add_child(p_node)
-	return p_node
+func _layer_by_kind(p_kind: StringName) -> Control:
+	match p_kind:
+		&"hud":     return hud_layer
+		&"screen":  return screen_layer
+		&"popup":   return popup_layer
+		&"tooltip": return tooltip_layer
+		&"system":  return system_layer
+		&"debug":   return debug_layer
+		_: return null
+
+
+## 从 @export 或已有子节点或工厂函数获取节点
+func _find_or_create_child(p_exported, p_name: String, p_factory: Callable) -> Node:
+	if p_exported != null:
+		return p_exported
+	var existing := get_node_or_null(p_name) as Node
+	if existing != null:
+		return existing
+	var node: Node = p_factory.call()
+	node.name = p_name
+	add_child(node)
+	return node
+
+
+## 从 @export、已有子孙节点或工厂函数获取节点
+func _find_or_create_descendant(p_exported, p_parent: Node, p_name: String, p_factory: Callable) -> Node:
+	if p_exported != null:
+		return p_exported
+	var existing := p_parent.get_node_or_null(p_name) as Node
+	if existing != null:
+		return existing
+	var node: Node = p_factory.call()
+	node.name = p_name
+	p_parent.add_child(node)
+	return node
 
 
 func _make_full_rect(p_name: String) -> Control:

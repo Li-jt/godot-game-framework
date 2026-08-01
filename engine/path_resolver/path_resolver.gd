@@ -25,7 +25,7 @@ var save_root: String = "user://saves/"
 var log_root: String = "user://logs/"
 var cache_root: String = "user://cache/"
 
-式配置各路径。所有参数有默认值。
+## 显式配置各路径。所有参数有默认值。
 func configure(p_resource_base: String = "content", p_save_root: String = "saves", p_cache_root: String = "cache", p_log_root: String = "logs") -> GF_OperationResult:
 	if p_resource_base.is_empty():
 		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "configure: resource_base 不能为空", "GF_PathResolver")
@@ -64,6 +64,7 @@ func get_cache_root() -> String:
 # 工具方法
 # ============================================================
 
+at(ui): SceneHost 支持 .tscn 节点树 + default_main.tscn 包含完整UI层级)
 ## 确保目录存在，返回是否成功（或已存在）
 func ensure_dir(p_path: String) -> bool:
 	if DirAccess.dir_exists_absolute(p_path):
