@@ -182,7 +182,7 @@ func _begin_slot_drag() -> void:
 		if icon_node != null:
 			icon = icon_node.texture
 
-	var ui := panel.ctx.ui if panel.ctx != null else null
+	var ui: GF_UIService = panel.ctx.ui if panel.ctx != null else null
 	if ui == null:
 		return
 
