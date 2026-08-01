@@ -1,6 +1,7 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://addons/godot-game-framework/scenes/default_bootstrap.gd" id="1_default_bootstrap"]
+[ext_resource type="Script" path="res://addons/godot-game-framework/engine/scene_host/scene_host.gd" id="2_scene_host"]
 
 [node name="Main" type="Node"]
 
