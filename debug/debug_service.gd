@@ -30,13 +30,9 @@ func _on_init() -> GF_OperationResult:
 	return GF_OperationResult.ok()
 
 
-func configure(p_config: GF_AppConfig.DebugSection, p_log: GF_LogService) -> GF_OperationResult:
-	if p_config == null:
-		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "debug_config 不能为 null", module_name)
-	if p_log == null:
-		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "log 不能为 null", module_name)
-	enabled = p_config.enable_debug_panel
-	command_trace_enabled = p_config.show_prediction_state
+## 配置调试服务。默认跟随 Godot 调试模式。
+func configure(p_enabled: bool = OS.is_debug_build(), p_log: GF_LogService = null) -> GF_OperationResult:
+	enabled = p_enabled
 	_log = p_log
 	return GF_OperationResult.ok()
 

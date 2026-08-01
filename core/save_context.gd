@@ -6,4 +6,3 @@ extends RefCounted
 var log: GF_LogService = null
 var save_service: GF_SaveService = null
 var config_service: GF_ConfigService = null
-var config: GF_AppConfig = null

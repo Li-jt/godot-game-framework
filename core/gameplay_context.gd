@@ -8,5 +8,4 @@ var event_bus: GF_EventBus = null
 var app_flow: GF_AppFlow = null
 var scene_host: GF_SceneHost = null
 var input: GF_InputService = null
-var config: GF_AppConfig = null
 var threading: Variant = null

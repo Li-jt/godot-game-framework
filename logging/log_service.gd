@@ -26,16 +26,11 @@ var _active_file_paths: Dictionary = {}
 var _active_hour: int = -1
 
 
-## 配置日志服务。
-## p_path_resolver 可选：传入时使用其 get_log_root() 解析路径，
-## 否则回退到 GF_AppConfig 原始值（bootstrap 场景兼容）。
-func configure(p_config: GF_AppConfig.LoggingSection, p_path_resolver: GF_PathResolver = null) -> GF_OperationResult:
-	if p_config == null:
-		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "configure: config 不能为 null", module_name)
-
-	_level = GF_LogLevel.parse(p_config.level)
-	_write_to_file = p_config.write_to_file
-	_log_root = p_path_resolver.get_log_root() if p_path_resolver != null else p_config.log_root
+## 配置日志服务。所有参数有默认值，Game 层可按需覆盖。
+func configure(p_level: GF_LogLevel.Level = GF_LogLevel.Level.DEBUG, p_write_to_file: bool = false, p_log_root: String = "./logs") -> GF_OperationResult:
+	_level = p_level
+	_write_to_file = p_write_to_file
+	_log_root = p_log_root
 	return GF_OperationResult.ok()
 
 

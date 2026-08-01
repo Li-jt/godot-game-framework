@@ -69,10 +69,9 @@ func _run_boot_sequence() -> void:
 	state = BootState.LOADING
 	_on_before_any_install()
 
-	var config := _create_app_config()
 	var registry := GF_ServiceRegistry.new()
 
-	var core_deps := _boot_phase_core(config, registry)
+	var core_deps := _boot_phase_core(registry)
 	if core_deps.is_empty(): return
 
 	var engine_deps := _boot_phase_engine(core_deps, registry)
@@ -87,9 +86,9 @@ func _run_boot_sequence() -> void:
 	_boot_phase_finalize(svc_deps, ecs_deps, registry)
 
 
-func _boot_phase_core(p_config: GF_AppConfig, p_registry: GF_ServiceRegistry) -> Dictionary:
+func _boot_phase_core(p_registry: GF_ServiceRegistry) -> Dictionary:
 	_on_before_core_install()
-	var result := GF_CoreInstaller.new().install({"_bootstrap": self, "_app_config": p_config, "_registry": p_registry})
+	var result := GF_CoreInstaller.new().install({"_bootstrap": self, "_registry": p_registry})
 	if result.is_fail(): return {}
 	_on_after_core_install(result.data)
 	return result.data
@@ -134,9 +133,6 @@ func _boot_phase_finalize(p_svc_deps: Dictionary, p_ecs_deps: Dictionary, p_regi
 
 	var context := _build_game_services(deps)
 
-	_print_banner(deps.config, log)
-	_print_config_summary(deps.config, log)
-
 	var post_result := _on_post_boot(context)
 	if post_result.is_fail(): _fail_boot("GameBootstrap", post_result); return
 
@@ -151,15 +147,6 @@ func _boot_phase_finalize(p_svc_deps: Dictionary, p_ecs_deps: Dictionary, p_regi
 
 func is_ready() -> bool: return state == BootState.READY
 func is_failed() -> bool: return state == BootState.FAILED
-
-
-## 创建 GF_AppConfig。Game 层可覆写此方法注入自定义配置。
-## 默认行为：优先加载框架默认配置，再合并用户 config/app_config.json。
-func _create_app_config() -> GF_AppConfig:
-	var r := GF_AppConfigLoader.new().load("res://")
-	if r.is_fail():
-		push_error("配置加载失败，使用默认值: " + r.error.message)
-	return r.data if r.is_ok() else GF_AppConfig.new()
 
 
 # ============================================================
@@ -228,7 +215,6 @@ func _build_registry_entries(p_deps: Dictionary) -> Array:
 		[GF_ServiceRegistry.KEY_INPUT_ADAPTER,  p_deps.input_adapter],
 		[GF_ServiceRegistry.KEY_AUDIO,          p_deps.audio_service],
 		[GF_ServiceRegistry.KEY_AUDIO_RUNTIME,  p_deps.audio_runtime],
-		[GF_ServiceRegistry.KEY_CONFIG,         p_deps.config],
 		[GF_ServiceRegistry.KEY_LOG,            p_deps.log],
 		[GF_ServiceRegistry.KEY_ECS_WORLD,      p_deps.ecs_world],
 		[GF_ServiceRegistry.KEY_ECS_SCHEDULER,  p_deps.ecs_scheduler],
@@ -236,7 +222,6 @@ func _build_registry_entries(p_deps: Dictionary) -> Array:
 
 func _build_game_services(p_deps: Dictionary) -> GF_GameServices:
 	var s := GF_GameServices.new()
-	s.config = p_deps.config
 	s.log = p_deps.log
 	s.scene_host = p_deps.scene_host
 	s.save_service = p_deps.save_service
@@ -255,37 +240,4 @@ func _build_game_services(p_deps: Dictionary) -> GF_GameServices:
 	s.ecs_world = p_deps.ecs_world
 	s.ecs_scheduler = p_deps.ecs_scheduler
 	s.file_system = p_deps.file_system
-	return s
-
-func _print_banner(p_config: GF_AppConfig, p_log: GF_LogService) -> void:
-	var C := "[color=#00e5ff]"
-	var T := "[color=#ffd740]"
-	var W := "[color=#ffffff]"
-	var X := "[/color]"
-	var ver := Engine.get_version_info()
-	var ver_str := "%d.%d" % [ver.major, ver.minor]
-	p_log.info("Bootstrap", C + "╔══════════════════════════════════════════╗" + X)
-	p_log.info("Bootstrap", C + "║" + X + "  " + T + p_config.app.name + X + "  " + C + "║" + X)
-	p_log.info("Bootstrap", C + "║" + X + "  " + W + "v" + p_config.app.version + X + "  " + C + "║" + X)
-	p_log.info("Bootstrap", C + "║" + X + "  " + W + "Godot %s  |  GDScript" % ver_str + X + "                " + C + "║" + X)
-	p_log.info("Bootstrap", C + "╚══════════════════════════════════════════╝" + X)
-
-func _print_config_summary(p_config: GF_AppConfig, p_log: GF_LogService) -> void:
-	var rows := [
-		["Environment", p_config.app.environment], ["GF_RuntimeMode", p_config.runtime.mode],
-		["GF_SaveProvider", p_config.save.provider], ["GF_LogLevel", p_config.logging.level],
-		["MockApi", _bool_label(p_config.network.use_mock_api)],
-		["Prediction", _bool_label(p_config.runtime.enable_prediction)],
-		["DebugPanel", _bool_label(p_config.debug.enable_debug_panel)],
-	]
-	var lw := 18; var vw := 24
-	p_log.info("Bootstrap", "┌%s┬%s┐" % [_rpt("─", lw+2), _rpt("─", vw+2)])
-	p_log.info("Bootstrap", "│ %-*s │ %-*s │" % [lw, "  运行配置", vw, ""])
-	for row in rows: p_log.info("Bootstrap", "│  %-*s│  %-*s│" % [lw, row[0], vw, row[1]])
-	p_log.info("Bootstrap", "└%s┴%s┘" % [_rpt("─", lw+2), _rpt("─", vw+2)])
-
-func _bool_label(p_val: bool) -> String: return "Enabled" if p_val else "Disabled"
-func _rpt(p_char: String, p_count: int) -> String:
-	var s := ""
-	for i in p_count: s += p_char
 	return s

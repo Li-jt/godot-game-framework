@@ -15,8 +15,7 @@ func install(p_deps: Dictionary) -> GF_OperationResult:
 	var registry: GF_ServiceRegistry = p_deps.get("_registry")
 	var deps: Dictionary = core.duplicate()
 
-	# 解析 GF_SceneHost 场景路径（支持配置覆盖）
-	var scene_host_path := pr.resolve_scene_host_path(SCENE_HOST_PATH)
+	# GF_SceneHost 场景路径
 
 	# AssetLoading
 	var asset_loading := GF_AssetLoadingService.new()
@@ -33,9 +32,9 @@ func install(p_deps: Dictionary) -> GF_OperationResult:
 	if not bs._cfg_or_fail("GF_SceneFactory", scene_factory.configure(asset_loading, log), scene_factory): return _fail()
 
 	# GF_SceneHost — 从 .tscn 实例化，节点树在编辑器中可见
-	var scene_host_scene := load(scene_host_path) as PackedScene
+	var scene_host_scene := load(SCENE_HOST_PATH) as PackedScene
 	if scene_host_scene == null:
-		return GF_OperationResult.fail(GF_OperationResult.ERR_IO, "无法加载 GF_SceneHost 场景: %s" % scene_host_path, "GF_EngineInstaller")
+		return GF_OperationResult.fail(GF_OperationResult.ERR_IO, "无法加载 GF_SceneHost 场景: %s" % SCENE_HOST_PATH, "GF_EngineInstaller")
 
 	var scene_host := scene_host_scene.instantiate() as GF_SceneHost
 	scene_host.name = "GF_SceneHost"
@@ -54,7 +53,7 @@ func install(p_deps: Dictionary) -> GF_OperationResult:
 	threading_svc.module_name = "ThreadingService"
 	if not bs._init_or_fail(threading_svc): return _fail()
 	bs._track_module(threading_svc)
-	if not bs._cfg_or_fail("GF_ThreadingService", threading_svc.configure(core.config.threading, log), threading_svc): return _fail()
+	if not bs._cfg_or_fail("GF_ThreadingService", threading_svc.configure(true, 4, 2, 30000, 350, 256, log), threading_svc): return _fail()
 	scheduler.register(GF_Scheduler.TickGroup.FRAME, "ThreadingServicePump", threading_svc.pump, -200)
 
 	# GF_InputAdapter
