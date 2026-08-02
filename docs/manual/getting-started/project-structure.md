@@ -34,8 +34,8 @@ framework/
 │   ├── ecs/                            # ECS 数据架构
 │   ├── input/                          # 输入处理
 │   ├── input_adapter/                  # 输入适配器
-│   ├── ui/                             # UI 面板管理 + 拖拽系统
-│   ├── scene_host/                     # GF_SceneHost — 场景宿主
+│   ├── ui/                             # UI 面板管理 + 拖拽（自包含，启动时创建节点树）
+│   ├── world_root/                     # GF_WorldRoot — 世界场景基类
 │   ├── save/                           # 存档管线
 │   ├── audio/                          # 音频服务
 │   ├── audio_runtime/                  # 音频底层播放

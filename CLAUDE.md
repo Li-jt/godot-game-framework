@@ -67,7 +67,7 @@ godot-game-framework/
 │   ├── network/               ← 网络抽象
 │   ├── data_access/           ← Repository 接口
 │   ├── flow/                  ← AppFlow 状态机
-│   ├── scene_host/            ← SceneHost、WorldRoot
+│   ├── world_root/            ← GF_WorldRoot 基类
 │   ├── threading/             ← ThreadingService
 │   ├── asset_loading/         ← AssetLoadingService
 │   ├── audio_runtime/         ← AudioRuntime
@@ -151,7 +151,7 @@ Godot 引擎核心适配层（都在 `engine/` 下，框架运行必需）：
 
 - **ECS**：`modules/ecs/` — World / Query / CommandBuffer / Scheduler / Snapshot / SaveAdapter
 - **Input**：`modules/input/` + `modules/input_adapter/` — 输入采集、动作解析、上下文栈、设备绑定
-- **UI**：`modules/ui/` + `modules/scene_host/` — 面板管理、拖拽系统、输入阻挡、6层UI画布
+- **UI**：`modules/ui/` — 面板管理、拖拽系统、输入阻挡、6层UI画布（启动时自动创建）
 - **Save**：`modules/save/` — 存档服务、版本迁移、ISaveable 收集
 - **Audio**：`modules/audio/` + `modules/audio_runtime/` — AudioCue 播放、音频运行时
 - **Config**：`modules/config/` — 游戏 Def 注册和查询
@@ -415,7 +415,7 @@ func on_tick(p_world: EcsWorld, p_ecb: EcsCommandBuffer, p_delta: float) -> void
 
 | 路径 | 适用场景 | 调用方 |
 |------|---------|--------|
-| `collect_from_node(root)` | 场景树中的 Node-based ISaveable | SceneHost / on_world_switch |
+| `collect_from_node(root)` | 场景树中的 Node-based ISaveable | 世界切换时调用 |
 | `child_entering_tree` 信号 | collect 之后的增量注册 | 框架自动 |
 | `register_saveable(obj)` | 纯数据 ISaveable、全局 Service | Game 层手动调用 |
 
@@ -567,7 +567,7 @@ panel.set_input_block_config(...)
 
 Engine Adapter 只统一关键入口：
 - 资源加载 → AssetLoadingService
-- 场景切换 → SceneHost
+- 场景实例化 → SceneFactory
 - Tick → Scheduler
 - 输入 → InputService
 - 音频 → AudioRuntime
