@@ -50,6 +50,15 @@ func _on_init() -> GF_OperationResult:
 	return GF_OperationResult.ok()
 
 
+func _set_bootstrap(p_bs) -> void:
+	_bootstrap = p_bs
+	# 自动级联注册 UI 模块的依赖（与 GF_SceneFactory / GF_InputService 的模式一致）
+	if _bootstrap.service(GF_SceneFactory) == null:
+		_bootstrap.register(GF_SceneFactory.new())
+	if _bootstrap.service(GF_InputService) == null:
+		_bootstrap.register(GF_InputService.new())
+
+
 func dependencies() -> Array:
 	return [GF_SceneFactory, GF_InputService, GF_LogService]
 
