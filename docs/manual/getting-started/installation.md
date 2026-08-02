@@ -84,10 +84,6 @@ your-game/
 │       │   ├── ecs/              # ECS 世界
 │       │   ├── input/            # 输入系统
 │       │   ├── ui/               # UI 面板 + 拖拽
-│       │   ├── save/             # 存档系统
-│       │   ├── audio/            # 音频服务
-│       │   ├── scene_host/       # 场景宿主
-│       │   └── ...               # 更多可选模块
 │       ├── scenes/               # 默认主场景
 │       └── plugin.cfg            # 编辑器元信息
 ├── content/                      # 游戏资源

@@ -100,8 +100,8 @@ func _get_service() -> GF_UIService:
 func _on_ghost_attached(p_ghost: GF_UIDragGhost) -> void:
 	_ghost = p_ghost
 	var svc := _get_service()
-	if svc != null and svc._scene_host != null:
-		var system_layer := svc._scene_host.get_ui_layer(GF_UIPanelDef.KIND_SYSTEM)
+	if svc != null:
+		var system_layer := svc.get_ui_layer(GF_UIPanelDef.KIND_SYSTEM)
 		if system_layer != null:
 			system_layer.add_child(p_ghost)
 
