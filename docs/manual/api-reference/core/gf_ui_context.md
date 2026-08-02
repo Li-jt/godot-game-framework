@@ -16,7 +16,7 @@ UI 子系统可用的窄上下文。UI 面板通过 `panel.ctx` 获取所有所�
 | `ui` | `GF_UIService` | UI 管理服务 |
 | `input` | `GF_InputService` | 输入服务 |
 | `event_bus` | `GF_EventBus` | 事件总线 |
-| `scene_host` | `GF_SceneHost` | 场景宿主 |
+| `scene_factory` | `GF_SceneFactory` | 场景工厂 |
 | `loc` | `GF_LocalizationService` | 本地化服务 |
 | `save_service` | `GF_SaveService` | 存档服务 |
 | `config_service` | `GF_ConfigService` | 游戏配置定义服务 |

@@ -233,7 +233,7 @@ var result := save_service.delete_slot(3)
 ### 第七步：世界切换
 
 ```gdscript
-# 在 GF_SceneHost.replace_world 流程中自动调用
+# 在 Game 层世界切换流程中调用
 save_service.on_world_switch(old_root, new_root, "world.")
 ```
 

@@ -237,5 +237,5 @@ scheduler.unregister("ecs")
 
 ## See Also
 
-- [GF_SceneHost](./gf_scene_host.md) -- 场景宿主（Scheduler 通常作为其子节点）
+- [GF_UIService](../services/gf_ui_service.md) -- UI 服务（Scheduler 可用于驱动 UI 更新）
 - [GF_ModuleLifecycle](../core/gf_module_lifecycle.md) -- 服务生命周期基类

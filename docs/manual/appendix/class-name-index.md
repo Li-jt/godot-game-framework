@@ -72,11 +72,10 @@
 | `GF_IEcsScheduler` | ecs | RefCounted | ECS Scheduler 接口 |
 | `GF_IEcsSystemGroup` | ecs | RefCounted | System 分组接口 |
 
-## Engine 层 (14)
+## Engine 层 (13)
 
 | class_name | 模块 | 继承 | 一句话描述 |
 |-----------|------|------|-----------|
-| `GF_SceneHost` | engine | Node | 场景宿主，管理世界/UI/弹窗挂载 |
 | `GF_SceneFactory` | engine | RefCounted | 场景工厂，统一场景实例化入口 |
 | `GF_Scheduler` | engine | Node | Tick 调度器，按 TickGroup 驱动回调 |
 | `GF_ThreadingService` | engine/threading | GF_ModuleLifecycle | 线程任务服务，优先级队列+取消+超时+统计 |
@@ -97,7 +96,7 @@
 |-----------|------|------|-----------|
 | `GF_NodePool` | engine | RefCounted | Node 对象池 |
 | `GF_RuntimeUtilities` | engine | RefCounted | 运行时工具函数集 |
-| `GF_WorldRoot` | engine | Node | 世界根节点 |
+| `GF_WorldRoot` | modules/world_root | Node | 世界根节点 |
 | `GF_Pathfinder` | engine | RefCounted | A* 寻路算法 |
 | `GF_ManhattanHeuristic` | engine | RefCounted | 曼哈顿启发函数 |
 

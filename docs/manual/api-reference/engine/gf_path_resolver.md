@@ -148,17 +148,9 @@ var cache_path := pr.get_cache_root() + "thumbnails/"
 
 ---
 
-### resolve_scene_host_path(p_default: String = "res://addons/godot-game-framework/engine/scene_host/scene_host.tscn") -> String
+### resolve_scene_host_path(p_default: String = "") -> String
 
-解析 `GF_SceneHost` 场景路径。优先取 `GF_AppConfig.path_overrides.scene_host` 覆盖值。
-
-**参数:**
-
-| 参数 | 类型 | 描述 |
-|------|------|------|
-| `p_default` | `String` | 默认场景路径 |
-
-**返回值:** `String` -- 解析后的场景路径。
+> **已废弃。** GF_SceneHost 类已删除，此方法不再使用。保留仅供向后兼容。
 
 ---
 

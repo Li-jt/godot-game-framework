@@ -14,7 +14,7 @@ Game 层可用的服务聚合对象，仅用于显式依赖注入。由 Applicat
 |------|------|------|
 | `config` | `GF_AppConfig` | Game 层可读取的最终运行配置 |
 | `log` | `GF_LogService` | 统一日志服务 |
-| `scene_host` | `GF_SceneHost` | 场景宿主（世界 / UI / 弹窗挂载点） |
+| `scene_factory` | `GF_SceneFactory` | 场景工厂，统一场景实例化入口 |
 | `input` | `GF_InputService` | 输入服务（Game 语义动作查询） |
 | `ui` | `GF_UIService` | UI 服务（面板打开/关闭/缓存） |
 | `audio` | `GF_AudioService` | 音频服务（高层播放入口） |
@@ -38,7 +38,7 @@ Game 层可用的服务聚合对象，仅用于显式依赖注入。由 Applicat
 
 ### create_gameplay_context() -> GF_GameplayContext
 
-创建游戏玩法子系统可用的窄上下文。包含：log、event_bus、app_flow、scene_host、input、config。
+创建游戏玩法子系统可用的窄上下文。包含：log、event_bus、app_flow、scene_factory、input、config。
 
 ```gdscript
 var ctx := services.create_gameplay_context()
@@ -48,7 +48,7 @@ world.init(ctx)
 
 ### create_ui_context() -> GF_UiContext
 
-创建 UI 子系统可用的窄上下文。包含：log、ui、input、event_bus、scene_host、loc、save_service、config_service、config、app_flow、debug、audio。
+创建 UI 子系统可用的窄上下文。包含：log、ui、input、event_bus、scene_factory、loc、save_service、config_service、config、app_flow、debug、audio。
 
 ```gdscript
 var ui_ctx := services.create_ui_context()

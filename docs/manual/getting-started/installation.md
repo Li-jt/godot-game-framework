@@ -200,9 +200,9 @@ func _assemble() -> void:
 | `GF_AppConfig` / `GF_AppConfigLoader` | 代码默认值 |
 | `GF_UIPanel.ctx` | `GF_UIPanel._bootstrap` |
 
-**5. SceneHost UI 节点树**
+**5. UI 节点树**
 
-`default_main.tscn` 现在内置了完整的 UI 节点树。如果你有自己的主场景，建议参考 `default_main.tscn` 添加 SceneHost 节点及其层级。SceneHost 支持 `@export` 注入或自动创建默认树，详见 [UI 指南](../feature-guides/ui.md)。
+GF_UIService 在 `configure()` 中自动创建完整的 UI 节点树（CanvasLayer → UIRoot → 6 层），无需手动在场景中放置节点。用户只需在 AppBootstrap 中注册 `GF_UIService.new()`，详见 [UI 指南](../feature-guides/create-ui-panels.md)。
 
 ---
 

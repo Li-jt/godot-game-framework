@@ -49,7 +49,7 @@
 | 属性 | 类型 | 默认值 | 描述 |
 |------|------|--------|------|
 | name | String | "" | 面板唯一名称。用作 GF_UIService 的 key，`open()` / `close()` 的参数。必须非空。 |
-| path | String | "" | 面板场景文件路径（如 `"res://src/ui/inventory_panel.tscn"`）。通过 SceneHost 加载。必须非空。 |
+| path | String | "" | 面板场景文件路径（如 `"res://src/ui/inventory_panel.tscn"`）。由 GF_UIService 通过 GF_SceneFactory 加载。必须非空。 |
 | kind | StringName | KIND_SCREEN | 面板所属 UI 层，决定 Z-order 渲染顺序。使用 KIND_* 常量。 |
 | lifecycle | Lifecycle | DESTROY_ON_CLOSE | 面板关闭策略。 |
 | prewarm | bool | false | 是否在 `register_all()` 后预加载。仅对 HIDE_ON_CLOSE 和 PERSISTENT 面板生效。 |
@@ -92,4 +92,4 @@ hud_def.focus_mode = Control.FOCUS_NONE     # HUD 不参与焦点导航
 
 - [GF_UIService](gf_ui_service.md) — 消费面板定义的 UI 管理服务
 - [GF_UIPanel](gf_ui_panel.md) — 面板实例基类
-- GF_SceneHost — 场景加载宿主（通过 path 加载面板场景）
+- [GF_SceneFactory](../engine/gf_scene_factory.md) — 场景工厂（通过 path 加载面板场景）

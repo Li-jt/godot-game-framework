@@ -129,7 +129,7 @@ func _on_post_boot(context: GF_GameServices) -> GF_OperationResult:
 |---|---|---|
 | `config` | `GF_AppConfig` | 应用配置 |
 | `log` | `GF_LogService` | 日志服务 |
-| `scene_host` | `GF_SceneHost` | 场景宿主 |
+| `scene_factory` | `GF_SceneFactory` | 场景工厂，统一场景实例化入口 |
 | `input` | `GF_InputService` | 输入服务 |
 | `ui` | `GF_UIService` | UI 服务 |
 | `audio` | `GF_AudioService` | 音频服务 |
@@ -157,7 +157,7 @@ func _on_post_boot(context: GF_GameServices) -> GF_OperationResult:
 
 ```gdscript
 var ctx: GF_GameplayContext = game_services.create_gameplay_context()
-# 包含：log, event_bus, app_flow, scene_host, input, config
+# 包含：log, event_bus, app_flow, scene_factory, input, config
 ```
 
 适合：ECS 系统、命令行处理器、游戏玩法逻辑。
@@ -166,7 +166,7 @@ var ctx: GF_GameplayContext = game_services.create_gameplay_context()
 
 ```gdscript
 var ctx: GF_UiContext = game_services.create_ui_context()
-# 包含：log, ui, input, event_bus, scene_host, loc, save_service, config_service, config, app_flow, debug, audio
+# 包含：log, ui, input, event_bus, scene_factory, loc, save_service, config_service, config, app_flow, debug, audio
 ```
 
 适合：UI 面板脚本、UI 控制器。
@@ -223,7 +223,7 @@ GF_AppBootstrap._ready()
   │    └─ GF_ServiceRegistry
   │
   ├─ _boot_phase_engine()          → EngineInstaller 安装
-  │    └─ 引擎适配层服务             ● SceneHost, FileSystem, Threading, Scheduler ...
+  │    └─ 引擎适配层服务             ● SceneFactory, FileSystem, Threading, Scheduler ...
   │
   ├─ _boot_phase_ecs()             → EcsInstaller 安装
   │    └─ ECS 基础设施               ● EcsWorld, EcsScheduler, EcsStorage ...

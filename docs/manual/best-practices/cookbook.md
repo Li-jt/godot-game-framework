@@ -462,24 +462,26 @@ func on_tick(p_world: GF_EcsWorld, p_ecb: GF_EcsCommandBuffer, p_delta: float) -
 
 **问题：** 从一个场景切换到另一个场景时，显示加载画面和过渡动画。
 
-**涉及模块：** GF_SceneHost, GF_AppFlow, GF_UIService
+**涉及模块：** GF_SceneFactory, GF_AppFlow, GF_UIService
 
 ```gdscript
 # scene_transition.gd
 class_name SceneTransition
 extends RefCounted
 
-var _scene_host: GF_SceneHost = null
+var _scene_factory: GF_SceneFactory = null
 var _app_flow: GF_AppFlow = null
 var _ui: GF_UIService = null
 var _log: GF_LogService = null
+var _world_parent: Node = null
 
 
-func configure(p_context: GF_GameServices) -> void:
-    _scene_host = p_context.scene_host
+func configure(p_context: GF_GameServices, p_world_parent: Node) -> void:
+    _scene_factory = p_context.scene_factory
     _app_flow = p_context.app_flow
     _ui = p_context.ui
     _log = p_context.log
+    _world_parent = p_world_parent
 
 
 func transition_to(p_world_id: String, p_entry_point: String = "") -> void:
@@ -498,17 +500,29 @@ func transition_to(p_world_id: String, p_entry_point: String = "") -> void:
     if ui_result.is_fail():
         _log.warning("Scene", "加载画面打开失败")
 
-    # 3. 异步加载新场景
-    _scene_host.load_world_async(p_world_id, p_entry_point).then(
-        func(_result):
-            # 4. 加载完成，切换到 IN_GAME
-            _ui.close("LoadingScreen")
-            _app_flow.transition_to(GF_AppFlow.STATE_IN_GAME)
-    )
+    # 3. 通过 GF_SceneFactory 加载新场景
+    var world_path := "res://content/worlds/%s.tscn" % p_world_id
+    var result := _scene_factory.create_and_add(world_path, _world_parent, {
+        "entry_point": p_entry_point,
+    })
+    if result.is_fail():
+        _log.error("Scene", "场景加载失败: %s" % result.error.message)
+        _app_flow.transition_to(GF_AppFlow.STATE_MAIN_MENU)
+        return
+
+    # 4. 注入 _bootstrap 并初始化世界
+    var world := result.data as Node
+    if world is GF_WorldRoot:
+        world._bootstrap = _bootstrap
+        world._on_world_setup()
+
+    # 5. 加载完成，切换到 IN_GAME
+    _ui.close("LoadingScreen")
+    _app_flow.transition_to(GF_AppFlow.STATE_IN_GAME)
 ```
 
 **关键说明：**
 - 场景加载前先切换到 `LOADING` 状态，阻塞游戏逻辑。
 - 打开 LoadingScreen 面板提供用户反馈。
-- 使用异步加载避免主线程阻塞。
+- 通过 `GF_SceneFactory` 加载场景，Game 层管理世界父节点。
 - 加载完成后恢复 `IN_GAME` 状态。

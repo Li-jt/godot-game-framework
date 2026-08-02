@@ -15,7 +15,7 @@
 
 **不适用场景**：
 
-- 不要用于管理 SceneTree 节点切换（使用 `GF_SceneHost`）
+- 不要用于管理 SceneTree 节点切换（Game 层通过 GF_SceneFactory 自行管理）
 - 不要绕过此服务直接修改 `current_state`
 - 不要在事件监听中再次调用 `transition_to()` 形成递归循环
 
@@ -285,4 +285,4 @@ func _on_flow_changed(p_data: Dictionary) -> void:
 - [GF_ModuleLifecycle](../core/gf_module_lifecycle.md) -- 模块生命周期基类
 - [GF_EventBus](../event/gf_event_bus.md) -- 事件总线，承载 `flow_state_changed` 事件
 - [GF_GameServices](../core/gf_game_services.md) -- 服务聚合对象，通过 `GameServices.app_flow` 访问
-- [GF_SceneHost](../engine/gf_scene_host.md) -- 场景切换，通常由 `flow_state_changed` 监听驱动
+- [GF_SceneFactory](../engine/gf_scene_factory.md) -- 场景工厂，场景切换由 Game 层通过 SceneFactory 实现

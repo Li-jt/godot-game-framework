@@ -135,7 +135,7 @@ func configure() -> GF_OperationResult:
 - **ThreadingService**：后台任务提交与主线程回收（优先级、取消、超时、重试）
 - **InputService v4.0**：Action 归一化、上下文栈、键位重绑定、录制回放
 - **SaveService**：ISaveable 自注册、多槽位、版本迁移链、恢复优先级、原子写入
-- **UI**：面板管理（6 层 Canvas）、拖拽系统、输入阻挡策略、SceneHost 代码自动创建或编辑器注入
+- **UI**：面板管理（6 层 Canvas 自动创建）、拖拽系统、输入阻挡策略
 - **寻路框架**：IPathGraph + ITraversal + IHeuristic 三层可插拔 A\*
 - **AudioService**：Cue 播放、Bus 分组、SFX 池化
 - **Command 一等公民**：`send_command()` 直接挂载在 Bootstrap 上

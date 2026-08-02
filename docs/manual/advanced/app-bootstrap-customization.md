@@ -69,7 +69,7 @@ GF_EngineInstaller 运行前调用。Core 服务已就绪。
 
 GF_EngineInstaller 运行后调用。此时新增可用服务：
 
-- `deps.scene_host` — GF_SceneHost
+- `deps.scene_factory` — GF_SceneFactory
 - `deps.scheduler` — GF_Scheduler
 - `deps.threading_svc` — GF_ThreadingService
 - `deps.path_resolver` — GF_PathResolver

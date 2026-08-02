@@ -15,7 +15,7 @@
 | `log` | `GF_LogService` | 日志服务 |
 | `event_bus` | `GF_EventBus` | 事件总线 |
 | `app_flow` | `GF_AppFlow` | 应用流程状态机 |
-| `scene_host` | `GF_SceneHost` | 场景宿主 |
+| `scene_factory` | `GF_SceneFactory` | 场景工厂 |
 | `input` | `GF_InputService` | 输入服务 |
 | `config` | `GF_AppConfig` | 应用运行配置 |
 | `threading` | `Variant` | 线程服务（可选） |
