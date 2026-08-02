@@ -314,7 +314,8 @@ func on_end_drag(event: GF_UIDragEvent) -> void:
         return
 
     # 没有 UI 目标接受 → 尝试丢到游戏世界
-    var world_pos := _panel.ctx.scene_host.get_camera().get_global_mouse_position()
+    # 通过 Game 层管理的 Camera2D 转换坐标
+    var world_pos := _camera.get_global_mouse_position()
     if _is_valid_world_position(world_pos):
         _place_item_in_world(event.drag_data.item_id, world_pos)
 

@@ -54,7 +54,7 @@ func _on_app_ready(p_context: GF_GameServices) -> void:
 
 | 路径 | 适用场景 | 调用方 |
 |------|---------|--------|
-| `collect_from_node(root)` | 场景树中的 Node ISaveable | SceneHost / on_world_switch |
+| `collect_from_node(root)` | 场景树中的 Node ISaveable | GF_WorldRoot._on_world_setup() / on_world_switch |
 | `child_entering_tree` 信号 | collect 之后的增量注册 | 框架自动 |
 | `register_saveable(obj)` | 纯数据、Service、Mod ISaveable | Game 层手动调用 |
 

@@ -36,7 +36,7 @@ ui_service.close("main_menu")
 
 ### 第一步：理解 6 层 Canvas
 
-GF_SceneHost 的节点树中包含 6 个 UI 层，从底到顶：
+GF_UIService 在 configure() 中自动创建 6 个 UI 层，从底到顶：
 
 ```
 UiCanvas (CanvasLayer — 独立于游戏摄像机，固定屏幕渲染)
@@ -135,7 +135,7 @@ var panel := result.data as GF_UIPanel
 2. 保存当前焦点（用于关闭时恢复）
 3. 如果是单例且已打开 → `reopen(data)` 并提到栈顶
 4. 如果在缓存中 → 从缓存取出，`reopen(data)`
-5. 否则 → 通过 `GF_SceneHost.load_ui_panel(kind, path)` 加载场景
+5. 否则 → 通过 `GF_SceneFactory` 加载场景
 6. 注入 `ctx`、`panel_name`、`_panel_def`、焦点配置
 7. 调用 `panel.open(data)` → 内部先 `_on_open(data)` 再 `show()`
 8. 重新计算输入阻挡
@@ -385,5 +385,5 @@ def.singleton = false  # 允许同一面板同时打开多个实例
 
 - [处理玩家输入](./handle-player-input.md) -- 面板的输入阻挡配置
 - [实现拖拽交互](./drag-and-drop.md) -- 在面板中实现拖拽
-- [场景切换](./scene-switching.md) -- SceneHost 的 UI 层结构
+- [场景切换](./scene-switching.md) -- UI 层结构
 - [应用状态机](./app-state-flow.md) -- MANAGED_BY_FLOW 的流程管理

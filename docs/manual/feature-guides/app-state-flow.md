@@ -204,8 +204,8 @@ func _on_flow_changed(payload: Dictionary) -> void:
 
 
 func _enter_main_menu() -> void:
-    # 卸载世界
-    scene_host.unload_world()
+    # 卸载世界（Game 层自行管理）
+    _unload_world()
     # 关闭游戏 UI
     ui_service.clear_all_ui()
     # 打开主菜单
@@ -218,14 +218,20 @@ func _enter_loading(p_data: Dictionary) -> void:
     # 打开加载画面（MANAGED_BY_FLOW 面板）
     ui_service.open("loading", {"message": "加载中..."})
 
-    # 异步加载世界
+    # 异步加载世界（通过 GF_SceneFactory）
     var world_path := p_data.get("world_path", "")
-    var result := scene_host.load_world(world_path)
+    var result := scene_factory.create_and_add(world_path, _world_parent)
 
     if result.is_fail():
         _log.error("Flow", "加载世界失败: %s" % result.error.message)
         app_flow.transition_to(GF_AppFlow.STATE_MAIN_MENU)
         return
+
+    # 注入 _bootstrap 并初始化世界
+    var world := result.data as Node
+    if world is GF_WorldRoot:
+        world._bootstrap = _bootstrap
+        world._on_world_setup()
 
     # 加载完成 → 进入游戏
     app_flow.transition_to(GF_AppFlow.STATE_IN_GAME, p_data)

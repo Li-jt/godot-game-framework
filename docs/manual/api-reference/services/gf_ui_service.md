@@ -4,7 +4,7 @@
 
 ## 概述
 
-UI 管理服务，框架中最核心的服务之一（与 GF_InputService 并列）。负责面板注册、打开/关闭生命周期控制、拖拽驱动、输入阻挡策略管理。根据面板 kind 路由到对应 UI 层，根据 lifecycle 策略控制关闭行为。游戏层通过 GF_UiContext.ui 引用此服务。
+UI 管理服务，框架中最核心的服务之一（与 GF_InputService 并列）。负责面板注册、打开/关闭生命周期控制、拖拽驱动、输入阻挡策略管理。在 `configure()` 中自动创建 UI 节点树（CanvasLayer → UIRoot → 6 层），不再依赖已删除的 GF_SceneHost。根据面板 kind 路由到对应 UI 层，根据 lifecycle 策略控制关闭行为。游戏层通过 GF_UiContext.ui 引用此服务。
 
 **何时使用：** 注册面板定义、打开/关闭面板、查询面板状态、启动拖拽、注册放置目标。
 
@@ -20,23 +20,17 @@ UI 管理服务，框架中最核心的服务之一（与 GF_InputService 并列
 
 ## 公共方法
 
-### configure(p_ui_context: GF_UiContext) → GF_OperationResult
+### configure() → GF_OperationResult
 
-配置 UI 服务。校验 `p_ui_context` 中的 scene_host、input、log 非空，创建并配置 GF_UIDragManager，将 p_ui_context 存储为 `_panel_context`（后续所有面板实例化后自动注入）。
-
-**参数:** | 参数 | 类型 | 描述 | |------|------|------| | p_ui_context | GF_UiContext | 上层装配器构建的 UI 上下文，包含 scene_host、input、log 等必要依赖。 |
+配置 UI 服务。自动创建 UI 节点树（CanvasLayer → UIRoot → 6 层）并挂到场景树，创建 GF_UIDragManager。通过 `_bootstrap` 获取依赖（GF_SceneFactory、GF_InputService、GF_LogService）。
 
 **返回值:** 校验通过返回 `GF_OperationResult.ok()`。
 
-**错误码:** | 错误码 | 触发条件 | |------|------| | ERR_BAD_REQUEST | p_ui_context 为 null、scene_host 为 null、input 为 null 或 log 为 null。 |
+**错误码:** | 错误码 | 触发条件 | |------|------| | ERR_BAD_REQUEST | GF_SceneFactory、GF_InputService 或 GF_LogService 依赖未满足。 |
 
 **示例:** ```gdscript
-var ui_service := GF_UIService.new()
-ui_service.module_name = "UIService"
-ui_service.init_module()
-var result := ui_service.configure(ctx)
-if result.is_fail():
-    ctx.log.error("UIService", result.error.message)
+# GF_UIService 通过 AppBootstrap 注册后自动完成 configure()
+# 用户只需：register(GF_UIService.new())
 ```
 
 ---
@@ -85,13 +79,13 @@ if result.is_fail():
 
 - **已打开 + singleton=true：** 调用现有面板的 `reopen(p_data)` 并提到栈顶。
 - **缓存命中：** 从缓存取出，调用 `reopen(p_data)`，从 `_open_order` 重新追踪。
-- **首次打开：** 通过 SceneHost 加载场景，实例化为 GF_UIPanel，注入 ctx 和面板定义，调用 `open(p_data)`。
+- **首次打开：** 通过 GF_SceneFactory 加载场景，实例化为 GF_UIPanel，注入 ctx 和面板定义，调用 `open(p_data)`。
 
 **参数:** | 参数 | 类型 | 描述 | |------|------|------| | p_name | String | 面板名称（对应注册时的 GF_UIPanelDef.name）。 | | p_data | Dictionary | 传递给面板 `_on_open` 或 `_on_reopen` 的数据。默认空字典。 |
 
 **返回值:** 成功返回 `GF_OperationResult.ok(panel)`（data 为打开的 GF_UIPanel 实例）。
 
-**错误码:** | 错误码 | 触发条件 | |------|------| | ERR_NOT_FOUND | 面板未注册（p_name 在 _panel_defs 中不存在）。 | | ERR_BAD_REQUEST | 加载的场景根节点不是 GF_UIPanel。 | | 其他 | SceneHost.load_ui_panel() 传递的错误。 |
+**错误码:** | 错误码 | 触发条件 | |------|------| | ERR_NOT_FOUND | 面板未注册（p_name 在 _panel_defs 中不存在）。 | | ERR_BAD_REQUEST | 加载的场景根节点不是 GF_UIPanel。 | | 其他 | GF_SceneFactory.create() 传递的错误。 |
 
 **示例:** ```gdscript
 var result := ui_service.open("inventory", {"tab": "weapons"})
@@ -347,11 +341,43 @@ func _on_gui_input(event: InputEvent) -> void:
 
 继承自 GF_ModuleLifecycle。标记配置完成，状态从 INITIALIZED 进入 READY。
 
+---
+
+### get_ui_layer(p_kind: StringName) → Control
+
+根据 UI 面板类型获取对应的 UI 层 Control 节点。6 个 UI 层在 `configure()` 中自动创建。
+
+**参数:** | 参数 | 类型 | 描述 | |------|------|------| | p_kind | StringName | UI 层类型，对应 `GF_UIPanelDef.KIND_*` 常量。 |
+
+**路由规则:**
+
+| p_kind 值 | 返回节点 |
+|-----------|---------|
+| `KIND_HUD` | HudLayer |
+| `KIND_SCREEN` | ScreenLayer |
+| `KIND_POPUP` | PopupLayer |
+| `KIND_TOOLTIP` | TooltipLayer |
+| `KIND_SYSTEM` | SystemLayer |
+| `KIND_DEBUG` | DebugLayer |
+
+---
+
+### get_ui_root() → Control
+
+获取 UI 根控件节点（UIRoot）。所有 6 个 UI 层的父节点。
+
+---
+
+### get_ui_canvas() → CanvasLayer
+
+获取 UI 画布层（CanvasLayer）。此 CanvasLayer 独立于游戏相机，适合放置固定屏幕位置的 UI 元素。
+
 ## See Also
 
 - [GF_UIPanel](gf_ui_panel.md) — 所有游戏 UI 面板的基类
 - [GF_UIPanelDef](gf_ui_panel_def.md) — 面板定义
 - [GF_UIDragManager / GF_UIDragHandler / GF_UIDragEvent](gf_ui_drag_system.md) — 拖拽系统的协议层
 - [GF_UIDragSlot](gf_ui_drag_slot.md) — 可拖拽格子控件
+- [GF_SceneFactory](../engine/gf_scene_factory.md) — 场景工厂
 - GF_UiContext — UI 子系统上下文
 - GF_InputService — 输入服务（与 UIService 协作处理输入阻挡）

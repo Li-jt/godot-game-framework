@@ -141,8 +141,8 @@ Tick 调度器。管理帧回调的注册和分组执行。按 TickGroup（PRE_F
 ### SaveVersion
 存档版本常量。每次修改存档数据结构时递增，配合 `GF_SaveVersionMigrator` 实现版本迁移。
 
-### SceneHost
-场景宿主。管理世界场景、UI 场景、弹窗场景的加载和切换，维护 Canvas Layer 分层。
+### SceneFactory
+场景工厂。统一场景/节点实例化入口，封装 PackedScene 加载与 instantiate()。位于 `engine/scene_factory/scene_factory.gd`。
 
 ### ServiceRegistry
 服务注册中心。管理所有框架服务的注册、查询、优先级覆盖和按 owner 批量注销。
@@ -178,4 +178,4 @@ UI 面板基类。所有 UI 面板继承此类，通过 `GF_UIService` 管理生
 ## W
 
 ### WorldRoot
-世界根节点。游戏世界场景的根节点，管理世界级 ISaveable 的自动扫描和增量注册。
+世界根节点。游戏世界场景的根节点基类，由 GF_AppBootstrap 注入 _bootstrap 引用，管理世界级 ISaveable 的自动扫描和增量注册。位于 `modules/world_root/world_root.gd`。
