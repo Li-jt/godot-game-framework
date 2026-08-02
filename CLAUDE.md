@@ -7,7 +7,7 @@ Claude 在生成代码、修改代码、重构、补文档、写测试、做架�
 
 - 引擎：**Godot 4.7**
 - 类型：**2D 游戏框架（插件）**
-- 架构：**Application / Core / ECS / Engine / Input / UI / Save / Runtime 分层**
+- 架构：**Application → Core → Engine → Modules（核心/可选模块分层）**
 - 数据架构：**ECS（Entity-Component-System）SparseSet 存储**
 - 运行模式：**Local / Remote / Hybrid（Remote/Hybrid 为预留）**
 - 存档模式：**本地 + 版本迁移链**
@@ -46,40 +46,53 @@ godot-game-framework/
 ├── CHANGELOG.md
 ├── plugin.cfg
 ├── .gitignore
-├── application/               ← Bootstrap、生命周期、服务装配
-├── core/                      ← 通用基类、OperationResult、上下文
-├── ecs/                       ← ECS 基础设施
-├── engine/                    ← Godot 适配层
-├── event/                     ← EventBus
-├── flow/                      ← AppFlow 状态机
-├── input/                     ← 输入服务
-├── logging/                   ← 日志服务
-├── ui/                        ← UI 服务 + 拖拽系统
-├── save/                      ← 存档服务
-├── runtime/                   ← Runtime 模式
-├── network/                   ← 网络抽象
-├── data_access/               ← Repository 接口
-├── config/                    ← ConfigService
-├── audio/                     ← AudioService
-├── resource/                  ← ResourceService
-├── localization/              ← 本地化
-├── debug/                     ← DebugService
-├── docs/                      ← 架构文档、缺陷清单、测试策略
+│
+├── application/               ← 核心：Bootstrap、服务装配、生命周期
+├── core/                      ← 核心：ModuleLifecycle、OperationResult、基类
+├── engine/                    ← 核心：Godot 引擎适配层（Scheduler/PathResolver/FileSystem/SceneFactory）
+├── event/                     ← 核心：EventBus
+├── logging/                   ← 核心：LogService
+├── runtime/                   ← 核心：RuntimeService、Command、ICommand
+│
+├── modules/                   ← 可选模块（用户按需 register）
+│   ├── ecs/                   ← ECS 基础设施
+│   ├── input/                 ← 输入服务
+│   ├── ui/                    ← UI 服务 + 拖拽系统
+│   ├── save/                  ← 存档服务
+│   ├── audio/                 ← AudioService
+│   ├── config/                ← ConfigService
+│   ├── resource/              ← ResourceService
+│   ├── localization/          ← 本地化
+│   ├── debug/                 ← DebugService
+│   ├── network/               ← 网络抽象
+│   ├── data_access/           ← Repository 接口
+│   ├── flow/                  ← AppFlow 状态机
+│   ├── scene_host/            ← SceneHost、WorldRoot
+│   ├── threading/             ← ThreadingService
+│   ├── asset_loading/         ← AssetLoadingService
+│   ├── audio_runtime/         ← AudioRuntime
+│   ├── input_adapter/         ← InputAdapter
+│   ├── runtime_utilities/     ← NodePool、RuntimeUtilities
+│   └── algorithm/             ← A* 寻路
+│
+├── scenes/                    ← 场景模板（default_main.tscn）
+├── addons/                    ← 编辑器工具（gf_editor_tools）
+├── docs/                      ← 架构文档、使用指南
 └── tests/                     ← 测试（仅在 test 分支）
 ```
 
 ## 2.2 使用者项目结构
 
-使用者将框架放到 `src/framework/` 下：
+使用者将框架安装到 `addons/godot-game-framework/` 下：
 
 ```text
 your-game/
 ├── project.godot              ← 游戏自己的 project.godot
-├── src/
-│   ├── framework/             ← 框架（来自本仓库）
-│   ├── application/           ← 游戏的 Application 层
-│   ├── game/                  ← 游戏的 Game 层（ECS组件/系统/命令）
-│   └── shared/
+├── addons/
+│   └── godot-game-framework/  ← 框架（submodule 或手动复制，不可修改）
+├── application/               ← 游戏的 Application 层
+├── game/                      ← 游戏的 Game 层（ECS组件/系统/命令）
+├── shared/
 ├── content/
 │   ├── scenes/
 │   ├── ui/
@@ -127,29 +140,30 @@ ECS 基础设施（SparseSet 存储），全部是 RefCounted：
 - 系统是纯逻辑计算，通过 ECB 写回 World
 
 ### Engine
-Godot 引擎适配层，**有限度的适配**，不是重型封装：
-- `GF_SceneHost` — 场景宿主。支持 @export 注入或代码默认创建。6 层 UI Canvas（Hud / Screen / Popup / Tooltip / System / Debug），用户可在编辑器中直接编辑节点树
-- `GF_SceneFactory` / `GF_Scheduler` / `GF_ThreadingService`
-- `GF_PathResolver` / `GF_FileSystemService` / `GF_AssetLoadingService`
-- `GF_AudioRuntime` / `GF_NodePool` / `GF_RuntimeUtilities`
-- `GF_Pathfinder`（A* 实现）
+Godot 引擎核心适配层（都在 `engine/` 下，框架运行必需）：
+- `GF_Scheduler` — 帧调度器，替代 `_process()` 驱动系统
+- `GF_PathResolver` — 统一路径解析（res:// / user:// 路径标准化）
+- `GF_FileSystemService` — 文件系统适配（替代 FileAccess/DirAccess 直接调用）
+- `GF_SceneFactory` — 场景工厂（PackedScene 实例化 + 依赖注入）
 
-### Services
-各领域服务（都继承 ModuleLifecycle）：
-- input/ — 输入采集、动作解析、上下文栈、设备绑定
-- ui/ — 面板管理、拖拽系统、输入阻挡
-- save/ — 存档服务、版本迁移、ISaveable 收集
-- config/ — 游戏 Def 注册和查询
-- audio/ — AudioCue 播放
-- resource/ — 资源缓存和 LRU 回收
-- runtime/ — 运行时模式、CommandBus
-- event/ — 事件总线
-- flow/ — 应用状态机
-- logging/ — 分级日志
-- localization/ — 多语言
-- debug/ — 调试统计
-- network/ — 网络请求抽象
-- data_access/ — Repository 接口
+### Modules（可选模块）
+可选模块在 `modules/` 下，用户按需在 `_assemble()` 中 `register()`。不注册就不存在，不占资源：
+
+- **ECS**：`modules/ecs/` — World / Query / CommandBuffer / Scheduler / Snapshot / SaveAdapter
+- **Input**：`modules/input/` + `modules/input_adapter/` — 输入采集、动作解析、上下文栈、设备绑定
+- **UI**：`modules/ui/` + `modules/scene_host/` — 面板管理、拖拽系统、输入阻挡、6层UI画布
+- **Save**：`modules/save/` — 存档服务、版本迁移、ISaveable 收集
+- **Audio**：`modules/audio/` + `modules/audio_runtime/` — AudioCue 播放、音频运行时
+- **Config**：`modules/config/` — 游戏 Def 注册和查询
+- **Resource**：`modules/resource/` + `modules/asset_loading/` — 资源缓存和 LRU 回收
+- **Localization**：`modules/localization/` — 多语言
+- **Debug**：`modules/debug/` — 调试统计
+- **Network**：`modules/network/` — 网络请求抽象
+- **Data Access**：`modules/data_access/` — Repository 接口
+- **Flow**：`modules/flow/` — 应用状态机
+- **Threading**：`modules/threading/` — 多线程服务
+- **Utilities**：`modules/runtime_utilities/` — NodePool、RuntimeUtilities
+- **Algorithm**：`modules/algorithm/` — 寻路（A* 实现）
 
 ---
 

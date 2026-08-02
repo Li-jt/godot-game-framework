@@ -74,24 +74,20 @@ your-game/
 ├── project.godot
 ├── addons/
 │   └── godot-game-framework/    # ← 框架（不可修改）
-│       ├── application/          # AppBootstrap, ServiceRegistry
-│       ├── core/                 # ModuleLifecycle, OperationResult
-│       ├── ecs/                  # ECS 完整实现
-│       ├── engine/               # 引擎适配层
-│       ├── input/                # 输入服务
-│       ├── ui/                   # UI 服务
-│       ├── save/                 # 存档服务
-│       ├── audio/                # 音频服务
-│       ├── logging/              # 日志服务
+│       ├── application/          # AppBootstrap、生命周期
+│       ├── core/                 # ModuleLifecycle、OperationResult
+│       ├── engine/               # 核心引擎适配层
 │       ├── event/                # 事件总线
-│       ├── flow/                 # 应用流程
-│       ├── resource/             # 资源服务
-│       ├── config/               # 配置服务
-│       ├── localization/         # 本地化
-│       ├── debug/                # 调试服务
-│       ├── network/              # 网络抽象
-│       ├── data_access/          # 数据访问
+│       ├── logging/              # 日志服务
 │       ├── runtime/              # 运行时模式
+│       ├── modules/              # ← 可选模块
+│       │   ├── ecs/              # ECS 世界
+│       │   ├── input/            # 输入系统
+│       │   ├── ui/               # UI 面板 + 拖拽
+│       │   ├── save/             # 存档系统
+│       │   ├── audio/            # 音频服务
+│       │   ├── scene_host/       # 场景宿主
+│       │   └── ...               # 更多可选模块
 │       ├── scenes/               # 默认主场景
 │       └── plugin.cfg            # 编辑器元信息
 ├── content/                      # 游戏资源
