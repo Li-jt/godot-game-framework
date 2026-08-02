@@ -2,65 +2,57 @@
 
 ## 框架内部目录树
 
-框架代码的完整目录结构如下。你不需要修改框架内部的任何文件——你只需要了解它们的位置。
+框架代码分为两个层级：**核心**（Core，项目启动即自动加载）和**可选模块**（Modules，用户按需 `register()`）。
 
 ```text
 framework/
 ├── plugin.cfg                          # 插件描述文件
-├── application/                        # 启动与装配
-│   ├── app_bootstrap.gd                # GF_AppBootstrap — 启动基类
-│   ├── service_registry.gd             # GF_ServiceRegistry — 服务注册中心
-│   └── installers/                     # 分阶段安装器（Core/Engine/Ecs/Service）
-├── core/                               # 基础抽象（不依赖场景树）
+├── application/                        # 核心：启动与装配
+│   └── app_bootstrap.gd                # GF_AppBootstrap — 启动基类
+├── core/                               # 核心：基础抽象（不依赖场景树）
 │   ├── module_lifecycle.gd             # GF_ModuleLifecycle — 服务生命周期
 │   ├── operation_result.gd             # GF_OperationResult — 统一操作结果
 │   ├── error_info.gd                   # GF_ErrorInfo — 错误信息结构
-│   ├── core_lifecycle_state.gd         # GF_CoreLifecycleState — 生命周期状态枚举
-│   ├── game_services.gd                # GF_GameServices — 服务聚合对象
-│   ├── gameplay_context.gd             # GF_GameplayContext — 玩法窄上下文
-│   ├── ui_context.gd                   # GF_UiContext — UI 窄上下文
-│   ├── save_context.gd                 # GF_SaveContext — 存档窄上下文
 │   ├── content_def_registry.gd         # GF_ContentDefRegistry — 内容定义注册表
 │   ├── def_id_registry.gd              # GF_DefIdRegistry — ID 注册表
 │   ├── def_json_loader.gd              # GF_DefJsonLoader — JSON 加载工具
 │   └── object_pool.gd                  # GF_ObjectPool — 通用对象池
-├── ecs/                                # ECS 数据架构
-│   ├── core/                           # World, Component 基础设施
-│   ├── system/                         # System, SystemDescriptor, SystemGroup
-│   ├── query/                          # Query, QueryPlan, QueryResult, QueryRow
-│   ├── command/                        # Command, CommandBuffer
-│   ├── scheduler/                      # EcsScheduler
-│   ├── storage/                        # SparseSet, Archetype, StorageIndex
-│   ├── snapshot/                       # SnapshotBuilder, SnapshotApplier
-│   ├── save/                           # ComponentFactory, SaveAdapter, SaveVersionMigrator
-│   └── bridge/                         # RuntimeBridge（引擎 ↔ ECS 交互适配）
-├── engine/                             # Godot 引擎适配层
-│   ├── scene_host.gd                   # GF_SceneHost — 场景切换
-│   ├── scheduler.gd                    # GF_Scheduler — Tick 调度
-│   ├── asset_loading_service.gd        # GF_AssetLoadingService — 资源加载
-│   ├── file_system_service.gd          # GF_FileSystemService — 文件读写
-│   ├── threading_service.gd            # GF_ThreadingService — 后台线程
-│   ├── path_resolver.gd                # GF_PathResolver — 路径标准化
-│   ├── scene_factory.gd                # GF_SceneFactory — 场景实例化
-│   ├── audio_runtime.gd                # GF_AudioRuntime — 音频底层播放
-│   ├── pathfinder.gd                   # GF_Pathfinder — A* 寻路
-│   ├── node_pool.gd                    # GF_NodePool — 节点复用池
-│   └── runtime_utilities.gd            # GF_RuntimeUtilities — 运行时工具
-├── input/                              # 输入处理
-├── ui/                                 # UI 管理
-├── save/                               # 存档管线
-├── audio/                              # 音频服务
-├── resource/                           # 资源管理
-├── event/                              # 事件总线
-├── flow/                               # 应用状态机
-├── logging/                            # 日志服务
-├── localization/                       # 本地化
-├── debug/                              # 调试服务
-├── config/                             # 内容配置
-├── network/                            # 网络抽象
-├── data_access/                        # 数据访问接口
-├── environment/                        # 配置加载与校验
-└── runtime/                            # 运行时模式
+├── engine/                             # 核心：Godot 引擎适配层
+│   ├── scheduler/                      # GF_Scheduler — Tick 调度
+│   ├── path_resolver/                  # GF_PathResolver — 路径标准化
+│   ├── file_system/                    # GF_FileSystemService — 文件读写
+│   └── scene_factory/                  # GF_SceneFactory — 场景实例化
+├── event/                              # 核心：EventBus
+│   └── event_bus.gd                    # GF_EventBus
+├── logging/                            # 核心：日志服务
+│   └── log_service.gd                  # GF_LogService
+├── runtime/                            # 核心：运行时
+│   ├── command_bus.gd                  # GF_CommandBus — 命令总线
+│   ├── i_command.gd                    # GF_ICommand — 命令接口
+│   └── ...
+├── modules/                            # 可选模块（用户按需 register）
+│   ├── ecs/                            # ECS 数据架构
+│   ├── input/                          # 输入处理
+│   ├── input_adapter/                  # 输入适配器
+│   ├── ui/                             # UI 面板管理 + 拖拽系统
+│   ├── scene_host/                     # GF_SceneHost — 场景宿主
+│   ├── save/                           # 存档管线
+│   ├── audio/                          # 音频服务
+│   ├── audio_runtime/                  # 音频底层播放
+│   ├── resource/                       # 资源管理
+│   ├── asset_loading/                  # 资源加载
+│   ├── config/                         # 内容配置
+│   ├── network/                        # 网络抽象
+│   ├── data_access/                    # 数据访问接口
+│   ├── flow/                           # 应用状态机
+│   ├── localization/                   # 本地化
+│   ├── debug/                          # 调试服务
+│   ├── threading/                      # 多线程服务
+│   ├── runtime_utilities/              # 运行时工具（NodePool等）
+│   └── algorithm/                      # A* 寻路
+└── scenes/                             # 场景模板
+    ├── default_main.tscn               # 默认主场景
+    └── default_bootstrap.gd            # 默认 Bootstrap
 ```
 
 ## 使用者推荐目录树

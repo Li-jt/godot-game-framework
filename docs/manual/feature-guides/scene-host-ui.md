@@ -167,12 +167,9 @@ host.register_ui_layer(&"custom", my_layer)
 
 ## GF_SceneHost 脚本在哪
 
-脚本路径：`addons/godot-game-framework/engine/scene_host/scene_host.gd`
+脚本路径：`addons/godot-game-framework/modules/scene_host/scene_host.gd`
 
-由于框架使用 `class_name GF_SceneHost` 全局注册，你在编辑器中可以通过以下方式使用：
-
-- **添加节点**：点击 "+" 添加子节点 → 搜索 `GF_SceneHost`
-- **手动挂脚本**：建一个 Node 节点 → Inspector → script 下拉 → 选 `GF_SceneHost`
+由于框架使用 `class_name GF_SceneHost` 全局注册，在编辑器的场景树中**添加子节点 → 搜索 `GF_SceneHost`** 即可。
 
 挂上脚本后，Inspector 中就会出现上面列出的 @export 槽位。
 
