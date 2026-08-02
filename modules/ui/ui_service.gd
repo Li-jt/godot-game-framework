@@ -98,7 +98,7 @@ func _create_ui_tree() -> void:
 
 
 func _create_layer(p_kind: StringName, p_name: String) -> void:
-	var layer := _make_full_rect_control(p_name)
+	var layer: Control = _make_full_rect_control(p_name)
 	_ui_root.add_child(layer)
 	_ui_layers[p_kind] = layer
 
@@ -171,7 +171,7 @@ func open(p_name: String, p_data: Dictionary = {}) -> GF_OperationResult:
 
 	_save_current_focus()
 	if _active_panels.has(p_name) and def.singleton:
-		var existing := _get_panel_safe(p_name)
+		var existing: GF_UIPanel = _get_panel_safe(p_name)
 		if existing != null:
 			existing.reopen(p_data)
 		_bring_to_front(p_name)
@@ -179,7 +179,7 @@ func open(p_name: String, p_data: Dictionary = {}) -> GF_OperationResult:
 		return GF_OperationResult.ok(existing)
 
 	if _cache.has(p_name):
-		var cached := _get_cached_safe(p_name)
+		var cached: GF_UIPanel = _get_cached_safe(p_name)
 		if cached != null:
 			_cache.erase(p_name)
 			_cache_order.erase(p_name)
@@ -188,7 +188,7 @@ func open(p_name: String, p_data: Dictionary = {}) -> GF_OperationResult:
 			_on_opened(p_name)
 		return GF_OperationResult.ok(cached)
 
-	var result := _instantiate_panel(def.kind, def.path, {})
+	var result: GF_OperationResult = _instantiate_panel(def.kind, def.path, {})
 	if result.is_fail():
 		return result
 
@@ -390,7 +390,7 @@ func cancel_drag() -> void:
 	if _drag_manager == null:
 		return
 	if _drag_manager.is_dragging():
-		var event := _drag_manager.get_current_event()
+		var event: GF_UIDragEvent = _drag_manager.get_current_event()
 		event.drop_receiver = null
 
 		if is_instance_valid(_drag_manager.get_current_handler()):
@@ -442,7 +442,7 @@ func get_drag_manager() -> GF_UIDragManager:
 
 ## [L2] 简化拖拽：给 data + icon，框架全管。返回 GF_UIDragHandler 供连接信号。
 func begin_simple_drag(p_data: Dictionary, p_icon: Texture2D, p_offset: Vector2 = Vector2(-24, -24), p_source: GF_UIPanel = null) -> GF_UIDragHandler:
-	var handler := _DefaultDragHandler.new(p_data, p_icon, p_offset)
+	var handler: GF_UIDragHandler = _DefaultDragHandler.new(p_data, p_icon, p_offset)
 	begin_drag(handler, _get_global_mouse_pos(), p_source)
 	return handler
 
@@ -452,7 +452,7 @@ func begin_simple_drag(p_data: Dictionary, p_icon: Texture2D, p_offset: Vector2 
 # ============================================================
 
 func _on_drag_motion(p_mouse_pos: Vector2) -> void:
-	var hovered := _hit_test_target(p_mouse_pos)
+	var hovered: GF_UIDropTarget = _hit_test_target(p_mouse_pos)
 	if hovered != _last_hovered:
 		if _last_hovered != null and _last_hovered.on_leave.is_valid():
 			_last_hovered.on_leave.call()
@@ -462,8 +462,8 @@ func _on_drag_motion(p_mouse_pos: Vector2) -> void:
 
 
 func _on_drag_drop(p_mouse_pos: Vector2) -> void:
-	var event := _drag_manager.get_current_event()
-	var hit_target := _hit_test_target(p_mouse_pos)
+	var event: GF_UIDragEvent = _drag_manager.get_current_event()
+	var hit_target: GF_UIDropTarget = _hit_test_target(p_mouse_pos)
 
 	var accepted := false
 	if hit_target != null and hit_target.on_drop.is_valid():
@@ -488,7 +488,7 @@ func _on_drag_drop(p_mouse_pos: Vector2) -> void:
 
 func _hit_test_target(p_mouse_pos: Vector2) -> GF_UIDropTarget:
 	for i in range(_open_order.size() - 1, -1, -1):
-		var panel := _get_panel_safe(_open_order[i])
+		var panel: GF_UIPanel = _get_panel_safe(_open_order[i])
 		if panel == null or not panel.visible:
 			continue
 
@@ -515,7 +515,7 @@ func _do_close(p_name: String, p_def: GF_UIPanelDef, p_suppress_recalc: bool = f
 	if not _active_panels.has(p_name):
 		return
 
-	var panel := _get_panel_safe(p_name)
+	var panel: GF_UIPanel = _get_panel_safe(p_name)
 	if panel == null: return
 
 	unregister_panel_targets(panel)
@@ -556,7 +556,7 @@ func _cached_store(p_name: String, p_panel: GF_UIPanel) -> void:
 		var evict_name := _cache_order[0] if _cache_order.size() > 0 else ""
 		if evict_name.is_empty(): break
 		_cache_order.pop_front()
-		var evict_panel := _get_cached_safe(evict_name)
+		var evict_panel: GF_UIPanel = _get_cached_safe(evict_name)
 		_cache.erase(evict_name)
 		if evict_panel != null: evict_panel.close()
 
@@ -581,7 +581,7 @@ func _prewarm_one(p_name: String) -> void:
 
 	_log.debug("GF_UIService", "_prewarm_one: %s" % p_name)
 	var def: GF_UIPanelDef = _panel_defs[p_name]
-	var result := _instantiate_panel(def.kind, def.path, {})
+	var result: GF_OperationResult = _instantiate_panel(def.kind, def.path, {})
 	if result.is_fail(): return
 
 	var panel := result.data as GF_UIPanel
@@ -615,7 +615,7 @@ func _recalculate_input_block() -> void:
 
 	for name in _active_panels.keys():
 		var def := _get_def(name)
-		var panel := _get_panel_safe(name)
+		var panel: GF_UIPanel = _get_panel_safe(name)
 		if def == null or def.input_block_mode != GF_UIPanelDef.InputBlockMode.ALWAYS or not panel.visible:
 			continue
 		for action_id in def.blocked_action_ids:
@@ -655,7 +655,7 @@ func _recalculate_input_block() -> void:
 func _should_block_game_action(p_action_id: String) -> bool:
 	for name in _active_panels.keys():
 		var def := _get_def(name)
-		var panel := _get_panel_safe(name)
+		var panel: GF_UIPanel = _get_panel_safe(name)
 		if def == null or panel == null or not panel.visible:
 			continue
 		if def.input_block_mode != GF_UIPanelDef.InputBlockMode.POINTER_ONLY:
@@ -677,14 +677,34 @@ func _def_blocks_action(p_def: GF_UIPanelDef, p_action_id: String) -> bool:
 # 内部：辅助
 # ============================================================
 
+func _get_panel_safe(p_name: String) -> GF_UIPanel:
+	if not _active_panels.has(p_name):
+		return null
+	var panel_obj = _active_panels[p_name]
+	if not is_instance_valid(panel_obj):
+		_active_panels.erase(p_name)
+		return null
+	return panel_obj as GF_UIPanel
+
+
+func _get_cached_safe(p_name: String) -> GF_UIPanel:
+	if not _cache.has(p_name):
+		return null
+	var panel_obj = _cache[p_name]
+	if not is_instance_valid(panel_obj):
+		_cache.erase(p_name)
+		return null
+	return panel_obj as GF_UIPanel
+
+
 func _instantiate_panel(p_kind: StringName, p_path: String, p_data: Dictionary) -> GF_OperationResult:
-	var result := _scene_factory.create(p_path, p_data)
+	var result: GF_OperationResult = _scene_factory.create(p_path, p_data)
 	if result.is_fail():
 		_log.error("GF_UIService", "加载场景失败: %s — %s" % [p_path, result.error.message])
 		return result
 
 	var node: Node = result.data
-	var layer := get_ui_layer(p_kind)
+	var layer: Control = get_ui_layer(p_kind)
 	layer.add_child(node)
 	_log.info("GF_UIService", "已加载面板: %s → %s" % [p_path, p_kind])
 	return GF_OperationResult.ok(node)
@@ -692,14 +712,19 @@ func _instantiate_panel(p_kind: StringName, p_path: String, p_data: Dictionary) 
 
 func _get_global_mouse_pos() -> Vector2:
 	if _ui_canvas != null and is_instance_valid(_ui_canvas):
-		return _ui_canvas.get_viewport().get_mouse_position()
+		var vp: Viewport = _ui_canvas.get_viewport()
+		if vp != null:
+			return vp.get_mouse_position()
 	return Vector2.ZERO
 
 
 func _save_current_focus() -> void:
 	if _ui_canvas == null or not is_instance_valid(_ui_canvas):
 		return
-	var owner: Control = _ui_canvas.get_viewport().gui_get_focus_owner()
+	var vp: Viewport = _ui_canvas.get_viewport()
+	if vp == null:
+		return
+	var owner: Control = vp.gui_get_focus_owner()
 	if owner != null:
 		_focus_stack.push_back(owner)
 
@@ -713,8 +738,8 @@ func _restore_last_focus() -> void:
 
 
 func _apply_layer_order(p_kind: StringName) -> void:
-	var layer := get_ui_layer(p_kind)
-	var children := layer.get_children()
+	var layer: Control = get_ui_layer(p_kind)
+	var children: Array[Node] = layer.get_children()
 	if children.size() <= 1:
 		return
 	children.sort_custom(func(a, b):
