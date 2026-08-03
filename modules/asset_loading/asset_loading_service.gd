@@ -44,6 +44,11 @@ func load_audio(p_path: String) -> GF_OperationResult:
 	return _load(p_path, "AudioStream")
 
 
+## 加载 GDScript 脚本文件
+func load_script(p_path: String) -> GF_OperationResult:
+	return _load(p_path, "GDScript")
+
+
 ## 加载任意 Resource（配置 Def、字体等）
 func load_resource(p_path: String) -> GF_OperationResult:
 	return _load(p_path, "Resource")
