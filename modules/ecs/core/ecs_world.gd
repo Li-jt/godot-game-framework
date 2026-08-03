@@ -9,7 +9,7 @@ var _registry: GF_EcsComponentTypeRegistry = null
 var _storage_index: GF_EcsStorageIndex = null
 var _version: int = 0
 var _next_entity_id: int = 1
-## 内容定义注册表（由 GameBootstrap 注入，供 ECS 系统查询物品/建筑/工作等 Def 数据）
+## 内容定义注册表。由 GF_EcsScheduler.configure() 自动注入，ECS 系统可直接使用。
 var content_def: GF_ContentDefRegistry = null
 
 
