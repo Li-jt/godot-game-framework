@@ -53,6 +53,7 @@ func load_resource(p_path: String) -> GF_OperationResult:
 # 内部
 # ============================================================
 
+## p_type_label 用于日志/错误消息中的类型标识（如 "PackedScene 加载失败"）。
 func _load(p_path: String, p_type_label: String) -> GF_OperationResult:
 	var full_path := _resolve(p_path)
 
