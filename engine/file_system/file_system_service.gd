@@ -73,6 +73,147 @@ func list_files(p_dir: String) -> GF_OperationResult:
 	return GF_OperationResult.ok(files)
 
 
+## 列出目录下的文件（返回完整路径，不含子目录）。
+func list_files_full(p_dir: String) -> GF_OperationResult:
+	var result := list_files(p_dir)
+	if result.is_fail():
+		return result
+	var names: Array = result.data
+	var full_paths: Array[String] = []
+	for name in names:
+		full_paths.append(p_dir.path_join(name))
+	return GF_OperationResult.ok(full_paths)
+
+
+## 列出目录下的文件（递归，包含所有子目录）。
+## [param p_extensions] 可选，指定后缀过滤（如 ["gd", "tscn"]），为空则返回所有文件。
+func list_files_recursive(p_dir: String, p_extensions: Array[String] = []) -> GF_OperationResult:
+	if not dir_exists(p_dir):
+		return GF_OperationResult.ok([])
+
+	var files: Array[String] = []
+	_list_recursive(p_dir, files, p_extensions)
+	return GF_OperationResult.ok(files)
+
+
+func _list_recursive(p_dir: String, p_out_files: Array[String], p_extensions: Array[String]) -> void:
+	var dir := DirAccess.open(p_dir)
+	if dir == null:
+		return
+
+	dir.list_dir_begin()
+	var name := dir.get_next()
+	while not name.is_empty():
+		if name == "." or name == "..":
+			name = dir.get_next()
+			continue
+
+		var full_path := p_dir.path_join(name)
+		if dir.current_is_dir():
+			_list_recursive(full_path, p_out_files, p_extensions)
+		else:
+			if _match_extensions(name, p_extensions):
+				p_out_files.append(full_path)
+		name = dir.get_next()
+	dir.list_dir_end()
+
+
+## 列出目录下的子目录（仅目录名，不含文件，非递归）。
+func list_directories(p_dir: String) -> GF_OperationResult:
+	if not dir_exists(p_dir):
+		return GF_OperationResult.ok([])
+
+	var dirs: Array[String] = []
+	var dir := DirAccess.open(p_dir)
+	if dir == null:
+		return GF_OperationResult.fail(GF_OperationResult.ERR_IO, "无法打开目录: %s" % p_dir, module_name)
+
+	dir.list_dir_begin()
+	var name := dir.get_next()
+	while not name.is_empty():
+		if name != "." and name != ".." and dir.current_is_dir():
+			dirs.append(name)
+		name = dir.get_next()
+	dir.list_dir_end()
+	return GF_OperationResult.ok(dirs)
+
+
+## 递归列出目录下的所有子目录。
+func list_directories_recursive(p_dir: String) -> GF_OperationResult:
+	if not dir_exists(p_dir):
+		return GF_OperationResult.ok([])
+
+	var dirs: Array[String] = []
+	_list_dirs_recursive(p_dir, dirs)
+	return GF_OperationResult.ok(dirs)
+
+
+func _list_dirs_recursive(p_dir: String, p_out_dirs: Array[String]) -> void:
+	var dir := DirAccess.open(p_dir)
+	if dir == null:
+		return
+
+	dir.list_dir_begin()
+	var name := dir.get_next()
+	while not name.is_empty():
+		if name == "." or name == "..":
+			name = dir.get_next()
+			continue
+
+		var full_path := p_dir.path_join(name)
+		if dir.current_is_dir():
+			p_out_dirs.append(full_path)
+			_list_dirs_recursive(full_path, p_out_dirs)
+		name = dir.get_next()
+	dir.list_dir_end()
+
+
+# ============================================================
+# 文件信息
+# ============================================================
+
+## 获取文件大小（字节）。文件不存在返回 -1。
+func get_file_size(p_path: String) -> int:
+	if not file_exists(p_path):
+		return -1
+	var fa := FileAccess.open(p_path, FileAccess.READ)
+	if fa == null:
+		return -1
+	var size := fa.get_length()
+	fa.close()
+	return size
+
+
+## 获取文件名（不含路径）。
+func get_file_name(p_path: String) -> String:
+	return p_path.get_file()
+
+
+## 获取文件扩展名（不含点，如 "gd"）。
+func get_extension(p_path: String) -> String:
+	return p_path.get_extension()
+
+
+## 获取不含扩展名的文件名。
+func get_base_name(p_path: String) -> String:
+	return p_path.get_file().trim_suffix("." + p_path.get_extension())
+
+
+# ============================================================
+# 内部
+# ============================================================
+
+## 检查文件名是否匹配扩展名列表。p_extensions 为空则全部通过。
+func _match_extensions(p_name: String, p_extensions: Array[String]) -> bool:
+	if p_extensions.is_empty():
+		return true
+	var ext := p_name.get_extension().to_lower()
+	for e in p_extensions:
+		if ext == e.to_lower():
+			return true
+	return false
+
+
 ## 原子写入：先写临时文件 .tmp → rename 替换目标。写入过程中崩溃不会损坏原文件。
 func write_text_atomic(p_path: String, p_content: String) -> GF_OperationResult:
 	var dir := p_path.get_base_dir()
