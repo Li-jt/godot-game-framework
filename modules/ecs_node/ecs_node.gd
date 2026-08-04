@@ -42,10 +42,14 @@ var _entity: int = -1
 ## 如果 GF_EcsWorld 未注册到 Bootstrap，则为 null。
 var _world: GF_EcsWorld = null
 
+## GF_AppBootstrap 引用。与 _world 同时解析，子类可通过此访问任意已注册服务。
+var _bootstrap = null
+
 
 func _ready() -> void:
 	# call_deferred：确保在 Bootstrap._ready() 之后执行，此时 EcsWorld 已注册并配置完毕
 	_resolve_world.call_deferred()
+	ready.call_deferred()
 
 
 ## 向上遍历找到 GF_WorldRoot，从缓存获取或首次解析 GF_EcsWorld。
@@ -55,6 +59,8 @@ func _resolve_world() -> void:
 	if root == null:
 		push_warning("[GF_EcsNode] %s 不在 GF_WorldRoot 子树下，_world 为 null。" % name)
 		return
+
+	_bootstrap = root._bootstrap
 
 	# 检查缓存
 	if root._service_cache.has(CACHE_KEY):
@@ -84,6 +90,8 @@ func _find_world_root() -> GF_WorldRoot:
 		node = node.get_parent()
 	return null
 
+func ready() -> void:
+	pass
 
 ## 绑定当前节点到指定 ECS 实体。
 ## 绑定后，子类可通过 _entity 和 _world 直接操作该实体的组件。
