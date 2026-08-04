@@ -52,6 +52,10 @@ func create(p_scene_path: String, p_init_data: Dictionary = {}) -> GF_OperationR
 			module_name
 		)
 
+	# 注入 _bootstrap 到 WorldRoot（实例化后、进树前）
+	if node is GF_WorldRoot:
+		node._bootstrap = _bootstrap
+
 	# 调用初始化钩子
 	if not p_init_data.is_empty():
 		if node.has_method("_on_factory_init"):
@@ -82,6 +86,10 @@ func instantiate(p_scene: PackedScene, p_init_data: Dictionary = {}) -> GF_Opera
 			"场景实例化失败",
 			module_name
 		)
+
+	# 注入 _bootstrap 到 WorldRoot
+	if node is GF_WorldRoot:
+		node._bootstrap = _bootstrap
 
 	if not p_init_data.is_empty():
 		if node.has_method("_on_factory_init"):

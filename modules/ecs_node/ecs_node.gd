@@ -44,7 +44,8 @@ var _world: GF_EcsWorld = null
 
 
 func _ready() -> void:
-	_resolve_world()
+	# call_deferred：确保在 Bootstrap._ready() 之后执行，此时 EcsWorld 已注册并配置完毕
+	_resolve_world.call_deferred()
 
 
 ## 向上遍历找到 GF_WorldRoot，从缓存获取或首次解析 GF_EcsWorld。
@@ -62,7 +63,7 @@ func _resolve_world() -> void:
 
 	# 首次解析：通过 Bootstrap 获取并缓存到 WorldRoot
 	if root._bootstrap == null:
-		push_warning("[GF_EcsNode] GF_WorldRoot._bootstrap 为 null，请确保 GF_SceneHost 已注入。")
+		push_warning("[GF_EcsNode] GF_WorldRoot._bootstrap 为 null。请通过 GF_SceneFactory 加载世界场景。")
 		return
 
 	_world = root._bootstrap.service(GF_EcsWorld) as GF_EcsWorld
