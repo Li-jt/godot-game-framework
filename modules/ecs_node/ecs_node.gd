@@ -76,7 +76,7 @@ func _resolve_world() -> void:
 ## 向上遍历场景树，返回第一个 GF_WorldRoot 祖先。找不到返回 null。
 ## 树遍历是 O(depth) 的 get_parent() 调用，在 Godot 底层为 C++ 指针追逐，代价可忽略。
 func _find_world_root() -> GF_WorldRoot:
-	var node := self
+	var node: Node = self
 	while node != null:
 		if node is GF_WorldRoot:
 			return node as GF_WorldRoot
