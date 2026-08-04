@@ -17,6 +17,11 @@ extends Node2D
 ## GF_AppBootstrap 引用。由 GF_SceneHost 在加载世界后自动注入。
 var _bootstrap = null
 
+## 已解析的服务缓存。GF_EcsNode 等子树节点首次解析后写入此处，
+## 后续节点直接读取缓存，避免重复调用 bootstrap.service()。
+## 由子树节点按需填充，WorldRoot 自身不主动初始化此字典。
+var _service_cache: Dictionary = {}
+
 
 ## GF_SceneHost 注入 _bootstrap 后调用。子类重写此方法做初始化。
 func _on_world_setup() -> void:
