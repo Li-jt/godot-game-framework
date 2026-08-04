@@ -4,19 +4,23 @@
 ## 和 Unity 的 MonoBehaviour 提供 transform、gameObject 一样，
 ## GF_EcsNode 为框架下的游戏节点提供 _world 和 _entity，消除样板代码。
 ##
+## 初始化时序：
+##   _ready() 中从 GF_WorldRoot 拿到 _bootstrap 引用。若 Bootstrap 已就绪
+##   （is_ready == true），直接解析 _world 并调用 ready()；否则监听
+##   bootstrap_ready 信号，待所有服务配置完成后再解析。保证 ECS 数据层和
+##   节点表现层的初始化顺序一致，消除 call_deferred 的时序不确定性。
+##
 ## 缓存机制：
-##   第一个 GF_EcsNode 向上找到 GF_WorldRoot，解析 GF_EcsWorld 并缓存到
-##   [code]WorldRoot._service_cache[/code]。后续所有同子树下的 EcsNode 直接
-##   从缓存读取，跳过重复的 [code]bootstrap.service()[/code] 调用。
-##   这等价于 Unity [code]GetComponentInParent<T>()[/code] 的 C++ 底层缓存行为。
+##   第一个 GF_EcsNode 解析 GF_EcsWorld 后缓存到 WorldRoot._service_cache，
+##   后续同子树节点直接命中缓存，跳过重复的 bootstrap.service() 调用。
 ##
 ## 使用方式：
 ##   [codeblock]
 ##   class_name GameCamera
 ##   extends GF_EcsNode
 ##
-##   func setup(p_entity: int) -> void:
-##       bind_entity(p_entity)
+##   func ready() -> void:
+##       bind_entity(_world.spawn({"Position": {...}}))
 ##
 ##   func _process(_delta: float) -> void:
 ##       if not has_entity():
@@ -25,10 +29,6 @@
 ##       if pos:
 ##           global_position = pos.value
 ##   [/codeblock]
-##
-## 注意：
-##   - 子类重写 _ready() 时必须调用 super._ready()，否则 _world 不会被解析。
-##   - _resolve_world() 在 _ready() 中自动调用一次。
 class_name GF_EcsNode
 extends Node2D
 
@@ -38,50 +38,63 @@ const CACHE_KEY := &"GF_EcsWorld"
 ## 当前绑定的 ECS 实体 ID。未绑定时为 -1。
 var _entity: int = -1
 
-## GF_EcsWorld 引用。由 _resolve_world() 在 _ready() 中自动获取。
-## 如果 GF_EcsWorld 未注册到 Bootstrap，则为 null。
+## GF_EcsWorld 引用。Bootstrap 就绪后自动解析。
 var _world: GF_EcsWorld = null
 
 ## GF_AppBootstrap 引用。与 _world 同时解析，子类可通过此访问任意已注册服务。
-var _bootstrap = null
+var _bootstrap: GF_AppBootstrap = null
 
 
 func _ready() -> void:
-	# call_deferred：确保在 Bootstrap._ready() 之后执行，此时 EcsWorld 已注册并配置完毕
-	_resolve_world.call_deferred()
-	ready.call_deferred()
-
-
-## 向上遍历找到 GF_WorldRoot，从缓存获取或首次解析 GF_EcsWorld。
-## 首次解析后缓存到 WorldRoot._service_cache，后续同子树节点直接命中缓存。
-func _resolve_world() -> void:
 	var root: GF_WorldRoot = _find_world_root()
 	if root == null:
-		push_warning("[GF_EcsNode] %s 不在 GF_WorldRoot 子树下，_world 为 null。" % name)
+		push_warning("[GF_EcsNode] %s 不在 GF_WorldRoot 子树下，无法获取 _world。" % name)
 		return
 
 	_bootstrap = root._bootstrap
+	if _bootstrap == null:
+		push_warning("[GF_EcsNode] GF_WorldRoot._bootstrap 为 null，_world 解析失败。")
+		return
 
-	# 检查缓存
+	if _bootstrap.is_ready:
+		# Bootstrap 已就绪，直接解析
+		_do_init()
+	else:
+		# 等 Bootstrap 初始化完成信号
+		if not _bootstrap.bootstrap_ready.is_connected(_do_init):
+			_bootstrap.bootstrap_ready.connect(_do_init, CONNECT_ONE_SHOT)
+
+
+## Bootstrap 就绪后执行：解析 _world + 缓存 + 调用子类 ready()。
+func _do_init() -> void:
+	_resolve_world()
+	ready()
+
+
+## 从 WorldRoot._service_cache 获取或首次解析 GF_EcsWorld。
+func _resolve_world() -> void:
+	var root: GF_WorldRoot = _find_world_root()
+	if root == null:
+		return
+
+	# 命中缓存
 	if root._service_cache.has(CACHE_KEY):
 		_world = root._service_cache[CACHE_KEY] as GF_EcsWorld
 		return
 
-	# 首次解析：通过 Bootstrap 获取并缓存到 WorldRoot
-	if root._bootstrap == null:
-		push_warning("[GF_EcsNode] GF_WorldRoot._bootstrap 为 null。请通过 GF_SceneFactory 加载世界场景。")
+	# 首次解析并缓存到 WorldRoot
+	if _bootstrap == null:
 		return
 
-	_world = root._bootstrap.service(GF_EcsWorld) as GF_EcsWorld
+	_world = _bootstrap.service(GF_EcsWorld) as GF_EcsWorld
 	if _world == null:
-		push_warning("[GF_EcsNode] GF_EcsWorld 未注册到 Bootstrap。请在 _assemble() 中 register(GF_EcsWorld.new())。")
+		push_warning("[GF_EcsNode] GF_EcsWorld 未注册。请在 _assemble() 中 register(GF_EcsWorld.new())。")
 		return
 
 	root._service_cache[CACHE_KEY] = _world
 
 
-## 向上遍历场景树，返回第一个 GF_WorldRoot 祖先。找不到返回 null。
-## 树遍历是 O(depth) 的 get_parent() 调用，在 Godot 底层为 C++ 指针追逐，代价可忽略。
+## 向上遍历场景树，返回第一个 GF_WorldRoot 祖先。
 func _find_world_root() -> GF_WorldRoot:
 	var node: Node = self
 	while node != null:
@@ -90,11 +103,15 @@ func _find_world_root() -> GF_WorldRoot:
 		node = node.get_parent()
 	return null
 
+
+## 子类重写此方法替代 _ready() 做业务初始化。
+## 调用时机：_world 和 _bootstrap 均已解析完毕，所有服务就绪。
+## 等价于 Zenject 的 IInitializable.Initialize()。
 func ready() -> void:
 	pass
 
+
 ## 绑定当前节点到指定 ECS 实体。
-## 绑定后，子类可通过 _entity 和 _world 直接操作该实体的组件。
 func bind_entity(p_entity: int) -> void:
 	_entity = p_entity
 
