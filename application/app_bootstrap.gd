@@ -24,9 +24,9 @@ func _ready() -> void:
 	_ensure_builtins()
 	_assemble()
 	_init_all()
+	_on_ready()
 	is_ready = true
 	bootstrap_ready.emit()
-	_on_ready()
 
 
 func _ensure_builtins() -> void:
