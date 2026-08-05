@@ -140,17 +140,20 @@ func get_version() -> int:
 
 
 ## 设置世界级单例资源。与 Component 不同，Resource 全局只有一份，不需要通过 Entity 访问。
-func set_resource(p_key: StringName, p_data: Variant) -> void:
+## [param p_key] 使用 class_name 引用作为键，如 [code]set_resource(GF_ContentDefRegistry, data)[/code]。
+func set_resource(p_key: Variant, p_data: Variant) -> void:
 	_resources[p_key] = p_data
 
 
 ## 获取世界级单例资源。返回 null 表示未注册。
-func get_resource(p_key: StringName) -> Variant:
+## [param p_key] 使用 class_name 引用作为键，如 [code]get_resource(GF_ContentDefRegistry)[/code]。
+func get_resource(p_key: Variant) -> Variant:
 	return _resources.get(p_key, null)
 
 
 ## 是否已注册指定资源。
-func has_resource(p_key: StringName) -> bool:
+## [param p_key] 使用 class_name 引用作为键，如 [code]has_resource(GF_ContentDefRegistry)[/code]。
+func has_resource(p_key: Variant) -> bool:
 	return _resources.has(p_key)
 
 

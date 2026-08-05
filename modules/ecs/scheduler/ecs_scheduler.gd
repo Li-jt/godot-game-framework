@@ -39,11 +39,11 @@ func configure() -> GF_OperationResult:
 	if _world != null:
 		var content_def: GF_ContentDefRegistry = _bootstrap.service(GF_ContentDefRegistry)
 		if content_def != null:
-			_world.set_resource(&"ContentDef", content_def)
+			_world.set_resource(GF_ContentDefRegistry, content_def)
 
 		var input_service: GF_InputService = _bootstrap.service(GF_InputService)
 		if input_service != null:
-			_world.set_resource(&"InputService", input_service)
+			_world.set_resource(GF_InputService, input_service)
 
 	return GF_OperationResult.ok()
 

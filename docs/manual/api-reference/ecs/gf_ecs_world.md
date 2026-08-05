@@ -18,26 +18,26 @@ ECS 世界核心。管理实体生命周期、组件存储、ID 分配和世界�
 
 世界级单例资源。与 Component 不同，Resource 全局只有一份，不需要通过 Entity 访问。等价于 Bevy 的 `Resource<T>`。
 
-#### set_resource(p_key: StringName, p_data: Variant) -> void
+#### set_resource(p_key: Variant, p_data: Variant) -> void
 
-设置世界级单例资源。
+设置世界级单例资源。使用 class_name 引用作为键，类型安全且支持 IDE 补全。
 
 ```gdscript
-world.set_resource(&"ContentDef", content_def_registry)
-world.set_resource(&"InputService", input_service)
+world.set_resource(GF_ContentDefRegistry, content_def_registry)
+world.set_resource(GF_InputService, input_service)
 ```
 
-#### get_resource(p_key: StringName) -> Variant
+#### get_resource(p_key: Variant) -> Variant
 
 获取世界级单例资源。返回 `null` 表示未注册。
 
 ```gdscript
-var content_def := world.get_resource(&"ContentDef") as GF_ContentDefRegistry
+var content_def := world.get_resource(GF_ContentDefRegistry) as GF_ContentDefRegistry
 if content_def != null:
     var terrain := content_def.module(&"terrain")
 ```
 
-#### has_resource(p_key: StringName) -> bool
+#### has_resource(p_key: Variant) -> bool
 
 是否已注册指定资源。
 

@@ -32,7 +32,7 @@
 class_name GF_EcsNode
 extends Node2D
 
-const CACHE_KEY := &"GF_EcsWorld"
+const CACHE_KEY: GDScript = GF_EcsWorld
 
 
 ## 当前绑定的 ECS 实体 ID。未绑定时为 -1。
