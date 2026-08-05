@@ -65,7 +65,7 @@ func entity_count() -> int:
 # ============================================================
 
 
-func add_component(p_entity: int, p_type: Variant, p_data: Variant) -> GF_OperationResult:
+func add_component(p_entity: int, p_type: GDScript, p_data: Variant) -> GF_OperationResult:
 	if not _entities.has(p_entity):
 		return GF_OperationResult.fail(GF_OperationResult.ERR_NOT_FOUND, "实体不存在: %d" % p_entity, "GF_EcsWorld")
 	var reg_result: GF_OperationResult = _registry.register_type(p_type)
@@ -80,7 +80,7 @@ func add_component(p_entity: int, p_type: Variant, p_data: Variant) -> GF_Operat
 	return GF_OperationResult.ok()
 
 
-func set_component(p_entity: int, p_type: Variant, p_data: Variant) -> GF_OperationResult:
+func set_component(p_entity: int, p_type: GDScript, p_data: Variant) -> GF_OperationResult:
 	if not _entities.has(p_entity):
 		return GF_OperationResult.fail(GF_OperationResult.ERR_NOT_FOUND, "实体不存在: %d" % p_entity, "GF_EcsWorld")
 	var reg_result: GF_OperationResult = _registry.register_type(p_type)
@@ -93,7 +93,7 @@ func set_component(p_entity: int, p_type: Variant, p_data: Variant) -> GF_Operat
 	return GF_OperationResult.ok()
 
 
-func get_component(p_entity: int, p_type: Variant) -> Variant:
+func get_component(p_entity: int, p_type: GDScript) -> Variant:
 	if not _entities.has(p_entity):
 		return null
 	var type_id: int = _registry.type_id_of(p_type)
@@ -105,7 +105,7 @@ func get_component(p_entity: int, p_type: Variant) -> Variant:
 	return storage.get_data(p_entity)
 
 
-func remove_component(p_entity: int, p_type: Variant) -> void:
+func remove_component(p_entity: int, p_type: GDScript) -> void:
 	if not _entities.has(p_entity):
 		return
 	var type_id: int = _registry.type_id_of(p_type)
@@ -118,7 +118,7 @@ func remove_component(p_entity: int, p_type: Variant) -> void:
 	_version += 1
 
 
-func has_component(p_entity: int, p_type: Variant) -> bool:
+func has_component(p_entity: int, p_type: GDScript) -> bool:
 	if not _entities.has(p_entity):
 		return false
 	var type_id: int = _registry.type_id_of(p_type)

@@ -7,5 +7,5 @@ var _components: Dictionary = {}
 
 
 ## 获取指定类型的组件数据。p_type 为 class_name 引用（如 Position）。
-func get_component(p_type: Variant) -> Variant:
+func get_component(p_type: GDScript) -> Variant:
 	return _components.get(p_type, null)

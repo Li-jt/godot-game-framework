@@ -4,9 +4,9 @@ class_name GF_IEcsCommandBuffer
 extends RefCounted
 
 func spawn() -> int: _ni(); return 0
-func add_component(p_entity: int, p_type: Variant, p_data: Variant) -> void: _ni()
-func set_component(p_entity: int, p_type: Variant, p_data: Variant) -> void: _ni()
-func remove_component(p_entity: int, p_type: Variant) -> void: _ni()
+func add_component(p_entity: int, p_type: GDScript, p_data: Variant) -> void: _ni()
+func set_component(p_entity: int, p_type: GDScript, p_data: Variant) -> void: _ni()
+func remove_component(p_entity: int, p_type: GDScript) -> void: _ni()
 func despawn(p_entity: int) -> void: _ni()
 func apply_to(p_world: GF_EcsWorld) -> GF_OperationResult: _ni(); return GF_OperationResult.fail(500, "NI", "GF_IEcsCommandBuffer")
 func count() -> int: _ni(); return 0

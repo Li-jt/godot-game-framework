@@ -1,25 +1,25 @@
 ## GF_EcsComponentTypeRegistry — 组件类型注册中心。
-## 管理 Variant（class_name 引用如 Position）-> type_id 的映射，
+## 管理 GDScript（class_name 引用如 Position）-> type_id 的映射，
 ## 并记录每种类型的版本号、注册者，为 Save/Debug/Inspector 提供结构化信息。
 class_name GF_EcsComponentTypeRegistry
 extends RefCounted
 
-var _type_to_id: Dictionary = {}   # {Variant: int}
-var _id_to_type: Dictionary = {}   # {int: Variant}
-var _name_to_type: Dictionary = {} # {String: Variant} — 反序列化用，"Position" → Position
+var _type_to_id: Dictionary = {}   # {GDScript: int}
+var _id_to_type: Dictionary = {}   # {int: GDScript}
+var _name_to_type: Dictionary = {} # {String: GDScript} — 反序列化用，"Position" → Position
 var _versions: Dictionary = {}     # {int: int} type_id → version
 var _owners: Dictionary = {}       # {int: String} type_id → owner_name
 var _next_id: int = 1
 
 
 ## 注册组件类型。p_type 为 class_name 引用（如 Position）。
-func register_type(p_type: Variant, p_version: int = 1) -> GF_OperationResult:
+func register_type(p_type: GDScript, p_version: int = 1) -> GF_OperationResult:
 	return pre_register(p_type, p_version, "")
 
 
 ## 显式预注册一个组件类型。
 ## p_owner: 注册者标识（如 "game" 或 "mod:fishing"），用于冲突检测和卸载。
-func pre_register(p_type: Variant, p_version: int = 1, p_owner: String = "") -> GF_OperationResult:
+func pre_register(p_type: GDScript, p_version: int = 1, p_owner: String = "") -> GF_OperationResult:
 	if _type_to_id.has(p_type):
 		var tid: int = _type_to_id[p_type]
 		var existing_owner: String = _owners.get(tid, "")
@@ -39,12 +39,12 @@ func pre_register(p_type: Variant, p_version: int = 1, p_owner: String = "") -> 
 
 
 ## 根据类型获取 type_id，未注册时返回 0。
-func type_id_of(p_type: Variant) -> int:
+func type_id_of(p_type: GDScript) -> int:
 	return _type_to_id.get(p_type, 0)
 
 
-## 根据 type_id 获取类型引用。对比旧 StringName 版本：现在返回 Variant（GDScript 等）。
-func type_of(p_id: int) -> Variant:
+## 根据 type_id 获取类型引用。
+func type_of(p_id: int) -> GDScript:
 	return _id_to_type.get(p_id, null)
 
 
@@ -55,7 +55,7 @@ func type_name_of(p_id: int) -> String:
 
 
 ## 根据可读类型名（如 "Position"）获取类型引用，供反序列化使用。
-func type_by_name(p_name: String) -> Variant:
+func type_by_name(p_name: String) -> GDScript:
 	return _name_to_type.get(p_name, null)
 
 
@@ -77,7 +77,7 @@ func type_owner(p_type_or_id: Variant) -> String:
 
 
 ## 检查组件类型是否已注册。
-func is_registered(p_type: Variant) -> bool:
+func is_registered(p_type: GDScript) -> bool:
 	return _type_to_id.has(p_type)
 
 
