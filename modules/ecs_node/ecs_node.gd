@@ -32,7 +32,7 @@
 class_name GF_EcsNode
 extends Node2D
 
-const CACHE_KEY: GDScript = GF_EcsWorld
+var _cache_key: GDScript = GF_EcsWorld
 
 
 ## 当前绑定的 ECS 实体 ID。未绑定时为 -1。
@@ -78,8 +78,8 @@ func _resolve_world() -> void:
 		return
 
 	# 命中缓存
-	if root._service_cache.has(CACHE_KEY):
-		_world = root._service_cache[CACHE_KEY] as GF_EcsWorld
+	if root._service_cache.has(_cache_key):
+		_world = root._service_cache[_cache_key] as GF_EcsWorld
 		return
 
 	# 首次解析并缓存到 WorldRoot
@@ -91,7 +91,7 @@ func _resolve_world() -> void:
 		push_warning("[GF_EcsNode] GF_EcsWorld 未注册。请在 _assemble() 中 register(GF_EcsWorld.new())。")
 		return
 
-	root._service_cache[CACHE_KEY] = _world
+	root._service_cache[_cache_key] = _world
 
 
 ## 向上遍历场景树，返回第一个 GF_WorldRoot 祖先。
