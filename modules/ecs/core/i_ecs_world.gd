@@ -7,11 +7,11 @@ func spawn() -> int: _ni(); return 0
 func despawn(p_entity: int) -> bool: _ni(); return false
 func has_entity(p_entity: int) -> bool: _ni(); return false
 func entity_count() -> int: _ni(); return 0
-func add_component(p_entity: int, p_type: StringName, p_data: Variant) -> GF_OperationResult: _ni(); return GF_OperationResult.fail(500, "NI", "GF_IEcsWorld")
-func set_component(p_entity: int, p_type: StringName, p_data: Variant) -> GF_OperationResult: _ni(); return GF_OperationResult.fail(500, "NI", "GF_IEcsWorld")
-func get_component(p_entity: int, p_type: StringName) -> Variant: _ni(); return null
-func remove_component(p_entity: int, p_type: StringName) -> void: _ni()
-func has_component(p_entity: int, p_type: StringName) -> bool: _ni(); return false
+func add_component(p_entity: int, p_type: Variant, p_data: Variant) -> GF_OperationResult: _ni(); return GF_OperationResult.fail(500, "NI", "GF_IEcsWorld")
+func set_component(p_entity: int, p_type: Variant, p_data: Variant) -> GF_OperationResult: _ni(); return GF_OperationResult.fail(500, "NI", "GF_IEcsWorld")
+func get_component(p_entity: int, p_type: Variant) -> Variant: _ni(); return null
+func remove_component(p_entity: int, p_type: Variant) -> void: _ni()
+func has_component(p_entity: int, p_type: Variant) -> bool: _ni(); return false
 func get_version() -> int: _ni(); return 0
 func all_entities() -> PackedInt64Array: _ni(); return PackedInt64Array()
 

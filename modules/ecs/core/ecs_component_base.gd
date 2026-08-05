@@ -8,11 +8,6 @@ extends RefCounted
 var schema_version: int = 1
 
 
-## 返回组件类型名（如 &"Health"）。子类应覆写以支持工厂自动注册。
-func get_component_type() -> StringName:
-	return &""
-
-
 ## 从 Dictionary 创建组件实例。子类应覆写以支持工厂自动注册。
 ## 默认实现：new() + deserialize()，子类可覆写为自定义构造逻辑。
 static func from_dict(p_data: Dictionary) -> GF_EcsComponentBase:

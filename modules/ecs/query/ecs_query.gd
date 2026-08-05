@@ -4,25 +4,25 @@
 class_name GF_EcsQuery
 extends GF_IEcsQuery
 
-var _with_types: Array[StringName] = []
-var _without_types: Array[StringName] = []
-var _optional_types: Array[StringName] = []
+var _with_types: Array = []
+var _without_types: Array = []
+var _optional_types: Array = []
 
 
-## 要求实体必须拥有指定组件。
-func with_component(p_type: StringName) -> GF_EcsQuery:
+## 要求实体必须拥有指定组件。p_type 为 class_name 引用（如 Position）。
+func with_component(p_type: Variant) -> GF_EcsQuery:
 	_with_types.append(p_type)
 	return self
 
 
 ## 要求实体不得拥有指定组件。
-func without_component(p_type: StringName) -> GF_EcsQuery:
+func without_component(p_type: Variant) -> GF_EcsQuery:
 	_without_types.append(p_type)
 	return self
 
 
 ## 实体可选拥有此组件（不影响匹配，但结果中会附带数据）。
-func optional_component(p_type: StringName) -> GF_EcsQuery:
+func optional_component(p_type: Variant) -> GF_EcsQuery:
 	_optional_types.append(p_type)
 	return self
 

@@ -4,12 +4,12 @@
 class_name GF_EcsQueryPlan
 extends RefCounted
 
-var _with_types: Array[StringName] = []
-var _without_types: Array[StringName] = []
-var _optional_types: Array[StringName] = []
+var _with_types: Array = []
+var _without_types: Array = []
+var _optional_types: Array = []
 
 
-func _init(p_with: Array[StringName], p_without: Array[StringName], p_optional: Array[StringName]) -> void:
+func _init(p_with: Array, p_without: Array, p_optional: Array) -> void:
 	_with_types = p_with.duplicate()
 	_without_types = p_without.duplicate()
 	_optional_types = p_optional.duplicate()
@@ -25,7 +25,6 @@ func execute(p_world: GF_EcsWorld) -> GF_EcsQueryResult:
 	if _with_types.is_empty():
 		candidates = p_world.all_entities()
 	else:
-		var with_type_ids: Array[int] = []
 		var with_storages: Array[GF_IEcsStorage] = []
 		for with_type in _with_types:
 			var tid := registry.type_id_of(with_type)
@@ -34,7 +33,6 @@ func execute(p_world: GF_EcsWorld) -> GF_EcsQueryResult:
 			var storage := storage_index.get_storage(tid)
 			if storage == null:
 				return GF_EcsQueryResult.new()
-			with_type_ids.append(tid)
 			with_storages.append(storage)
 		candidates = with_storages[0].entities()
 
@@ -46,14 +44,14 @@ func execute(p_world: GF_EcsWorld) -> GF_EcsQueryResult:
 			without_type_ids.append(tid)
 
 	# 解析 optional 的 type_id
-	var optional_type_names: Array[StringName] = []
+	var optional_types: Array = []
 	for opt_type in _optional_types:
 		if registry.type_id_of(opt_type) != 0:
-			optional_type_names.append(opt_type)
+			optional_types.append(opt_type)
 
 	var result := GF_EcsQueryResult.new()
 	result._required_types = _with_types
-	result._optional_types = optional_type_names
+	result._optional_types = optional_types
 
 	for entity in candidates:
 		if not p_world.has_entity(entity):
@@ -87,7 +85,7 @@ func execute(p_world: GF_EcsWorld) -> GF_EcsQueryResult:
 			var wstorage := storage_index.get_storage(registry.type_id_of(wtype))
 			if wstorage != null:
 				row._components[wtype] = wstorage.get_data(entity)
-		for oname in optional_type_names:
+		for oname in optional_types:
 			var ostorage := storage_index.get_storage(registry.type_id_of(oname))
 			if ostorage != null and ostorage.contains(entity):
 				row._components[oname] = ostorage.get_data(entity)

@@ -15,12 +15,12 @@ const TEMP_ENTITY_START: int = -1000000
 
 var type: int = 0
 var entity: int = 0
-var component_type: StringName = &""
+var component_type: Variant = null
 var data: Variant = null
 
 
 ## 创建一条命令记录。
-func _init(p_type: int, p_entity: int, p_component_type: StringName = &"", p_data = null) -> void:
+func _init(p_type: int, p_entity: int, p_component_type: Variant = null, p_data = null) -> void:
 	type = p_type
 	entity = p_entity
 	component_type = p_component_type
