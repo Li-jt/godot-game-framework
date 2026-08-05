@@ -10,11 +10,36 @@ ECS 世界核心。管理实体生命周期、组件存储、ID 分配和世界�
 
 ## 属性
 
-| 属性 | 类型 | 默认值 | 描述 |
-|------|------|--------|------|
-| `content_def` | `GF_ContentDefRegistry` | `null` | 内容定义注册表（由 GameBootstrap 注入，供 ECS 系统查询 Def 数据） |
+无公开属性。全局共享数据通过 `set_resource` / `get_resource` 存取，不暴露内部字段。
 
 ## 公共方法
+
+### 资源操作
+
+世界级单例资源。与 Component 不同，Resource 全局只有一份，不需要通过 Entity 访问。等价于 Bevy 的 `Resource<T>`。
+
+#### set_resource(p_key: StringName, p_data: Variant) -> void
+
+设置世界级单例资源。
+
+```gdscript
+world.set_resource(&"ContentDef", content_def_registry)
+world.set_resource(&"InputService", input_service)
+```
+
+#### get_resource(p_key: StringName) -> Variant
+
+获取世界级单例资源。返回 `null` 表示未注册。
+
+```gdscript
+var content_def := world.get_resource(&"ContentDef") as GF_ContentDefRegistry
+if content_def != null:
+    var terrain := content_def.module(&"terrain")
+```
+
+#### has_resource(p_key: StringName) -> bool
+
+是否已注册指定资源。
 
 ### 实体生命周期
 
@@ -106,7 +131,7 @@ if pos != null:
 
 #### reset() -> void
 
-重置世界：清空所有实体和组件数据，重置 ID 分配器和版本号。`content_def` 也会被置为 `null`。
+重置世界：清空所有实体、组件数据、资源字典，重置 ID 分配器和版本号。
 
 ## 接口规范 (GF_IEcsWorld)
 

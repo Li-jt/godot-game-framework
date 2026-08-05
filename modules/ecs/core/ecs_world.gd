@@ -9,8 +9,10 @@ var _registry: GF_EcsComponentTypeRegistry = null
 var _storage_index: GF_EcsStorageIndex = null
 var _version: int = 0
 var _next_entity_id: int = 1
-## 内容定义注册表。由 GF_EcsScheduler.configure() 自动注入，ECS 系统可直接使用。
-var content_def: GF_ContentDefRegistry = null
+## 世界级单例资源字典。与 Component 不同，Resource 全局只有一份，
+## 通过 set_resource/get_resource 存取，不需要 Entity 访问。
+## 等价于 Bevy 的 Resource<T>、守望先锋 ECS 的 singleton component。
+var _resources: Dictionary = {}
 
 
 func _init() -> void:
@@ -137,6 +139,21 @@ func get_version() -> int:
 	return _version
 
 
+## 设置世界级单例资源。与 Component 不同，Resource 全局只有一份，不需要通过 Entity 访问。
+func set_resource(p_key: StringName, p_data: Variant) -> void:
+	_resources[p_key] = p_data
+
+
+## 获取世界级单例资源。返回 null 表示未注册。
+func get_resource(p_key: StringName) -> Variant:
+	return _resources.get(p_key, null)
+
+
+## 是否已注册指定资源。
+func has_resource(p_key: StringName) -> bool:
+	return _resources.has(p_key)
+
+
 ## 返回所有存活实体 ID 列表。
 func all_entities() -> PackedInt64Array:
 	var result := PackedInt64Array()
@@ -153,7 +170,7 @@ func reset() -> void:
 	_storage_index = GF_EcsStorageIndex.new()
 	_next_entity_id = 1
 	_version = 0
-	content_def = null
+	_resources.clear()
 
 
 # ============================================================

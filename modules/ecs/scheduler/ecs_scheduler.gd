@@ -35,10 +35,16 @@ func dependencies() -> Array:
 
 func configure() -> GF_OperationResult:
 	_world = _bootstrap.service(GF_EcsWorld) as GF_EcsWorld
-	# 自动将 ContentDefRegistry 注入到 World，ECS 系统通过 p_world.content_def 访问
-	var content_def: GF_ContentDefRegistry = _bootstrap.service(GF_ContentDefRegistry)
-	if content_def != null and _world != null:
-		_world.content_def = content_def
+
+	if _world != null:
+		var content_def: GF_ContentDefRegistry = _bootstrap.service(GF_ContentDefRegistry)
+		if content_def != null:
+			_world.set_resource(&"ContentDef", content_def)
+
+		var input_service: GF_InputService = _bootstrap.service(GF_InputService)
+		if input_service != null:
+			_world.set_resource(&"InputService", input_service)
+
 	return GF_OperationResult.ok()
 
 

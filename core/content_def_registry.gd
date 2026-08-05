@@ -4,8 +4,8 @@
 ## 使用方式：
 ##   1. GameBootstrap._assemble() 中创建实例、注册模块
 ##   2. register() 到 Bootstrap，参与 DI
-##   3. GF_EcsScheduler.configure() 自动将其注入到 GF_EcsWorld.content_def
-##   4. ECS 系统通过 p_world.content_def.module("terrain") 获取模块数据
+##   3. GF_EcsScheduler.configure() 将其注入为 GF_EcsWorld 的 Resource
+##   4. ECS 系统通过 p_world.get_resource(&"ContentDef").module("terrain") 获取
 class_name GF_ContentDefRegistry
 extends GF_ModuleLifecycle
 
