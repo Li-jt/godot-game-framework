@@ -45,6 +45,10 @@ func configure() -> GF_OperationResult:
 		if input_service != null:
 			_world.set_resource(GF_InputService, input_service)
 
+		var event_bus: GF_EventBus = _bootstrap.service(GF_EventBus)
+		if event_bus != null:
+			_world.set_resource(GF_EventBus, event_bus)
+
 	return GF_OperationResult.ok()
 
 
