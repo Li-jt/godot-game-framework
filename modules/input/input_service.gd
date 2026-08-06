@@ -33,6 +33,11 @@ func dependencies() -> Array:
 
 
 func configure() -> GF_OperationResult:
+	# 创建 Router 并挂到场景树，与 _install_builtins() 挂 GF_Scheduler 同模式
+	_router = GF_InputRouter.new()
+	_router.name = "GF_InputRouter"
+	_router.configure(_resolver)
+	_bootstrap.add_child(_router)
 	return GF_OperationResult.ok()
 
 
@@ -46,11 +51,8 @@ func set_ui_service(p_ui) -> void:
 	_policy.set_ui_service(p_ui)
 
 
-## 获取或创建 GF_InputRouter Node（懒汉单例）。
+## 获取 GF_InputRouter Node。configure() 中已自动创建并挂到 Bootstrap。
 func get_or_create_router() -> GF_InputRouter:
-	if _router == null:
-		_router = GF_InputRouter.new()
-		_router.configure(_resolver)
 	return _router
 
 
