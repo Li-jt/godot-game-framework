@@ -383,3 +383,12 @@ static func dict_to_rect2(p_dict: Dictionary) -> Rect2:
 		float(p_dict.get("w", 0.0)),
 		float(p_dict.get("h", 0.0)),
 	)
+
+
+## JS 风格模板字符串。将 ${key} 替换为字典中对应的值。
+## [codeblock]s("实体 ${id} 已销毁, 数量: ${n}", {"id": 42, "n": 5})[/codeblock] → "实体 42 已销毁, 数量: 5"
+static func s(p_template: String, p_vars: Dictionary) -> String:
+	var result := p_template
+	for key in p_vars:
+		result = result.replace("${%s}" % str(key), str(p_vars[key]))
+	return result
