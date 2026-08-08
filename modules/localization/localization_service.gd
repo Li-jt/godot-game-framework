@@ -36,7 +36,7 @@ func _on_init() -> GF_OperationResult:
 
 
 func dependencies() -> Array:
-	return [GF_LogService]
+	return [GF_LogService, GF_FileSystemService]
 
 func configure() -> GF_OperationResult:
 	_log = _bootstrap.service(GF_LogService) as GF_LogService
