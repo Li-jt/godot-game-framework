@@ -14,7 +14,7 @@
 ##   service.bind(label2, "text", "menu.exit", {"name": "JT"})
 ##
 ##   # 直接查询
-##   var text := service.tr("menu.start", {"name": "JT"})
+##   var text := service.text("menu.start", {"name": "JT"})
 ##
 ##   # 切换语言 → 所有 bind 的节点自动刷新
 ##   service.set_locale("en")
@@ -93,7 +93,7 @@ func get_locale() -> String:
 
 ## 获取当前语言下 key 对应的翻译文本。p_args 可选，替换 "{arg}" 占位符。
 ## key 不存在时返回 key 本身并输出 warning。
-func tr(p_key: String, p_args: Dictionary = {}) -> String:
+func text(p_key: String, p_args: Dictionary = {}) -> String:
 	var table: Dictionary = _translations.get(_current_locale, {})
 	if not table.has(p_key):
 		_log.warning("Localization", "缺失翻译 key: %s (locale=%s)" % [p_key, _current_locale])
@@ -108,14 +108,14 @@ func tr(p_key: String, p_args: Dictionary = {}) -> String:
 	return text
 
 
-## 按整数 ID 查询翻译。等价于 tr(str(p_id), p_args)。
-func tr_id(p_id: int, p_args: Dictionary = {}) -> String:
-	return tr(str(p_id), p_args)
+## 按整数 ID 查询翻译。等价于 text(str(p_id), p_args)。
+func text_id(p_id: int, p_args: Dictionary = {}) -> String:
+	return text(str(p_id), p_args)
 
 
 ## 向后兼容别名。
 func tr_key(p_key: String, p_args: Dictionary = {}) -> String:
-	return tr(p_key, p_args)
+	return text(p_key, p_args)
 
 
 ## 检查 key 是否存在于当前语言。
@@ -177,8 +177,8 @@ func _apply_binding(p_binding: Dictionary) -> void:
 	if node == null or not is_instance_valid(node):
 		return
 	var key := str(p_binding["key"]) if p_binding["key"] is int else p_binding["key"] as String
-	var text := tr(key, p_binding["args"])
-	node.set(p_binding["property"], text)
+	var value := text(key, p_binding["args"])
+	node.set(p_binding["property"], value)
 
 
 ## 清理已释放节点的绑定（WeakRef 为 null）
