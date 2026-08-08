@@ -54,7 +54,7 @@ func add_translations(p_locale: String, p_dict: Dictionary) -> void:
 		_translations[p_locale] = {}
 	var table: Dictionary = _translations[p_locale]
 	for key in p_dict:
-		table[key] = p_dict[key]
+		table[str(key)] = str(p_dict[key])
 	_log.info("Localization", "已添加 %s (%d 条)" % [p_locale, p_dict.size()])
 
 
@@ -108,6 +108,11 @@ func tr(p_key: String, p_args: Dictionary = {}) -> String:
 	return text
 
 
+## 按整数 ID 查询翻译。等价于 tr(str(p_id), p_args)。
+func tr_id(p_id: int, p_args: Dictionary = {}) -> String:
+	return tr(str(p_id), p_args)
+
+
 ## 向后兼容别名。
 func tr_key(p_key: String, p_args: Dictionary = {}) -> String:
 	return tr(p_key, p_args)
@@ -119,16 +124,22 @@ func has_key(p_key: String) -> bool:
 	return table.has(p_key)
 
 
+## 检查整数 ID 是否存在于当前语言。
+func has_id(p_id: int) -> bool:
+	return has_key(str(p_id))
+
+
 # ============================================================
 # UI 绑定
 # ============================================================
 
 ## 绑定节点属性到翻译 key。切换语言时自动调用 node.set(property, text)。
+## p_key 接受 String 或 int（name_text_id 模式）。
 ## [param p_node] 目标节点
 ## [param p_property] 属性名（如 "text"、"tooltip_text"、"placeholder_text"）
-## [param p_key] 翻译 key
+## [param p_key] 翻译 key（String 如 "menu.start"，或 int 如 10）
 ## [param p_args] 可选的参数替换字典
-func bind(p_node: Node, p_property: String, p_key: String, p_args: Dictionary = {}) -> void:
+func bind(p_node: Node, p_property: String, p_key: Variant, p_args: Dictionary = {}) -> void:
 	_bindings.append({
 		"node": weakref(p_node),
 		"property": p_property,
@@ -165,7 +176,8 @@ func _apply_binding(p_binding: Dictionary) -> void:
 	var node = p_binding["node"].get_ref()
 	if node == null or not is_instance_valid(node):
 		return
-	var text := tr(p_binding["key"], p_binding["args"])
+	var key := str(p_binding["key"]) if p_binding["key"] is int else p_binding["key"] as String
+	var text := tr(key, p_binding["args"])
 	node.set(p_binding["property"], text)
 
 
