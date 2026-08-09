@@ -61,6 +61,16 @@ func _init(
 	focus_mode = p_focus_mode
 	default_focus = p_default_focus
 
+
+## 从 Dictionary 创建面板定义。只传需要的字段即可。
+## [codeblock]GF_UIPanelDef.from_dict({"name": "inventory", "path": "res://ui/inventory.tscn", "lifecycle": GF_UIPanelDef.Lifecycle.HIDE_ON_CLOSE})[/codeblock]
+static func from_dict(p_data: Dictionary) -> GF_UIPanelDef:
+	var def := GF_UIPanelDef.new(p_data.get("name", ""), p_data.get("path", ""))
+	for key in p_data:
+		if key in def and key != "name" and key != "path":
+			def.set(key, p_data[key])
+	return def
+
 var name: String = ""
 var path: String = ""
 var kind: StringName = KIND_SCREEN
