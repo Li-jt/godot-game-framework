@@ -45,7 +45,7 @@ func set_focus_config(p_mode: Control.FocusMode, p_default_focus: NodePath) -> v
 
 ## GF_AppBootstrap 引用。由 GF_UIService 在面板实例化后自动注入。
 ## 子类在 _on_open / _on_reopen 中通过 _bootstrap.service(GF_XxxService) 获取所需服务。
-var _bootstrap = null
+var _bootstrap: GF_AppBootstrap = null
 
 
 ## GF_SceneFactory 钩子：实例化后自动调用。p_data 为 GF_SceneFactory.create() 传入的 init_data。
