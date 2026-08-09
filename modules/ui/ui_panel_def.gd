@@ -26,6 +26,33 @@ enum InputBlockMode {
 	POINTER_ONLY,  # 鼠标位于面板区域内时才阻挡指定游戏输入
 }
 
+## 通过 Dictionary 一次性设置所有属性。
+## [codeblock]
+## var def := GF_UIPanelDef.new({
+##     "name": "inventory",
+##     "path": "res://ui/inventory.tscn",
+##     "kind": GF_UIPanelDef.KIND_SCREEN,
+##     "lifecycle": GF_UIPanelDef.Lifecycle.HIDE_ON_CLOSE,
+##     "blocked_action_ids": ["*"],
+## })
+## [/codeblock]
+func _init(p_data: Dictionary = {}) -> void:
+	if p_data.is_empty():
+		return
+	if p_data.has("name"):              name = p_data["name"]
+	if p_data.has("path"):              path = p_data["path"]
+	if p_data.has("kind"):              kind = p_data["kind"]
+	if p_data.has("lifecycle"):         lifecycle = p_data["lifecycle"]
+	if p_data.has("prewarm"):           prewarm = p_data["prewarm"]
+	if p_data.has("preview_data"):      preview_data = p_data["preview_data"]
+	if p_data.has("singleton"):         singleton = p_data["singleton"]
+	if p_data.has("layer_order"):       layer_order = p_data["layer_order"]
+	if p_data.has("input_block_mode"):  input_block_mode = p_data["input_block_mode"]
+	if p_data.has("blocked_action_ids"): blocked_action_ids = p_data["blocked_action_ids"]
+	if p_data.has("close_on_escape"):   close_on_escape = p_data["close_on_escape"]
+	if p_data.has("focus_mode"):        focus_mode = p_data["focus_mode"]
+	if p_data.has("default_focus"):     default_focus = p_data["default_focus"]
+
 var name: String = ""
 var path: String = ""
 var kind: StringName = KIND_SCREEN
