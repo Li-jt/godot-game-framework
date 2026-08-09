@@ -26,32 +26,40 @@ enum InputBlockMode {
 	POINTER_ONLY,  # 鼠标位于面板区域内时才阻挡指定游戏输入
 }
 
-## 通过 Dictionary 一次性设置所有属性。
+## 构造面板定义。[param p_name] 和 [param p_path] 必填，其余可选。
 ## [codeblock]
-## var def := GF_UIPanelDef.new({
-##     "name": "inventory",
-##     "path": "res://ui/inventory.tscn",
-##     "kind": GF_UIPanelDef.KIND_SCREEN,
-##     "lifecycle": GF_UIPanelDef.Lifecycle.HIDE_ON_CLOSE,
-##     "blocked_action_ids": ["*"],
-## })
+## var def := GF_UIPanelDef.new("inventory", "res://ui/inventory.tscn",
+##     GF_UIPanelDef.KIND_SCREEN, GF_UIPanelDef.Lifecycle.HIDE_ON_CLOSE)
+## def.blocked_action_ids = ["*"]
 ## [/codeblock]
-func _init(p_data: Dictionary = {}) -> void:
-	if p_data.is_empty():
-		return
-	if p_data.has("name"):              name = p_data["name"]
-	if p_data.has("path"):              path = p_data["path"]
-	if p_data.has("kind"):              kind = p_data["kind"]
-	if p_data.has("lifecycle"):         lifecycle = p_data["lifecycle"]
-	if p_data.has("prewarm"):           prewarm = p_data["prewarm"]
-	if p_data.has("preview_data"):      preview_data = p_data["preview_data"]
-	if p_data.has("singleton"):         singleton = p_data["singleton"]
-	if p_data.has("layer_order"):       layer_order = p_data["layer_order"]
-	if p_data.has("input_block_mode"):  input_block_mode = p_data["input_block_mode"]
-	if p_data.has("blocked_action_ids"): blocked_action_ids = p_data["blocked_action_ids"]
-	if p_data.has("close_on_escape"):   close_on_escape = p_data["close_on_escape"]
-	if p_data.has("focus_mode"):        focus_mode = p_data["focus_mode"]
-	if p_data.has("default_focus"):     default_focus = p_data["default_focus"]
+func _init(
+	p_name: String,
+	p_path: String,
+	p_kind: StringName = KIND_SCREEN,
+	p_lifecycle: Lifecycle = Lifecycle.DESTROY_ON_CLOSE,
+	p_prewarm: bool = false,
+	p_preview_data: Dictionary = {},
+	p_singleton: bool = true,
+	p_layer_order: int = 0,
+	p_input_block_mode: InputBlockMode = InputBlockMode.NONE,
+	p_blocked_action_ids: Array = [],
+	p_close_on_escape: bool = true,
+	p_focus_mode: Control.FocusMode = Control.FOCUS_ALL,
+	p_default_focus: NodePath = NodePath(),
+) -> void:
+	name = p_name
+	path = p_path
+	kind = p_kind
+	lifecycle = p_lifecycle
+	prewarm = p_prewarm
+	preview_data = p_preview_data
+	singleton = p_singleton
+	layer_order = p_layer_order
+	input_block_mode = p_input_block_mode
+	blocked_action_ids = p_blocked_action_ids
+	close_on_escape = p_close_on_escape
+	focus_mode = p_focus_mode
+	default_focus = p_default_focus
 
 var name: String = ""
 var path: String = ""
