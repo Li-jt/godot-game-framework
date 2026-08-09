@@ -277,14 +277,6 @@ func load_and_replay(p_path: String) -> bool:
 	return true
 
 
-# ============================================================
-# 向后兼容（已废弃，新代码不要用）
-# ============================================================
-
-func set_move_keys(_p_left: String, _p_right: String, _p_up: String, _p_down: String) -> void:
-	pass
-
-func set_game_input_blocker(_p: Callable) -> void: pass
-
-func set_game_input_enabled(p_enabled: bool) -> void:
+## 启用/禁用整个输入系统（如过场动画期间禁用）。
+func set_enabled(p_enabled: bool) -> void:
 	if _router != null: _router.set_enabled(p_enabled)

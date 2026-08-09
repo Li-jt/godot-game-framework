@@ -74,7 +74,7 @@ func configure() -> GF_OperationResult:
 	_create_ui_tree()
 	_bootstrap.add_child(_ui_canvas)
 
-	_input_service.set_game_input_blocker(_should_block_game_action)
+	_input_service.set_ui_service(self)
 
 	_drag_manager = GF_UIDragManager.new()
 	_drag_manager.name = "GF_UIDragManager"
@@ -660,26 +660,6 @@ func _recalculate_input_block() -> void:
 		_input_service.pop_context()
 		_ui_block_context = null
 
-
-func _should_block_game_action(p_action_id: String) -> bool:
-	for name in _active_panels.keys():
-		var def := _get_def(name)
-		var panel: GF_UIPanel = _get_panel_safe(name)
-		if def == null or panel == null or not panel.visible:
-			continue
-		if def.input_block_mode != GF_UIPanelDef.InputBlockMode.POINTER_ONLY:
-			continue
-		if not _def_blocks_action(def, p_action_id):
-			continue
-		if panel.is_pointer_over_game_input_blocking_area(panel.get_global_mouse_position()):
-			return true
-	return false
-
-
-func _def_blocks_action(p_def: GF_UIPanelDef, p_action_id: String) -> bool:
-	if p_def.blocked_action_ids.has("*"):
-		return true
-	return p_def.blocked_action_ids.has(p_action_id)
 
 
 # ============================================================
