@@ -1,5 +1,6 @@
 ## GF_InputRouter — 输入路由器 Node。
-## 统一入口：_input 采集所有 Godot 事件，_process 驱动每帧合成。
+## 使用 _unhandled_input 接收事件：GUI 消费的事件不会到达此处，
+## Godot 原生 mouse_filter 自动生效，框架无需手动模拟 GUI hit-test。
 class_name GF_InputRouter
 extends Node
 
@@ -18,10 +19,8 @@ func _ready() -> void:
 		set_process(true)
 
 
-## 所有原始事件在此采集。UI 消费不影响 _input 触发。
-var _dbg: int = 0
-var _dbg_total: int = 0
-func _input(p_event: InputEvent) -> void:
+## GUI 未消费的事件在此处理。按钮点击等已被 Godot GUI 消费的事件不会到达。
+func _unhandled_input(p_event: InputEvent) -> void:
 	if _resolver == null or not _enabled:
 		return
 
@@ -31,11 +30,6 @@ func _input(p_event: InputEvent) -> void:
 		_resolver.begin_frame()
 
 	_resolver.feed_event(p_event)
-	if not (p_event is InputEventMouseMotion):
-		_dbg_total += 1
-		if _dbg < 30:
-			_dbg += 1
-			# DEBUG: print("[Router] #", _dbg_total, " ", p_event.as_text())
 
 
 ## 每帧结算：poll → gesture → compose → finalize。

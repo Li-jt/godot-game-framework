@@ -81,41 +81,10 @@ func hide_panel() -> void:
 
 
 ## 判断指定全局鼠标坐标是否位于会阻挡游戏输入的区域。
-## 优先检查子控件的 [member Control.mouse_filter]：STOP → 阻挡，IGNORE → 穿透。
-## 若无子控件命中，回退到面板自身矩形（向后兼容）。
+## 鼠标事件现由 _unhandled_input + Godot 原生 mouse_filter 处理，
+## 此方法仅用于 POINTER_ONLY 模式下的键盘/手柄动作阻断判断。
 func is_pointer_over_game_input_blocking_area(p_global_mouse_pos: Vector2) -> bool:
-	if not visible:
-		return false
-
-	# 1. 递归查找鼠标下最顶层的子 Control（跳过 IGNORE）
-	var hit := _find_control_at_position(self, p_global_mouse_pos)
-	if hit != null:
-		return hit.mouse_filter == Control.MOUSE_FILTER_STOP
-
-	# 2. 无子控件命中 → 回退到面板自身矩形（向后兼容）
-	return get_global_rect().has_point(p_global_mouse_pos)
-
-
-## 递归查找 p_pos 下最顶层的可见 Control（跳过 MOUSE_FILTER_IGNORE 的控件）。
-## 模拟 Godot 原生 GUI hit-test 规则：子节点逆序遍历（后渲染的在上层）。
-func _find_control_at_position(p_from: Node, p_pos: Vector2) -> Control:
-	var children := p_from.get_children()
-	# 逆序遍历：后加入的子节点渲染在上层，优先命中
-	for i in range(children.size() - 1, -1, -1):
-		var child := children[i]
-		if not (child is Control):
-			continue
-		var ctrl := child as Control
-		if not ctrl.visible or ctrl.mouse_filter == Control.MOUSE_FILTER_IGNORE:
-			continue
-		if not ctrl.get_global_rect().has_point(p_pos):
-			continue
-		# 命中 → 递归检查子节点（孙子节点更上层）
-		var deeper := _find_control_at_position(ctrl, p_pos)
-		if deeper != null:
-			return deeper
-		return ctrl
-	return null
+	return visible and get_global_rect().has_point(p_global_mouse_pos)
 
 
 # ============================================================
