@@ -13,7 +13,7 @@
 |----|------|
 | Application | 启动入口 `GF_AppBootstrap`，声明式服务装配 |
 | Core | 通用基类、`ModuleLifecycle`、`OperationResult` |
-| ECS | 实体组件系统（World/Query/CommandBuffer/Scheduler/Snapshot/Save） |
+| ECS | 实体组件系统（World/Query/CommandBuffer/Scheduler/Snapshot/Save）——代码组织工具 |
 | Config | 配置加载、Def 校验 |
 | Event | 事件总线 |
 | Flow | 应用状态机 |
@@ -132,6 +132,31 @@ func configure() -> GF_OperationResult:
 
 - **声明式启动装配**：`_assemble()` 中按需 `register()`，依赖自动拓扑排序初始化
 - **ECS 核心**：World、SparseSet/Archetype 双存储、Query、CommandBuffer、Scheduler、Snapshot、Save 适配
+
+## ECS 的定位：代码组织工具，不是性能工具
+
+**重要声明**：当前 ECS 实现的价值在于**代码组织**——把游戏状态统一收进 World、把逻辑规整为 System、把变更约束到 CommandBuffer。它约束的是**代码结构**，不是**数据布局**。
+
+### 为什么它不是性能工具
+
+| 维度 | 当前实现 | 性能 ECS（Unity DOTS / Bevy / Flecs） |
+|------|---------|--------------------------------------|
+| 组件数据 | `Dictionary` / `RefCounted`，存为 `Variant` | 紧凑 struct，连续内存 |
+| 存储布局 | 每个组件一个独立存储，Dictionary 查找 | SoA（结构数组），列式连续布局 |
+| 访问路径 | GDScript 解释执行 + Variant 装箱 | C++/Rust 编译执行，零装箱 |
+| 遍历方式 | `for row in query.execute()` 每行取字典 | 连续数组扫描，CPU cache 友好 |
+| 系统执行 | 单线程顺序执行 | 可并行调度，SIMD 优化 |
+
+### 如何升级为性能工具
+
+如果实体数量达到万级、单帧系统开销成为瓶颈，按以下路径升级：
+
+1. **PackedArray 存储**：组件字段改用 `PackedFloat32Array` / `PackedInt32Array` 列式存储（SoA），去掉 Dictionary 和 Variant 装箱
+2. **GDExtension 热循环**：将 `GF_EcsQueryPlan.execute()` 和 System 的 tick 循环下沉到 C++/Rust 原生代码
+3. **并行系统调度**：`GF_EcsScheduler` 增加依赖图分析，无数据冲突的系统并行执行
+4. **缓存友好的实体排序**：按 Archetype 迭代实体，保证同帧访问的组件在连续内存中
+
+升级路径 1-2 可保持现有 API 不变（存储层是 `GF_IEcsStorage` 接口可插拔），Game 层代码无需改动。
 - **ThreadingService**：后台任务提交与主线程回收（优先级、取消、超时、重试）
 - **InputService v4.0**：Action 归一化、上下文栈、键位重绑定、录制回放
 - **SaveService**：ISaveable 自注册、多槽位、版本迁移链、恢复优先级、原子写入

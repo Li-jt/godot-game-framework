@@ -32,17 +32,19 @@ godot-game-framework 提供了这些通用基础设施的现成实现，让你�
 
 ## ECS 性能如何？能支持多少实体？
 
-框架提供了两种存储实现：
+**先明确定位**：当前 ECS 是代码组织工具，不是性能工具。组件是 Dictionary/Variant，经过 GDScript 解释器和装箱，与 C++/Rust 连续内存 ECS（Unity DOTS、Bevy）存在数量级差距。
 
-- **SparseSet**：适合组件组合多变的场景，10,000-50,000 实体级别
-- **Archetype**：适合组件组合固定的批量查询，性能更高
+框架提供了两种存储实现，算法复杂度一致，常量因子不同：
 
-实际性能取决于：
-- 实体数量和组件数量
+- **SparseSet**：适合组件组合多变的场景
+- **Archetype**：适合组件组合固定、高频批量查询的场景
+
+实际可支撑的实体数取决于：
+- 每帧的 mutation 频率（spawn/despawn/add/remove）——mutation 越多越慢
 - System 数量和查询复杂度
-- 每帧的 mutation 频率（spawn/despawn/add/remove）
+- 单个组件的字段数
 
-建议在目标硬件上进行性能基准测试。
+**参考经验值**：数千实体的常规游戏循环在 GDScript 下可以正常运行；万级实体且每帧大量 mutation 时建议先做基准测试。若确认 ECS 是瓶颈，按 [README 的性能升级路径](../../../README.md#ecs-的定位代码组织工具不是性能工具) 升级存储层和热循环。
 
 ---
 

@@ -9,6 +9,14 @@ ECS 组件存储层。定义组件数据的 CRUD 和实体遍历契约，提供�
 - **GF_EcsSparseSetStorage**: 基于 SparseSet，提供 O(1) 的增删改查，使用 swap-remove 保持 dense 数组紧凑。第一版实现，适合组件类型少、实体数量中等的场景。
 - **GF_EcsArchetypeStorage**: 基于 Archetype 模式，将相同组件组合的实体分组存储在同一个 Archetype 中。组件数据按列对齐，支持批量遍历优化。适合大量实体、复杂组件组合的场景。
 
+## 定位：代码组织工具
+
+本文档中的 O(1)/O(n) 复杂度描述的是**算法复杂度**，不代表整体性能优势。
+
+当前存储层是 GDScript 实现，组件数据是 `Dictionary` / `RefCounted`，存取经过 `Variant` 装箱和 GDScript 解释器。与 C++/Rust 的连续内存 + SoA 布局相比，常量因子差异显著（通常 10-100 倍）。
+
+当前存储的价值在于**结构约束**：统一了组件数据的生命周期、实体遍历方式和存储后端切换。若需性能工具级别的数据布局（PackedArray 列式存储、GDExtension 热循环），存储层是 `GF_IEcsStorage` 接口可插拔的，可替换实现而不改 Game 层 API。详见 [README](../../../README.md#ecs-的定位代码组织工具不是性能工具)。
+
 ## 接口规范 (GF_IEcsStorage)
 
 所有存储实现必须实现以下方法：
