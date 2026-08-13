@@ -95,12 +95,10 @@ func _ui_always_blocks(p_action_id: String) -> bool:
 func _ui_pointer_blocks(p_action_id: String, p_pos: Vector2) -> bool:
 	if _ui_service == null: return false
 	if _ui_service.is_dragging(): return false
-	var panels: Array = _ui_service.get_active_panels()
-	for panel in panels:
-		var def = panel._panel_def
-		if def == null: continue
-		if def.input_block_mode != GF_UIPanelDef.InputBlockMode.POINTER_ONLY: continue
-		if not (def.blocked_action_ids.has("*") or def.blocked_action_ids.has(p_action_id)): continue
-		if panel.is_pointer_over_game_input_blocking_area(p_pos):
-			return true
-	return false
+	# 只检查 z 顺序最顶层的命中面板：窗口重叠时被遮挡区域不阻挡
+	var top: GF_UIPanel = _ui_service.get_top_panel_at_position(p_pos)
+	if top == null: return false
+	var def = top._panel_def
+	if def == null: return false
+	if def.input_block_mode != GF_UIPanelDef.InputBlockMode.POINTER_ONLY: return false
+	return def.blocked_action_ids.has("*") or def.blocked_action_ids.has(p_action_id)
