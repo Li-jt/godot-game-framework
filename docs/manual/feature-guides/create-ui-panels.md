@@ -372,7 +372,7 @@ def.singleton = false  # 允许同一面板同时打开多个实例
 |------|------------|------|
 | `register(p_def)` | `ERR_BAD_REQUEST` | name 或 path 为空 |
 | `open(p_name, p_data)` | `ERR_NOT_FOUND` | 面板未注册 |
-| | `ERR_BAD_REQUEST` | 根节点不是 GF_UIPanel |
+| | `ERR_BAD_REQUEST` | 根节点不是 GF_UIPanel；windowed 配置非法（kind 非 SCREEN、多实例、场景根非 GF_UIWindow） |
 | `close(p_name)` | `ERR_NOT_FOUND` | 面板未注册 |
 | | `ERR_FORBIDDEN` | PERSISTENT 或 MANAGED_BY_FLOW 面板 |
 | `force_close(p_name)` | `ERR_NOT_FOUND` | 面板未注册 |
@@ -383,6 +383,7 @@ def.singleton = false  # 允许同一面板同时打开多个实例
 
 ## See Also
 
+- [窗口化面板（Win11 风格多窗口）](./windowed-panels.md) -- 可拖动/缩放/点击置顶的窗口模式
 - [处理玩家输入](./handle-player-input.md) -- 面板的输入阻挡配置
 - [实现拖拽交互](./drag-and-drop.md) -- 在面板中实现拖拽
 - [场景切换](./scene-switching.md) -- UI 层结构
