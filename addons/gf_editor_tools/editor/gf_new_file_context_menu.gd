@@ -302,16 +302,9 @@ func _snake_to_pascal(p_name: String) -> String:
 
 func _build_component_template(p_class: String, _p_raw: String) -> String:
 	return _join([
-		"## %s 组件数据。" % p_class,
+		"## %s 组件数据。class_name 即为类型标识，无需额外注册。" % p_class,
 		"class_name %s" % p_class,
 		"extends GF_EcsComponentBase",
-		"",
-		"",
-		"const TYPE: StringName = &\"%s\"" % p_class,
-		"",
-		"",
-		"func get_component_type() -> StringName:",
-		"\treturn TYPE",
 		"",
 		"",
 		"func serialize() -> Dictionary:",

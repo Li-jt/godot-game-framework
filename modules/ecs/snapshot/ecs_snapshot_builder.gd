@@ -12,8 +12,9 @@ func build(p_world: GF_EcsWorld) -> GF_EcsWorldSnapshot:
 
 	# 组件类型注册表快照
 	var registry: GF_EcsComponentTypeRegistry = p_world._get_registry()
-	for type_name in registry.all_types():
-		var tid: int = registry.type_id_of(type_name)
+	for p_type in registry.all_types():
+		var tid: int = registry.type_id_of(p_type)
+		var type_name: String = registry.type_name_of(tid)
 		snapshot.component_registry[type_name] = {
 			"type_id": tid,
 			"version": registry.type_version(tid),
@@ -27,7 +28,7 @@ func build(p_world: GF_EcsWorld) -> GF_EcsWorldSnapshot:
 			var storage: GF_IEcsStorage = storage_index.get_storage(type_id)
 			if storage == null or not storage.contains(entity):
 				continue
-			var type_name: StringName = registry.type_name_of(type_id)
+			var type_name: String = registry.type_name_of(type_id)
 			var component: Variant = storage.get_data(entity)
 			entity_data["components"][type_name] = _serialize_component(component)
 		snapshot.entities.append(entity_data)
@@ -39,7 +40,6 @@ func build(p_world: GF_EcsWorld) -> GF_EcsWorldSnapshot:
 func _serialize_component(p_component) -> Variant:
 	if p_component == null:
 		return null
-	# Object 子类（如 GF_EcsComponentBase）可能有自定义 serialize()
 	if p_component is Object and p_component.has_method("serialize"):
 		return p_component.serialize()
 	return _fallback_serialize(p_component)

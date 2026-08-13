@@ -4,8 +4,8 @@
 ## 使用方式：
 ##   1. GameBootstrap._assemble() 中创建实例、注册模块
 ##   2. register() 到 Bootstrap，参与 DI
-##   3. GF_EcsScheduler.configure() 自动将其注入到 GF_EcsWorld.content_def
-##   4. ECS 系统通过 p_world.content_def.module("terrain") 获取模块数据
+##   3. GF_EcsScheduler.configure() 将其注入为 GF_EcsWorld 的 Resource
+##   4. ECS 系统通过 p_world.get_resource(GF_ContentDefRegistry).module(TerrainData) 获取
 class_name GF_ContentDefRegistry
 extends GF_ModuleLifecycle
 
@@ -22,39 +22,39 @@ func configure() -> GF_OperationResult:
 	return GF_OperationResult.ok()
 
 
-## {StringName: Variant} 已注册的模块映射
+## {Variant: Variant} 已注册的模块映射。key 为 class_name 引用（如 TerrainData）。
 var _modules: Dictionary = {}
 
 
 ## 注册一个内容模块。
-## p_name: 模块名称（如 "terrain"、"season"、"resource"）
+## p_name: class_name 引用（如 TerrainData、SeasonData）或 String
 ## p_module: 模块实例，通常是加载 JSON 数据后的数据持有对象
-func register_module(p_name: StringName, p_module: Variant) -> void:
+func register_module(p_name: GDScript, p_module: Variant) -> void:
 	if _modules.has(p_name):
-		push_warning("[GF_ContentDefRegistry] 模块 '%s' 被覆盖注册" % p_name)
+		push_warning("[GF_ContentDefRegistry] 模块 '%s' 被覆盖注册" % str(p_name))
 	_modules[p_name] = p_module
 
 
 ## 获取已注册的模块。未注册时返回 null。
-func module(p_name: StringName) -> Variant:
+func module(p_name: GDScript) -> Variant:
 	return _modules.get(p_name, null)
 
 
 ## 检查模块是否已注册。
-func has_module(p_name: StringName) -> bool:
+func has_module(p_name: GDScript) -> bool:
 	return _modules.has(p_name)
 
 
 ## 获取所有已注册的模块名称列表。
-func module_names() -> Array[StringName]:
-	var names: Array[StringName] = []
+func module_names() -> Array:
+	var names: Array = []
 	for key in _modules.keys():
 		names.append(key)
 	return names
 
 
 ## 注销模块。Mod 卸载时使用。
-func unregister_module(p_name: StringName) -> void:
+func unregister_module(p_name: GDScript) -> void:
 	_modules.erase(p_name)
 
 

@@ -74,7 +74,7 @@ func configure() -> GF_OperationResult:
 	_create_ui_tree()
 	_bootstrap.add_child(_ui_canvas)
 
-	_input_service.set_game_input_blocker(_should_block_game_action)
+	_input_service.set_ui_service(self)
 
 	_drag_manager = GF_UIDragManager.new()
 	_drag_manager.name = "GF_UIDragManager"
@@ -100,6 +100,7 @@ func _create_ui_tree() -> void:
 
 	_create_layer(&"hud", "HudLayer")
 	_create_layer(&"screen", "ScreenLayer")
+	_create_layer(&"window", "WindowLayer")
 	_create_layer(&"popup", "PopupLayer")
 	_create_layer(&"tooltip", "TooltipLayer")
 	_create_layer(&"system", "SystemLayer")
@@ -129,6 +130,7 @@ func get_ui_layer(p_kind: StringName) -> Control:
 	match p_kind:
 		GF_UIPanelDef.KIND_HUD:     return _ui_layers.get(&"hud", _ui_root)
 		GF_UIPanelDef.KIND_SCREEN:  return _ui_layers.get(&"screen", _ui_root)
+		&"window":                  return _ui_layers.get(&"window", _ui_root)
 		GF_UIPanelDef.KIND_POPUP:   return _ui_layers.get(&"popup", _ui_root)
 		GF_UIPanelDef.KIND_TOOLTIP: return _ui_layers.get(&"tooltip", _ui_root)
 		GF_UIPanelDef.KIND_SYSTEM:  return _ui_layers.get(&"system", _ui_root)
@@ -178,13 +180,16 @@ func open(p_name: String, p_data: Dictionary = {}) -> GF_OperationResult:
 	if def == null:
 		return GF_OperationResult.fail(GF_OperationResult.ERR_NOT_FOUND, "面板未注册: %s" % p_name, module_name)
 
+	var r_check := _validate_window_def(def)
+	if r_check.is_fail():
+		return r_check
+
 	_save_current_focus()
 	if _active_panels.has(p_name) and def.singleton:
 		var existing: GF_UIPanel = _get_panel_safe(p_name)
 		if existing != null:
 			existing.reopen(p_data)
-		_bring_to_front(p_name)
-		_recalculate_input_block()
+		focus_window(p_name)
 		return GF_OperationResult.ok(existing)
 
 	if _cache.has(p_name):
@@ -197,13 +202,19 @@ func open(p_name: String, p_data: Dictionary = {}) -> GF_OperationResult:
 			_on_opened(p_name)
 		return GF_OperationResult.ok(cached)
 
-	var result: GF_OperationResult = _instantiate_panel(def.kind, def.path, {})
+	var result: GF_OperationResult = _instantiate_panel(_panel_route_kind(def), def.path, {})
 	if result.is_fail():
 		return result
 
 	var panel := result.data as GF_UIPanel
 	if panel == null:
 		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "根节点不是 GF_UIPanel: %s" % p_name, module_name)
+
+	if def.windowed:
+		var r_init := _init_window(panel, def)
+		if r_init.is_fail():
+			panel.queue_free()
+			return r_init
 
 	panel.panel_name = p_name
 	panel._bootstrap = _bootstrap
@@ -378,6 +389,42 @@ func get_active_panel_names() -> Array[String]:
 
 
 # ============================================================
+# 窗口
+# ============================================================
+
+## 将窗口面板置顶：同步逻辑顺序（_open_order）、视觉顺序（move_child）并重算输入阻挡。
+## 由 GF_UIWindow.request_focus() 在点击/拖动/缩放时调用。
+## 非窗口面板调用时只更新逻辑顺序，行为与 _bring_to_front 一致。
+func focus_window(p_name: String) -> GF_OperationResult:
+	if not _active_panels.has(p_name):
+		return GF_OperationResult.fail(GF_OperationResult.ERR_NOT_FOUND, "面板未打开: %s" % p_name, module_name)
+	var def := _get_def(p_name)
+	var panel := _get_panel_safe(p_name)
+	if def == null or panel == null:
+		return GF_OperationResult.fail(GF_OperationResult.ERR_INTERNAL, "面板状态异常: %s" % p_name, module_name)
+
+	_bring_to_front(p_name)
+	if panel is GF_UIWindow:
+		var layer: Control = get_ui_layer(&"window")
+		if layer != null:
+			layer.move_child(panel, layer.get_child_count() - 1)
+	_recalculate_input_block()
+	return GF_OperationResult.ok()
+
+
+## 按 z 顺序（_open_order 逆序）返回第一个包含 p_pos 的可见面板，无命中返回 null。
+## 供 GF_InputPolicy 做 POINTER_ONLY 输入阻挡判定：窗口重叠时只有顶层窗口算命中。
+func get_top_panel_at_position(p_pos: Vector2) -> GF_UIPanel:
+	for i in range(_open_order.size() - 1, -1, -1):
+		var panel: GF_UIPanel = _get_panel_safe(_open_order[i])
+		if panel == null or not panel.visible:
+			continue
+		if panel.is_pointer_over_game_input_blocking_area(p_pos):
+			return panel
+	return null
+
+
+# ============================================================
 # 拖拽 API
 # ============================================================
 
@@ -509,7 +556,12 @@ func _hit_test_target(p_mouse_pos: Vector2) -> GF_UIDropTarget:
 			if target.accept_filter.is_valid():
 				if not target.accept_filter.call(_drag_manager.get_current_event().drag_data):
 					continue
-			var global_rect := Rect2(panel.global_position + target.rect.position, target.rect.size)
+			# 动态 rect 提供者优先（布局变化实时生效），否则用静态面板局部坐标换算
+			var global_rect: Rect2
+			if target.rect_provider.is_valid():
+				global_rect = target.rect_provider.call()
+			else:
+				global_rect = Rect2(panel.global_position + target.rect.position, target.rect.size)
 			if global_rect.has_point(p_mouse_pos):
 				return target
 
@@ -590,11 +642,18 @@ func _prewarm_one(p_name: String) -> void:
 
 	_log.debug("GF_UIService", "_prewarm_one: %s" % p_name)
 	var def: GF_UIPanelDef = _panel_defs[p_name]
-	var result: GF_OperationResult = _instantiate_panel(def.kind, def.path, {})
+	var result: GF_OperationResult = _instantiate_panel(_panel_route_kind(def), def.path, {})
 	if result.is_fail(): return
 
 	var panel := result.data as GF_UIPanel
 	if panel == null: return
+
+	if def.windowed:
+		var r_init := _init_window(panel, def)
+		if r_init.is_fail():
+			_log.error("GF_UIService", "windowed 面板预热失败: %s — %s" % [p_name, r_init.error.message])
+			panel.queue_free()
+			return
 
 	panel.panel_name = p_name
 	panel._bootstrap = _bootstrap
@@ -660,26 +719,6 @@ func _recalculate_input_block() -> void:
 		_input_service.pop_context()
 		_ui_block_context = null
 
-
-func _should_block_game_action(p_action_id: String) -> bool:
-	for name in _active_panels.keys():
-		var def := _get_def(name)
-		var panel: GF_UIPanel = _get_panel_safe(name)
-		if def == null or panel == null or not panel.visible:
-			continue
-		if def.input_block_mode != GF_UIPanelDef.InputBlockMode.POINTER_ONLY:
-			continue
-		if not _def_blocks_action(def, p_action_id):
-			continue
-		if panel.is_pointer_over_game_input_blocking_area(panel.get_global_mouse_position()):
-			return true
-	return false
-
-
-func _def_blocks_action(p_def: GF_UIPanelDef, p_action_id: String) -> bool:
-	if p_def.blocked_action_ids.has("*"):
-		return true
-	return p_def.blocked_action_ids.has(p_action_id)
 
 
 # ============================================================
@@ -773,12 +812,59 @@ func _get_def(p_name: String) -> GF_UIPanelDef:
 	return _panel_defs.get(p_name, null) as GF_UIPanelDef
 
 
+## 面板路由层：windowed 面板统一路由到 window 层，其余按 kind。
+func _panel_route_kind(p_def: GF_UIPanelDef) -> StringName:
+	return &"window" if p_def.windowed else p_def.kind
+
+
+## windowed 面板的配置约束校验：kind 必须为 KIND_SCREEN，v1 不支持多实例。
+func _validate_window_def(p_def: GF_UIPanelDef) -> GF_OperationResult:
+	if not p_def.windowed:
+		return GF_OperationResult.ok()
+	if p_def.kind != GF_UIPanelDef.KIND_SCREEN:
+		return GF_OperationResult.fail(
+			GF_OperationResult.ERR_BAD_REQUEST,
+			"windowed 面板必须使用 KIND_SCREEN: %s" % p_def.name, module_name)
+	if p_def.multi_instance:
+		return GF_OperationResult.fail(
+			GF_OperationResult.ERR_BAD_REQUEST,
+			"windowed 多实例未支持: %s" % p_def.name, module_name)
+	return GF_OperationResult.ok()
+
+
+## windowed 面板初始化：校验根节点类型、强制 TOP_LEFT 锚定、注入初始尺寸与级联位置。
+func _init_window(p_panel: GF_UIPanel, p_def: GF_UIPanelDef) -> GF_OperationResult:
+	if not (p_panel is GF_UIWindow):
+		return GF_OperationResult.fail(
+			GF_OperationResult.ERR_BAD_REQUEST,
+			"windowed 面板场景根必须是 GF_UIWindow: %s" % p_def.name, module_name)
+	p_panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	p_panel.size = p_def.window_size.max(p_def.window_min_size)
+	p_panel.position = _next_window_position(p_panel.size)
+	return GF_OperationResult.ok()
+
+
+## 窗口初始位置：居中 + 按已开面板数错开（Win11 多窗口错落感）。
+func _next_window_position(p_size: Vector2) -> Vector2:
+	var layer: Control = get_ui_layer(&"window")
+	var area := layer.size if layer != null else Vector2(1920, 1080)
+	var base := (area - p_size) * 0.5
+	var cascade := _open_order.size() * 24.0
+	return (base + Vector2(cascade, cascade)).max(Vector2.ZERO)
+
+
 func _on_opened(p_name: String) -> void:
 	_remove_from_order(p_name)
 	_open_order.append(p_name)
 	var def := _get_def(p_name)
 	if def != null:
-		_apply_layer_order(def.kind)
+		_apply_layer_order(_panel_route_kind(def))
+		if def.windowed:
+			# 新打开/重开的窗口置顶（Win11：新窗口获得焦点）
+			var panel := _get_panel_safe(p_name)
+			var layer: Control = get_ui_layer(&"window")
+			if panel != null and layer != null:
+				layer.move_child(panel, layer.get_child_count() - 1)
 	_recalculate_input_block()
 
 

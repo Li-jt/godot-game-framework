@@ -17,15 +17,15 @@ func spawn() -> int:
 	return temp_id
 
 
-func add_component(p_entity: int, p_type: StringName, p_data: Variant) -> void:
+func add_component(p_entity: int, p_type: GDScript, p_data: Variant) -> void:
 	_commands.append(GF_EcsCommand.new(GF_EcsCommand.ADD_COMPONENT, p_entity, p_type, p_data))
 
 
-func set_component(p_entity: int, p_type: StringName, p_data: Variant) -> void:
+func set_component(p_entity: int, p_type: GDScript, p_data: Variant) -> void:
 	_commands.append(GF_EcsCommand.new(GF_EcsCommand.SET_COMPONENT, p_entity, p_type, p_data))
 
 
-func remove_component(p_entity: int, p_type: StringName) -> void:
+func remove_component(p_entity: int, p_type: GDScript) -> void:
 	_commands.append(GF_EcsCommand.new(GF_EcsCommand.REMOVE_COMPONENT, p_entity, p_type))
 
 

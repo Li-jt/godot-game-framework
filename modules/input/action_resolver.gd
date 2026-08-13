@@ -275,9 +275,10 @@ func _poll_held_bindings() -> void:
 		var held: float = 0.0
 		for binding in def.bindings:
 			if binding.mode != GF_InputBinding.Mode.HELD: continue
-			if binding.source in [GF_InputBinding.Source.MOUSE_BUTTON]:
-				if _policy != null and _policy.is_action_blocked_raw(action_id, true, mouse_pos):
-					continue
+			# 所有 HELD binding 都检查 policy（键盘/手柄/鼠标）
+			var is_spatial := binding.source in [GF_InputBinding.Source.MOUSE_BUTTON, GF_InputBinding.Source.TOUCH_PAN]
+			if _policy != null and _policy.is_action_blocked_raw(action_id, is_spatial, mouse_pos):
+				continue
 			if binding.is_down():
 				held += binding.scale
 		state.accumulate_held(held)

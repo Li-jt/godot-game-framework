@@ -9,8 +9,10 @@ var _registry: GF_EcsComponentTypeRegistry = null
 var _storage_index: GF_EcsStorageIndex = null
 var _version: int = 0
 var _next_entity_id: int = 1
-## 内容定义注册表。由 GF_EcsScheduler.configure() 自动注入，ECS 系统可直接使用。
-var content_def: GF_ContentDefRegistry = null
+## 世界级单例资源字典。与 Component 不同，Resource 全局只有一份，
+## 通过 set_resource/get_resource 存取，不需要 Entity 访问。
+## 等价于 Bevy 的 Resource<T>、守望先锋 ECS 的 singleton component。
+var _resources: Dictionary = {}
 
 
 func _init() -> void:
@@ -63,7 +65,7 @@ func entity_count() -> int:
 # ============================================================
 
 
-func add_component(p_entity: int, p_type: StringName, p_data: Variant) -> GF_OperationResult:
+func add_component(p_entity: int, p_type: GDScript, p_data: Variant) -> GF_OperationResult:
 	if not _entities.has(p_entity):
 		return GF_OperationResult.fail(GF_OperationResult.ERR_NOT_FOUND, "实体不存在: %d" % p_entity, "GF_EcsWorld")
 	var reg_result: GF_OperationResult = _registry.register_type(p_type)
@@ -72,13 +74,13 @@ func add_component(p_entity: int, p_type: StringName, p_data: Variant) -> GF_Ope
 	var type_id: int = reg_result.data
 	var storage := _storage_index.get_or_create_storage(type_id)
 	if storage.contains(p_entity):
-		return GF_OperationResult.fail(GF_OperationResult.ERR_CONFLICT, "实体 %d 已拥有组件 %s" % [p_entity, p_type], "GF_EcsWorld")
+		return GF_OperationResult.fail(GF_OperationResult.ERR_CONFLICT, "实体 %d 已拥有组件 %s" % [p_entity, _registry._type_name(p_type)], "GF_EcsWorld")
 	storage.insert(p_entity, p_data)
 	_version += 1
 	return GF_OperationResult.ok()
 
 
-func set_component(p_entity: int, p_type: StringName, p_data: Variant) -> GF_OperationResult:
+func set_component(p_entity: int, p_type: GDScript, p_data: Variant) -> GF_OperationResult:
 	if not _entities.has(p_entity):
 		return GF_OperationResult.fail(GF_OperationResult.ERR_NOT_FOUND, "实体不存在: %d" % p_entity, "GF_EcsWorld")
 	var reg_result: GF_OperationResult = _registry.register_type(p_type)
@@ -91,7 +93,7 @@ func set_component(p_entity: int, p_type: StringName, p_data: Variant) -> GF_Ope
 	return GF_OperationResult.ok()
 
 
-func get_component(p_entity: int, p_type: StringName) -> Variant:
+func get_component(p_entity: int, p_type: GDScript) -> Variant:
 	if not _entities.has(p_entity):
 		return null
 	var type_id: int = _registry.type_id_of(p_type)
@@ -103,7 +105,7 @@ func get_component(p_entity: int, p_type: StringName) -> Variant:
 	return storage.get_data(p_entity)
 
 
-func remove_component(p_entity: int, p_type: StringName) -> void:
+func remove_component(p_entity: int, p_type: GDScript) -> void:
 	if not _entities.has(p_entity):
 		return
 	var type_id: int = _registry.type_id_of(p_type)
@@ -116,7 +118,7 @@ func remove_component(p_entity: int, p_type: StringName) -> void:
 	_version += 1
 
 
-func has_component(p_entity: int, p_type: StringName) -> bool:
+func has_component(p_entity: int, p_type: GDScript) -> bool:
 	if not _entities.has(p_entity):
 		return false
 	var type_id: int = _registry.type_id_of(p_type)
@@ -137,6 +139,24 @@ func get_version() -> int:
 	return _version
 
 
+## 设置世界级单例资源。与 Component 不同，Resource 全局只有一份，不需要通过 Entity 访问。
+## [param p_key] 使用 class_name 引用作为键，如 [code]set_resource(GF_ContentDefRegistry, data)[/code]。
+func set_resource(p_key: Variant, p_data: Variant) -> void:
+	_resources[p_key] = p_data
+
+
+## 获取世界级单例资源。返回 null 表示未注册。
+## [param p_key] 使用 class_name 引用作为键，如 [code]get_resource(GF_ContentDefRegistry)[/code]。
+func get_resource(p_key: Variant) -> Variant:
+	return _resources.get(p_key, null)
+
+
+## 是否已注册指定资源。
+## [param p_key] 使用 class_name 引用作为键，如 [code]has_resource(GF_ContentDefRegistry)[/code]。
+func has_resource(p_key: Variant) -> bool:
+	return _resources.has(p_key)
+
+
 ## 返回所有存活实体 ID 列表。
 func all_entities() -> PackedInt64Array:
 	var result := PackedInt64Array()
@@ -153,7 +173,7 @@ func reset() -> void:
 	_storage_index = GF_EcsStorageIndex.new()
 	_next_entity_id = 1
 	_version = 0
-	content_def = null
+	_resources.clear()
 
 
 # ============================================================

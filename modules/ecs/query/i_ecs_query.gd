@@ -3,9 +3,9 @@
 class_name GF_IEcsQuery
 extends RefCounted
 
-func with_component(p_type: StringName) -> GF_IEcsQuery: _ni(); return self
-func without_component(p_type: StringName) -> GF_IEcsQuery: _ni(); return self
-func optional_component(p_type: StringName) -> GF_IEcsQuery: _ni(); return self
+func with_component(p_type: GDScript) -> GF_IEcsQuery: _ni(); return self
+func without_component(p_type: GDScript) -> GF_IEcsQuery: _ni(); return self
+func optional_component(p_type: GDScript) -> GF_IEcsQuery: _ni(); return self
 func build() -> GF_EcsQueryPlan: _ni(); return null
 func reset() -> void: _ni()
 

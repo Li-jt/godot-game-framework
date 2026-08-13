@@ -1,7 +1,19 @@
 ## GF_AppBootstrap
 ## 框架启动入口。Game 层继承此类，在 _assemble() 中按需注册服务。
+## [br]
+## 初始化完成后发射 [signal bootstrap_ready] 并置 [member is_ready] 为 true。
+## GF_WorldRoot / GF_EcsNode 等节点监听此信号替代 call_deferred，
+## 消除数据层（ECS）和表现层（Node）之间的初始化真空期。
 class_name GF_AppBootstrap
 extends Node
+
+## 所有服务注册并配置完成后发射。GF_WorldRoot、GF_EcsNode 等节点监听此信号
+## 执行自己的业务初始化，保证此时 service() 可正常返回已配置的服务。
+signal bootstrap_ready
+
+## 是否已完成初始化。后来者（信号发射后才挂入场景树的节点）直接读取此标志，
+## 无需等待信号重发。
+var is_ready: bool = false
 
 var focus_navigation_default_mode: Control.FocusMode = Control.FOCUS_ALL
 var _services: Array = []
@@ -13,6 +25,8 @@ func _ready() -> void:
 	_assemble()
 	_init_all()
 	_on_ready()
+	is_ready = true
+	bootstrap_ready.emit()
 
 
 func _ensure_builtins() -> void:

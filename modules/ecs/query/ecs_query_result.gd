@@ -4,8 +4,8 @@ class_name GF_EcsQueryResult
 extends RefCounted
 
 var _rows: Array = []  # Array[GF_EcsQueryRow]
-var _required_types: Array[StringName] = []
-var _optional_types: Array[StringName] = []
+var _required_types: Array = []
+var _optional_types: Array = []
 
 
 ## 对每行结果调用回调函数。回调签名：func(row: GF_EcsQueryRow) -> void。

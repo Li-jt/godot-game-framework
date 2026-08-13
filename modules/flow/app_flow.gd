@@ -7,7 +7,7 @@
 ##                ↑                    ↓
 ##                └────────────────────┘
 ##
-## 每次状态切换通过 GF_EventBus 发布 "flow_state_changed" 事件。
+## 每次状态切换通过 GF_EventBus 发布 GF_Events.FLOW_STATE_CHANGED 事件。
 class_name GF_AppFlow
 extends GF_ModuleLifecycle
 
@@ -76,7 +76,7 @@ func transition_to(p_target: StringName, p_payload: Dictionary = {}) -> GF_Opera
 	current_payload = p_payload
 
 	if _event_bus != null:
-		_event_bus.publish("flow_state_changed", {
+		_event_bus.publish(GF_Events.FLOW_STATE_CHANGED, {
 			"from": previous_state,
 			"to": current_state,
 			"payload": current_payload,

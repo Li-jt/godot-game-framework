@@ -8,9 +8,9 @@ extends RefCounted
 var version: int = 0
 ## 快照创建时间戳
 var timestamp: int = 0
-## 组件类型注册表快照：{StringName -> {type_id, version}}
+## 组件类型注册表快照：{String -> {type_id, version}}
 var component_registry: Dictionary = {}
-## 实体数据列表：Array[{entity, components: {StringName -> data_dict}}]
+## 实体数据列表：Array[{entity, components: {String -> data_dict}}]
 var entities: Array = []
 
 

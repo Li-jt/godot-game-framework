@@ -32,24 +32,24 @@ var _attach_ghost_cb: Callable
 ## 返回 GF_UIDragGhost 供游戏层进一步定制（如设置数量文本）。
 func show_ghost_texture(p_texture: Texture2D, p_offset: Vector2 = Vector2(-24, -24)) -> GF_UIDragGhost:
 	var ghost := GF_UIDragGhost.new()
+	_attach(ghost)  # 先挂树：show_with_xxx 内部调 get_global_mouse_position 需要 viewport
 	ghost.show_with_texture(p_texture, p_offset)
-	_attach(ghost)
 	return ghost
 
 
 ## [L2] 显示图标 + 数量。例：铁矿石图标下显示 "× 5"。
 func show_ghost_item(p_texture: Texture2D, p_count: int, p_offset: Vector2 = Vector2(-24, -24)) -> GF_UIDragGhost:
 	var ghost := GF_UIDragGhost.new()
+	_attach(ghost)  # 先挂树：show_with_xxx 内部调 get_global_mouse_position 需要 viewport
 	ghost.show_with_item(p_texture, p_count, p_offset)
-	_attach(ghost)
 	return ghost
 
 
 ## [L2] 显示纯文本拖拽。例：拖拽 "+100 金币"。
 func show_ghost_text(p_text: String) -> GF_UIDragGhost:
 	var ghost := GF_UIDragGhost.new()
+	_attach(ghost)  # 先挂树：show_with_xxx 内部调 get_global_mouse_position 需要 viewport
 	ghost.show_with_text(p_text)
-	_attach(ghost)
 	return ghost
 
 

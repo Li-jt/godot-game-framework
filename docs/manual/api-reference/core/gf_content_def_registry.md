@@ -4,7 +4,7 @@
 
 ## 概述
 
-内容定义注册表。通用模块注册与查询机制，不含任何具体业务语义。替代 GameDefService 单例，由 GameBootstrap 在启动时注册各内容模块，ECS 系统通过 `p_world.content_def.module("terrain")` 获取模块数据。
+内容定义注册表。通用模块注册与查询机制，不含任何具体业务语义。替代 GameDefService 单例，由 GF_EcsScheduler.configure() 注入为 ECS World 的 Resource，ECS 系统通过 `p_world.get_resource(GF_ContentDefRegistry).module("terrain")` 获取。
 
 适用场景：注册 terrain、season、resource 等内容模块。支持 Mod 模块的动态注册和卸载。
 
@@ -55,11 +55,12 @@ content_def.register_module(&"season", season_data)
 content_def.register_module(&"resource", resource_data)
 
 # 注入到 ECS World
-world.content_def = content_def
+world.set_resource(GF_ContentDefRegistry, content_def)
 
 # ECS 系统中查询
 func on_tick(p_world: GF_EcsWorld, p_ecb: GF_EcsCommandBuffer, p_delta: float) -> void:
-    var terrain := p_world.content_def.module(&"terrain")
+    var content_def := p_world.get_resource(GF_ContentDefRegistry) as GF_ContentDefRegistry
+    var terrain := content_def.module(&"terrain") if content_def != null else null
     if terrain != null:
         var tile := terrain.get_tile(pos)
 ```

@@ -45,7 +45,7 @@ func set_focus_config(p_mode: Control.FocusMode, p_default_focus: NodePath) -> v
 
 ## GF_AppBootstrap 引用。由 GF_UIService 在面板实例化后自动注入。
 ## 子类在 _on_open / _on_reopen 中通过 _bootstrap.service(GF_XxxService) 获取所需服务。
-var _bootstrap = null
+var _bootstrap: GF_AppBootstrap = null
 
 
 ## GF_SceneFactory 钩子：实例化后自动调用。p_data 为 GF_SceneFactory.create() 传入的 init_data。
@@ -81,7 +81,8 @@ func hide_panel() -> void:
 
 
 ## 判断指定全局鼠标坐标是否位于会阻挡游戏输入的区域。
-## 默认使用面板自身矩形；HUD 等非全屏交互面板可覆盖为更窄的阻挡区域。
+## 鼠标事件现由 _unhandled_input + Godot 原生 mouse_filter 处理，
+## 此方法仅用于 POINTER_ONLY 模式下的键盘/手柄动作阻断判断。
 func is_pointer_over_game_input_blocking_area(p_global_mouse_pos: Vector2) -> bool:
 	return visible and get_global_rect().has_point(p_global_mouse_pos)
 

@@ -1,5 +1,6 @@
 ## GF_EventBus
-## 事件总线。支持 EventScope 和 GF_EventToken。
+## 事件总线。所有事件用 GF_EventDef 标识（强类型，无裸字符串），
+## publish 时自动执行 payload 校验，失败 fail fast 中止派发。
 class_name GF_EventBus
 extends GF_ModuleLifecycle
 
@@ -9,8 +10,8 @@ class ListenerEntry:
 	var token_id: String
 
 
-var _listeners: Dictionary = {}   # String event → Array[ListenerEntry]
-var _tokens: Dictionary = {}      # String token_id → {event, entry}
+var _listeners: Dictionary = {}   # String event_name → Array[ListenerEntry]
+var _tokens: Dictionary = {}      # String token_id → {event_name, entry}
 var _token_counter: int = 0
 var _dispatching: String = ""
 var _pending_removes: Array = []  # Array[String token_id]
@@ -33,21 +34,23 @@ func _on_dispose() -> GF_OperationResult:
 # 订阅
 # ============================================================
 
-## 订阅事件。p_scope 用于场景切换时一键清理。
-func subscribe(p_event: String, p_callback: Callable, p_scope: String = "global") -> GF_EventToken:
+## 订阅事件。p_event 为 GF_EventDef（如 GF_Events.FLOW_STATE_CHANGED）。
+## p_scope 用于场景切换时一键清理。
+func subscribe(p_event: GF_EventDef, p_callback: Callable, p_scope: String = "global") -> GF_EventToken:
+	var event_name := p_event.event_name
 	_token_counter += 1
-	var token_id := "%s_%d" % [p_event, _token_counter]
+	var token_id := "%s_%d" % [event_name, _token_counter]
 
 	var entry := ListenerEntry.new()
 	entry.callback = p_callback
 	entry.scope = p_scope
 	entry.token_id = token_id
 
-	if not _listeners.has(p_event):
-		_listeners[p_event] = []
-	_listeners[p_event].append(entry)
+	if not _listeners.has(event_name):
+		_listeners[event_name] = []
+	_listeners[event_name].append(entry)
 
-	_tokens[token_id] = {"event": p_event, "entry": entry}
+	_tokens[token_id] = {"event": event_name, "entry": entry}
 
 	var token := GF_EventToken.new()
 	token.id = token_id
@@ -56,7 +59,7 @@ func subscribe(p_event: String, p_callback: Callable, p_scope: String = "global"
 
 
 ## 订阅一次性事件。首次派发后自动取消订阅。
-func subscribe_once(p_event: String, p_callback: Callable, p_scope: String = "global") -> GF_EventToken:
+func subscribe_once(p_event: GF_EventDef, p_callback: Callable, p_scope: String = "global") -> GF_EventToken:
 	var token := subscribe(p_event, p_callback, p_scope)
 	_once_tokens.append(token.id)
 	return token
@@ -74,12 +77,13 @@ func unsubscribe_token(p_token_id: String) -> void:
 		_do_unsubscribe_token(p_token_id)
 
 
-## 取消订阅（向后兼容）
-func unsubscribe(p_event: String, p_callback: Callable) -> void:
-	if _dispatching == p_event:
-		_pending_removes.append(_find_token_id(p_event, p_callback))
+## 按事件和回调取消订阅。
+func unsubscribe(p_event: GF_EventDef, p_callback: Callable) -> void:
+	var event_name := p_event.event_name
+	if _dispatching == event_name:
+		_pending_removes.append(_find_token_id(event_name, p_callback))
 	else:
-		_remove_by_callback(p_event, p_callback)
+		_remove_by_callback(event_name, p_callback)
 
 
 ## 清理指定 scope 下的所有订阅
@@ -104,21 +108,29 @@ func clear_scope(p_scope: String) -> void:
 # ============================================================
 
 ## 发布事件。同步派发到所有订阅者。
+## 先执行 GF_EventDef 的 payload 校验，失败 push_error 并中止派发（fail fast）。
 ## 每个 listener 的调用经过 _safe_dispatch 隔离 ——
 ## callback 无效时自动注销，避免一个错误 listener 阻断后续派发。
-func publish(p_event: String, p_data = null) -> void:
-	if not _listeners.has(p_event):
+func publish(p_event: GF_EventDef, p_data = null) -> void:
+	var event_name := p_event.event_name
+
+	# payload 校验（fail fast）
+	if not p_event.validate(p_data):
+		push_error("[GF_EventBus] 事件 '%s' payload 校验失败: %s" % [event_name, str(p_data)])
 		return
 
-	var arr: Array = _listeners[p_event]
+	if not _listeners.has(event_name):
+		return
+
+	var arr: Array = _listeners[event_name]
 	if arr.is_empty():
 		return
 
-	_dispatching = p_event
+	_dispatching = event_name
 	for entry in arr.duplicate():
 		if _pending_removes.has(entry.token_id):
 			continue
-		_safe_dispatch(entry, p_data, p_event)
+		_safe_dispatch(entry, p_data, event_name)
 		# 一次性订阅派发后立即标记移除
 		if _once_tokens.has(entry.token_id):
 			_pending_removes.append(entry.token_id)
@@ -134,14 +146,14 @@ func publish(p_event: String, p_data = null) -> void:
 # 查询
 # ============================================================
 
-func has_listeners(p_event: String) -> bool:
-	return _listeners.has(p_event) and not (_listeners[p_event] as Array).is_empty()
+func has_listeners(p_event: GF_EventDef) -> bool:
+	return _listeners.has(p_event.event_name) and not (_listeners[p_event.event_name] as Array).is_empty()
 
 
-func listener_count(p_event: String) -> int:
-	if not _listeners.has(p_event):
+func listener_count(p_event: GF_EventDef) -> int:
+	if not _listeners.has(p_event.event_name):
 		return 0
-	return (_listeners[p_event] as Array).size()
+	return (_listeners[p_event.event_name] as Array).size()
 
 
 func token_count() -> int:

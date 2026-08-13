@@ -1,0 +1,88 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://addons/godot-game-framework/modules/ui/ui_window.gd" id="1_window"]
+[ext_resource type="Script" path="res://addons/godot-game-framework/modules/ui/ui_resize_handle.gd" id="2_handle"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_title"]
+bg_color = Color(0.18, 0.2, 0.24, 1)
+
+[node name="WindowShell" type="Control"]
+anchors_preset = 0
+offset_right = 800.0
+offset_bottom = 600.0
+drag_area = NodePath("TitleBar")
+script = ExtResource("1_window")
+
+[node name="TitleBar" type="PanelContainer" parent="."]
+anchor_right = 1.0
+offset_bottom = 32.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_title")
+
+[node name="TitleLabel" type="Label" parent="TitleBar"]
+theme_override_colors/font_color = Color(0.9, 0.92, 0.95, 1)
+text = "窗口标题"
+
+[node name="ContentBox" type="MarginContainer" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 32.0
+
+[node name="ResizeTop" type="Control" parent="."]
+anchor_right = 1.0
+offset_bottom = 8.0
+edge = 4
+script = ExtResource("2_handle")
+
+[node name="ResizeBottom" type="Control" parent="."]
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -8.0
+edge = 8
+script = ExtResource("2_handle")
+
+[node name="ResizeLeft" type="Control" parent="."]
+anchor_bottom = 1.0
+offset_right = 8.0
+edge = 1
+script = ExtResource("2_handle")
+
+[node name="ResizeRight" type="Control" parent="."]
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -8.0
+edge = 2
+script = ExtResource("2_handle")
+
+[node name="ResizeTopLeft" type="Control" parent="."]
+offset_right = 8.0
+offset_bottom = 8.0
+edge = 5
+script = ExtResource("2_handle")
+
+[node name="ResizeTopRight" type="Control" parent="."]
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -8.0
+offset_bottom = 8.0
+edge = 6
+script = ExtResource("2_handle")
+
+[node name="ResizeBottomLeft" type="Control" parent="."]
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_right = 8.0
+offset_top = -8.0
+edge = 9
+script = ExtResource("2_handle")
+
+[node name="ResizeBottomRight" type="Control" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -8.0
+offset_top = -8.0
+edge = 10
+script = ExtResource("2_handle")
