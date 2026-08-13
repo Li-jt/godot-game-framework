@@ -22,6 +22,7 @@ func begin_frame() -> void:
 	# router 每帧 end→begin 后，查询应读到最近一次结算值而非 0
 	# （否则 Game 层 _process 排在 router 之后时 read_axis 恒为 0）
 	_impulse_acc = 0.0
+	_held_acc = 0.0
 	_analog_acc = 0.0
 	_was_pressed = pressed
 	_had_input_this_frame = false
