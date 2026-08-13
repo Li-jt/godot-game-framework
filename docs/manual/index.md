@@ -58,6 +58,7 @@
 | 快速试一下 | [快速开始](getting-started/quick-start.md) → [安装](getting-started/installation.md) |
 | 理解框架为什么这样设计 | [框架概览](getting-started/overview.md) → [模块生命周期](core-concepts/module-lifecycle.md) → [统一错误处理](core-concepts/operation-result.md) |
 | 学习 ECS 数据架构 | [ECS 世界](core-concepts/ecs-world.md) → [实体与组件](core-concepts/entity-component.md) → [系统与查询](core-concepts/system-query.md) → [命令缓冲](core-concepts/command-buffer.md) |
+| 搭建游戏界面 | [创建和管理 UI 面板](feature-guides/create-ui-panels.md) → [窗口化面板（Win11 风格多窗口）](feature-guides/windowed-panels.md) → [实现拖拽交互](feature-guides/drag-and-drop.md) |
 | 配置项目 | [项目结构](getting-started/project-structure.md) → [配置文件](getting-started/configuration.md) |
 | 理解服务装配 | [服务依赖注入](core-concepts/service-dependency.md) |
 | 查命名规范 | [类名约定](core-concepts/class-name-convention.md) |
