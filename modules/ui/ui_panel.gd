@@ -12,6 +12,8 @@
 ##     关闭 → _on_hide() → hide（留在内存）
 ##     再次 open(data) → _on_reopen(data) → show
 ##     缓存满被回收 → _on_close() → queue_free
+##     prewarm 面板在预热时即完成首次 open(data)（preview_data 为空时 data 为空字典），
+##     首次真正打开走 reopen 路径——_on_open 不会被跳过
 ##
 ## 使用方式：
 ##   [codeblock]
