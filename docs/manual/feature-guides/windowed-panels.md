@@ -6,8 +6,6 @@
 
 本章覆盖：搭建窗口场景、注册并打开窗口面板、拖动/缩放能力、置顶与输入语义、样式定制。
 
-> 设计文档：[docs/design/ui-window-mode.md](../../design/ui-window-mode.md)
-
 ---
 
 ## 核心概念

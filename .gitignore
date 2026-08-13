@@ -12,3 +12,5 @@ addons/*
 
 CLAUDE.md
 framework_comparison_with_unity_ue.md
+# 设计文档（仅本地，不发布）
+docs/design/
