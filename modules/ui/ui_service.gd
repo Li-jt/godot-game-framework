@@ -579,15 +579,16 @@ func _do_close(p_name: String, p_def: GF_UIPanelDef, p_suppress_recalc: bool = f
 	var panel: GF_UIPanel = _get_panel_safe(p_name)
 	if panel == null: return
 
-	unregister_panel_targets(panel)
-
 	_active_panels.erase(p_name)
 	_remove_from_order(p_name)
 
 	_restore_last_focus()
 	if p_def.lifecycle == GF_UIPanelDef.Lifecycle.HIDE_ON_CLOSE:
+		# 隐藏不注销 drop target：面板仅 hide()，格子节点存活，
+		# 重开 reopen 后 target 需继续参与 hit-test（无重注册路径）
 		_cached_store(p_name, panel)
 	else:
+		unregister_panel_targets(panel)
 		panel.close()
 
 	if not p_suppress_recalc:
@@ -619,7 +620,9 @@ func _cached_store(p_name: String, p_panel: GF_UIPanel) -> void:
 		_cache_order.pop_front()
 		var evict_panel: GF_UIPanel = _get_cached_safe(evict_name)
 		_cache.erase(evict_name)
-		if evict_panel != null: evict_panel.close()
+		if evict_panel != null:
+			unregister_panel_targets(evict_panel)
+			evict_panel.close()
 
 	_cache[p_name] = p_panel
 	_cache_order.append(p_name)
@@ -660,8 +663,9 @@ func _prewarm_one(p_name: String) -> void:
 	panel._panel_def = def
 	panel.set_focus_config(def.focus_mode, def.default_focus)
 
-	if not def.preview_data.is_empty():
-		panel.open(def.preview_data)
+	# 预热面板统一走完整 open 契约（preview_data 为空也 open({})），
+	# 否则首次真正打开命中缓存分支走 reopen，_on_open 被跳过
+	panel.open(def.preview_data)
 
 	panel.hide()
 	_cached_store(p_name, panel)
