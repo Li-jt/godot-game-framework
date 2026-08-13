@@ -19,6 +19,11 @@ func normalize(p_event: InputEvent) -> Array[GF_InputRawSignal]:
 
 	if p_event is InputEventKey:
 		var ke := p_event as InputEventKey
+		# 键盘自动重复（echo）不是新的按下：长按超过系统重复延迟后，echo 流
+		# （约 30ms 间隔、pressed=true）会让 IMPULSE 动作每帧重复触发
+		# （如面板 toggle 开关闪烁），在归一化层直接过滤
+		if ke.echo:
+			return result
 		result.append(GF_InputRawSignal.new(
 			GF_InputBinding.Source.KEYBOARD, ke.keycode, ke.pressed,
 			0.0, Vector2.INF, dev))
