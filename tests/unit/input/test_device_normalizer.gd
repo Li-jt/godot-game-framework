@@ -36,6 +36,29 @@ func test_normalize_key_release_is_press_false() -> void:
 	assert_false(signals[0].is_press)
 
 
+func test_normalize_key_echo_is_filtered() -> void:
+	# 长按产生的键盘自动重复（echo）不是新的按下，不应产生信号
+	# （否则 IMPULSE 动作会每帧重复触发，面板 toggle 闪烁）
+	var event := InputEventKey.new()
+	event.keycode = KEY_E
+	event.pressed = true
+	event.echo = true
+
+	var signals: Array[GF_InputRawSignal] = _normalizer.normalize(event)
+	assert_eq(signals.size(), 0, "echo 事件不应产生信号")
+
+
+func test_normalize_key_release_never_echo() -> void:
+	# 松开事件 echo 恒为 false，正常产生 pressed=false 信号
+	var event := InputEventKey.new()
+	event.keycode = KEY_E
+	event.pressed = false
+
+	var signals: Array[GF_InputRawSignal] = _normalizer.normalize(event)
+	assert_eq(signals.size(), 1, "松开事件应正常归一化")
+	assert_false(signals[0].is_press)
+
+
 func test_normalize_mouse_button_produces_button_signal() -> void:
 	var event := InputEventMouseButton.new()
 	event.button_index = MOUSE_BUTTON_LEFT
