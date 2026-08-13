@@ -93,3 +93,18 @@ var close_on_escape: bool = true
 var focus_mode: Control.FocusMode = Control.FOCUS_ALL
 ## 面板打开后自动聚焦的控件路径。空 = 不自动聚焦。
 var default_focus: NodePath = NodePath()
+
+
+# ============================================================
+# 窗口化配置（windowed = true 时生效，见 docs/design/ui-window-mode.md）
+# ============================================================
+
+## true = 面板以 Win11 风格窗口呈现（可拖动/缩放/点击置顶）。
+## 场景根节点必须挂 GF_UIWindow 脚本，且 kind 必须为 KIND_SCREEN。
+var windowed: bool = false
+## 初始尺寸（像素，canvas 坐标系）。窗口根在编辑器的 size 仅作预览，运行时被此值覆盖。
+var window_size: Vector2 = Vector2(800, 600)
+## 缩放最小尺寸。打开时与 window_size 逐分量取 max。
+var window_min_size: Vector2 = Vector2(320, 240)
+## 多实例预留。v1 不支持：windowed && multi_instance 打开时直接失败。
+var multi_instance: bool = false
