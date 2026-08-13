@@ -5,7 +5,6 @@ class_name GF_InputRouter
 extends Node
 
 var _resolver: GF_ActionResolver = null
-var _last_frame: int = -1
 var _enabled: bool = true
 
 
@@ -20,23 +19,21 @@ func _ready() -> void:
 
 
 ## GUI 未消费的事件在此处理。按钮点击等已被 Godot GUI 消费的事件不会到达。
+## 事件阶段永远在 _process 之前，本帧事件累积完由 _process 统一结算。
 func _unhandled_input(p_event: InputEvent) -> void:
 	if _resolver == null or not _enabled:
 		return
-
-	var frame: int = Engine.get_process_frames()
-	if frame != _last_frame:
-		_last_frame = frame
-		_resolver.begin_frame()
-
 	_resolver.feed_event(p_event)
 
 
-## 每帧结算：poll → gesture → compose → finalize。
+## 每帧结算：finalize 本帧累积 → 立即重置状态供下一帧累积。
+## begin_frame 必须每帧执行：仅在事件帧 begin 会让 just_pressed
+## 在无事件帧粘住（残留 accum 被反复 finalize → 按住键每帧重复触发）。
 func _process(p_delta: float) -> void:
 	if _resolver == null or not _enabled:
 		return
 	_resolver.end_frame(p_delta)
+	_resolver.begin_frame()
 
 
 func set_enabled(p_enabled: bool) -> void:
