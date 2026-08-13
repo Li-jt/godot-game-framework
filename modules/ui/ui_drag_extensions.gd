@@ -84,11 +84,11 @@ static func _find_panel(p_control: Control) -> GF_UIPanel:
 	return null
 
 
-## 通过面板上下文查找 GF_UIService
+## 通过父面板的 _bootstrap 查找 GF_UIService
 static func _find_ui_service(p_control: Control) -> GF_UIService:
 	var panel := _find_panel(p_control)
-	if panel != null and panel.ctx != null:
-		return panel.ctx.ui
+	if panel != null and panel._bootstrap != null:
+		return panel._bootstrap.service(GF_UIService) as GF_UIService
 	return null
 
 

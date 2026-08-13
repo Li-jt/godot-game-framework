@@ -2,7 +2,7 @@
 ## 可拖拽格子 Control。既是拖拽源也是放置目标，拖到场景里配置一下就能用。
 ##
 ## 内置行为（框架自动处理，游戏层不需要写代码）：
-## - 鼠标按下 → 自动调 ctx.ui.begin_drag（drag_enabled=true 且有数据时）
+## - 鼠标按下 → 自动调 GF_UIService.begin_drag（drag_enabled=true 且有数据时）
 ## - 有物品拖过 → 自动高亮（drop_enabled=true 且 _accepts 通过时）
 ## - 物品放入 → 发射 slot_drop_received 信号
 ##
@@ -96,7 +96,7 @@ func _ensure_internal_nodes() -> void:
 		_highlight = $Highlight as ColorRect
 
 
-## 尝试注册 drop target。如果 ctx 还没注入，延迟重试。
+## 尝试注册 drop target。如果 _bootstrap 还没注入（面板 open() 尚未完成），延迟重试。
 func _try_register_drop_target() -> void:
 	if _drop_target_registered:
 		return
@@ -104,8 +104,9 @@ func _try_register_drop_target() -> void:
 		return
 
 	var panel := _get_parent_panel()
-	if panel == null or panel.ctx == null or panel.ctx.ui == null:
-		# ctx 还没注入，再延迟一次
+	var ui := _find_ui_service()
+	if panel == null or ui == null:
+		# _bootstrap 还没注入，再延迟一次
 		_try_register_drop_target.call_deferred()
 		return
 
@@ -121,7 +122,7 @@ func _try_register_drop_target() -> void:
 	_registered_target.on_drop = func(data: Dictionary) -> bool:
 		return _handle_drop(data)
 
-	panel.ctx.ui.register_drop_target(_registered_target)
+	ui.register_drop_target(_registered_target)
 	_drop_target_registered = true
 
 
@@ -173,7 +174,8 @@ func _on_gui_input(p_event: InputEvent) -> void:
 
 func _begin_slot_drag() -> void:
 	var panel := _get_parent_panel()
-	if panel == null:
+	var ui := _find_ui_service()
+	if panel == null or ui == null:
 		return
 
 	var icon := drag_ghost_texture
@@ -181,10 +183,6 @@ func _begin_slot_drag() -> void:
 		var icon_node := get_node_or_null("Icon") as TextureRect
 		if icon_node != null:
 			icon = icon_node.texture
-
-	var ui: GF_UIService = panel.ctx.ui if panel.ctx != null else null
-	if ui == null:
-		return
 
 	var handler := _SlotDragHandler.new()
 	handler._slot = self
@@ -250,6 +248,16 @@ func _get_parent_panel() -> GF_UIPanel:
 		if p is GF_UIPanel:
 			return p as GF_UIPanel
 		p = p.get_parent()
+	return null
+
+
+## 通过父面板的 _bootstrap 查找 GF_UIService。
+## _bootstrap 由 UIService.open() 在 add_child 之后注入，
+## 因此 _ready() 时可能为 null，此时返回 null 由调用方延迟重试。
+func _find_ui_service() -> GF_UIService:
+	var panel := _get_parent_panel()
+	if panel != null and panel._bootstrap != null:
+		return panel._bootstrap.service(GF_UIService) as GF_UIService
 	return null
 
 
