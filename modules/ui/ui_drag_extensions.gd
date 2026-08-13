@@ -63,7 +63,12 @@ static func setup_drop_target(p_control: Control, p_config: Dictionary) -> void:
 
 	var target := GF_UIDropTarget.new()
 	target.panel = panel
-	target.rect = p_config.get("rect_override", p_control.get_rect())
+	if p_config.has("rect_override"):
+		# 显式覆盖：视为面板局部坐标的静态矩形（快照语义，布局变化需重新 setup）
+		target.rect = p_config["rect_override"]
+	else:
+		# 默认绑定控件的 get_global_rect：实时全局坐标，对象释放后 is_valid() 自动失效
+		target.rect_provider = p_control.get_global_rect
 	target.accept_filter = p_config.get("accept", func(_d: Dictionary) -> bool: return true)
 	target.on_hover = p_config.get("on_hover", Callable())
 	target.on_leave = p_config.get("on_leave", Callable())

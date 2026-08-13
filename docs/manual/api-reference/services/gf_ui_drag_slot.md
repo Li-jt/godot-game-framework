@@ -68,18 +68,14 @@
 
 ---
 
-### refresh_drop_target()
-
-手动刷新注册的放置目标。当格子的 `rect` 发生变化时（如动画、自适应布局）调用此方法更新命中区域。
-
 ## 内部行为
 
 以下行为由框架自动处理，游戏层无需干预：
 
-- **拖出：** 鼠标左键（非双击）在 `drag_enabled=true` 且 `_slot_data` 非空的格子上按下时，自动调用 `ctx.ui.begin_drag()`。拖拽数据自动包含 `_source_slot` 引用。
+- **拖出：** 鼠标左键（非双击）在 `drag_enabled=true` 且 `_slot_data` 非空的格子上按下时，自动调用 `GF_UIService.begin_drag()`。拖拽数据自动包含 `_source_slot` 引用。
 - **高亮：** 有物品拖过且 `_accepts()` 返回 true 时，自动显示半透明白色矩形高亮。
 - **放置：** 物品放入时，自动发射 `slot_drop_received` 信号。源格子等于自身时忽略（防止自己拖给自己）。
-- **注册：** `_ready()` 时通过 `call_deferred` 延迟注册 drop target（等待父面板 `ctx` 注入完成）。如果 ctx 尚未就绪，继续延迟重试。
+- **注册：** `_ready()` 时通过 `call_deferred` 延迟注册 drop target（等待父面板 `_bootstrap` 注入完成）。如果尚未就绪，继续延迟重试。命中区域通过 `rect_provider` 动态实时计算，布局变化无需手动刷新。
 
 ### 标签过滤逻辑 (_accepts)
 
@@ -112,7 +108,7 @@ extends GF_UIPanel
 
 func _on_open(p_data: Dictionary) -> void:
     # 填充格子数据
-    var items := ctx.save_service.get_inventory_items()
+    var items := _bootstrap.service(GF_SaveService).get_inventory_items()
     var slots := _get_all_slots()
     for i in min(items.size(), slots.size()):
         var item := items[i]
@@ -129,7 +125,7 @@ func _on_item_swapped(from_slot: GF_UIDragSlot, to_slot: GF_UIDragSlot) -> void:
     var temp := from_slot.get_slot_data().duplicate()
     from_slot.set_slot_data(to_slot.get_slot_data().duplicate())
     to_slot.set_slot_data(temp)
-    ctx.log.info("Inventory", "物品交换完成")
+    _bootstrap.service(GF_LogService).info("Inventory", "物品交换完成")
 ```
 
 ## See Also

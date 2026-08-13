@@ -52,7 +52,9 @@ func _input(p_event: InputEvent) -> void:
 	if p_event is InputEventMouseMotion:
 		var me := p_event as InputEventMouseMotion
 		_event.delta = me.relative
-		_event.position = me.global_position
+		# 统一坐标系：InputEvent 的 global_position 是 viewport 坐标，
+		# UI/ghost/hit-test 使用 canvas 坐标，拉伸窗口下两者不一致
+		_event.position = _to_canvas(me.global_position)
 
 		# 1. 通知游戏层
 		if is_instance_valid(_handler):
@@ -72,7 +74,7 @@ func _input(p_event: InputEvent) -> void:
 		if not mb.pressed and mb.button_index == _event.button:
 			var svc := _get_service()
 			if svc != null:
-				svc._on_drag_drop(mb.global_position)
+				svc._on_drag_drop(_to_canvas(mb.global_position))
 
 	elif p_event is InputEventKey:
 		var ke := p_event as InputEventKey
@@ -94,6 +96,15 @@ func _get_service() -> GF_UIService:
 	if _service_ref == null:
 		return null
 	return _service_ref.get_ref() as GF_UIService
+
+
+## viewport 坐标 → canvas 坐标。窗口拉伸（content_scale_mode）时两者不一致，
+## UI 面板、ghost、hit-test 全部使用 canvas 坐标，输入事件统一换算。
+func _to_canvas(p_viewport_pos: Vector2) -> Vector2:
+	var vp := get_viewport()
+	if vp == null:
+		return p_viewport_pos
+	return vp.make_canvas_position_local(p_viewport_pos)
 
 
 ## event.show_ghost_xxx 的回调：将 ghost 挂到 SYSTEM 层

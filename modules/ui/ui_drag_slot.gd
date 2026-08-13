@@ -112,7 +112,8 @@ func _try_register_drop_target() -> void:
 
 	_registered_target = GF_UIDropTarget.new()
 	_registered_target.panel = panel
-	_registered_target.rect = get_rect()
+	# 绑定方法为动态 rect 提供者：hit-test 时实时取全局坐标，布局变化无需手动刷新
+	_registered_target.rect_provider = _get_global_rect_for_target
 	_registered_target.accept_filter = func(data: Dictionary) -> bool:
 		return _accepts(data)
 	_registered_target.on_hover = func(_data: Dictionary) -> void:
@@ -126,12 +127,10 @@ func _try_register_drop_target() -> void:
 	_drop_target_registered = true
 
 
-## 手动刷新注册（当格子的 rect 发生变化时调用）
-func refresh_drop_target() -> void:
-	if _registered_target != null:
-		_registered_target.rect = get_rect()
-	else:
-		_try_register_drop_target()
+## 返回 slot 的全局命中矩形（canvas 坐标）。
+## 注册为 GF_UIDropTarget.rect_provider，hit-test 时实时调用。
+func _get_global_rect_for_target() -> Rect2:
+	return Rect2(get_global_position(), size)
 
 
 # ════════════════════════════════════════════

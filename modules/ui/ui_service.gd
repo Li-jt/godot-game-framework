@@ -509,7 +509,12 @@ func _hit_test_target(p_mouse_pos: Vector2) -> GF_UIDropTarget:
 			if target.accept_filter.is_valid():
 				if not target.accept_filter.call(_drag_manager.get_current_event().drag_data):
 					continue
-			var global_rect := Rect2(panel.global_position + target.rect.position, target.rect.size)
+			# 动态 rect 提供者优先（布局变化实时生效），否则用静态面板局部坐标换算
+			var global_rect: Rect2
+			if target.rect_provider.is_valid():
+				global_rect = target.rect_provider.call()
+			else:
+				global_rect = Rect2(panel.global_position + target.rect.position, target.rect.size)
 			if global_rect.has_point(p_mouse_pos):
 				return target
 
