@@ -100,11 +100,16 @@ func _get_service() -> GF_UIService:
 
 ## viewport 坐标 → canvas 坐标。窗口拉伸（content_scale_mode）时两者不一致，
 ## UI 面板、ghost、hit-test 全部使用 canvas 坐标，输入事件统一换算。
+## make_canvas_position_local 是 CanvasItem 的方法（Window 没有），
+## 借助 UI Root（Control）完成换算。
 func _to_canvas(p_viewport_pos: Vector2) -> Vector2:
-	var vp := get_viewport()
-	if vp == null:
+	var svc := _get_service()
+	if svc == null:
 		return p_viewport_pos
-	return vp.make_canvas_position_local(p_viewport_pos)
+	var ui_root := svc.get_ui_root()
+	if ui_root == null or not ui_root.is_inside_tree():
+		return p_viewport_pos
+	return ui_root.make_canvas_position_local(p_viewport_pos)
 
 
 ## event.show_ghost_xxx 的回调：将 ghost 挂到 SYSTEM 层
