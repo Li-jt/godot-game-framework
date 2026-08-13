@@ -96,7 +96,7 @@ var default_focus: NodePath = NodePath()
 
 
 # ============================================================
-# 窗口化配置（windowed = true 时生效，见 docs/design/ui-window-mode.md）
+# 窗口化配置（windowed = true 时生效，用法见 docs/manual/feature-guides/windowed-panels.md）
 # ============================================================
 
 ## true = 面板以 Win11 风格窗口呈现（可拖动/缩放/点击置顶）。
