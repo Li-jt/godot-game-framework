@@ -476,3 +476,119 @@ func _make_window_def(p_svc: GF_UIService, p_name: String, p_kind: StringName = 
 	p_svc.register(def)
 	return def
 
+
+
+# ============================================================
+# HIDE_ON_CLOSE 缓存生命周期
+# ============================================================
+
+func test_prewarm_calls_on_open_before_first_real_open() -> void:
+	var svc := _make_configured_service()
+	var factory := _TrackingFactory.new()
+	svc._scene_factory = factory
+	var def := GF_UIPanelDef.new("", "")
+	def.name = "prewarm_panel"
+	def.path = "res://prewarm.tscn"
+	def.lifecycle = GF_UIPanelDef.Lifecycle.HIDE_ON_CLOSE
+	def.prewarm = true
+	svc.register(def)
+
+	svc._prewarm_one("prewarm_panel")
+	assert_eq(factory.panel.open_calls, 1, "预热时应完成首次 open（_on_open 不被跳过）")
+
+	var r := svc.open("prewarm_panel")
+	assert_true(r.is_ok(), "首次真正打开应成功")
+	assert_eq(r.data, factory.panel, "首次真正打开应复用预热实例")
+	assert_eq(factory.panel.open_calls, 1, "_on_open 不应重复调用")
+	assert_eq(factory.panel.reopen_calls, 1, "首次真正打开应走 _on_reopen 契约路径")
+
+
+func test_hide_on_close_keeps_drop_targets() -> void:
+	var svc := _make_configured_service()
+	var def := GF_UIPanelDef.new("", "")
+	def.name = "cached_drop"
+	def.path = "res://cached_drop.tscn"
+	def.lifecycle = GF_UIPanelDef.Lifecycle.HIDE_ON_CLOSE
+	svc.register(def)
+	svc.open("cached_drop")
+	var panel: GF_UIPanel = svc.get_panel("cached_drop")
+
+	var target := GF_UIDropTarget.new()
+	target.panel = panel
+	svc.register_drop_target(target)
+	assert_eq(svc._drop_targets.size(), 1)
+
+	svc.close("cached_drop")
+	assert_eq(svc._drop_targets.size(), 1, "HIDE_ON_CLOSE 关闭不应注销 drop target")
+
+	var r := svc.open("cached_drop")
+	assert_true(r.is_ok(), "重开应成功")
+	assert_eq(svc._drop_targets.size(), 1, "重开后 target 应继续存在")
+	assert_eq(svc._drop_targets[0], target)
+
+
+func test_destroy_on_close_unregisters_drop_targets() -> void:
+	var svc := _make_configured_service()
+	var def := GF_UIPanelDef.new("", "")
+	def.name = "destroy_drop"
+	def.path = "res://destroy_drop.tscn"
+	# 默认 DESTROY_ON_CLOSE
+	svc.register(def)
+	svc.open("destroy_drop")
+	var panel: GF_UIPanel = svc.get_panel("destroy_drop")
+
+	var target := GF_UIDropTarget.new()
+	target.panel = panel
+	svc.register_drop_target(target)
+	svc.close("destroy_drop")
+	assert_eq(svc._drop_targets.size(), 0, "DESTROY_ON_CLOSE 关闭应注销 drop target")
+
+
+func test_cache_evict_unregisters_drop_targets() -> void:
+	var svc := _make_configured_service()
+	var first_panel: GF_UIPanel = null
+	for i in 6:
+		var def := GF_UIPanelDef.new("", "")
+		def.name = "evict_%d" % i
+		def.path = "res://evict_%d.tscn" % i
+		def.lifecycle = GF_UIPanelDef.Lifecycle.HIDE_ON_CLOSE
+		svc.register(def)
+		svc.open("evict_%d" % i)
+		var p: GF_UIPanel = svc.get_panel("evict_%d" % i)
+		if i == 0:
+			first_panel = p
+		var t := GF_UIDropTarget.new()
+		t.panel = p
+		svc.register_drop_target(t)
+		svc.close("evict_%d" % i)
+
+	# MAX_CACHED=5：最早缓存的面板被淘汰销毁，其 target 应一并注销
+	assert_eq(svc._drop_targets.size(), 5, "淘汰面板的 target 应被注销")
+	var still_points_to_evicted := false
+	for t in svc._drop_targets:
+		if (t as GF_UIDropTarget).panel == first_panel:
+			still_points_to_evicted = true
+	assert_false(still_points_to_evicted, "残留 target 不应指向被淘汰面板")
+
+
+# ============================================================
+# 内部 fake（HIDE_ON_CLOSE 生命周期测试）
+# ============================================================
+
+class _LifecycleTrackingPanel extends GF_FakeUIPanel:
+	var open_calls := 0
+	var reopen_calls := 0
+
+	func _on_open(_p_data: Dictionary) -> void:
+		open_calls += 1
+
+	func _on_reopen(_p_data: Dictionary) -> void:
+		reopen_calls += 1
+
+
+class _TrackingFactory extends GF_SceneFactory:
+	var panel: GF_UIPanel = null
+
+	func create(_p_path: String, _p_data: Dictionary = {}) -> GF_OperationResult:
+		panel = _LifecycleTrackingPanel.new()
+		return GF_OperationResult.ok(panel)
