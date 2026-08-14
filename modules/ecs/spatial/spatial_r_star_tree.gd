@@ -27,6 +27,7 @@ func insert(p_entity: int, p_bounds: Rect2) -> void:
 		push_warning("[GF_RStarSpatialIndex] insert 已存在的实体 %d，索引与 ECS 状态漂移" % p_entity)
 		return
 	_entity_bounds[p_entity] = p_bounds
+	_reinserted_levels.clear()
 	_insert_entry({"entity": p_entity, "bounds": p_bounds})
 
 
@@ -71,6 +72,7 @@ func clear() -> void:
 func rebuild(p_entries: Dictionary) -> void:
 	clear()
 	_entity_bounds = p_entries.duplicate()
+	_reinserted_levels.clear()
 	for entity in _entity_bounds:
 		_insert_entry({"entity": entity, "bounds": _entity_bounds[entity]})
 
@@ -108,8 +110,10 @@ func has_entity(p_entity: int) -> bool:
 
 
 ## 插入数据条目（孤儿重插、reinsert 共用入口，不做查重与计数）。
+## 注意：不在此处清空 _reinserted_levels——forced reinsertion 的条目
+## 从根重插必须保留层级标记，否则重插条目再次填满节点时同层反复
+## reinsert 形成递归风暴。标记只在顶层公开操作入口（insert/rebuild/remove）清除。
 func _insert_entry(p_entry: Dictionary) -> void:
-	_reinserted_levels.clear()
 	if _root == null:
 		_root = _RNode.new(true)
 		_root.entries.append(p_entry)
@@ -127,6 +131,13 @@ func _insert_recursive(p_node: _RNode, p_entry: Dictionary, p_level: int) -> _RN
 	else:
 		var target: _RNode = _choose_subtree(p_node, p_entry.bounds)
 		var split_node := _insert_recursive(target, p_entry, p_level + 1)
+		# 同步 target 的 bounds 快照：子节点插入/分裂后 bounds 已变化，
+		# 父节点的 entry.bounds 是值快照必须显式刷新，否则父 bounds 计算
+		# 陈旧 → 查询剪枝错误（R-tree 经典陷阱）
+		for entry in p_node.entries:
+			if entry.child == target:
+				entry.bounds = target.bounds
+				break
 		if split_node != null:
 			p_node.entries.append({"child": split_node, "bounds": split_node.bounds})
 
@@ -282,6 +293,8 @@ func _remove_recursive(p_node: _RNode, p_entity: int, p_bounds: Rect2, p_orphans
 		if child.entries.size() < MIN_ENTRIES:
 			_expand_leaf_entries(child, p_orphans)
 			to_remove.append(entry)
+		else:
+			entry.bounds = child.bounds  # 同步删除收缩后的快照
 	for entry in to_remove:
 		p_node.entries.erase(entry)
 	p_node.bounds = _compute_bounds(p_node)
@@ -321,7 +334,12 @@ func _nearest_recursive(p_node: _RNode, p_point: Vector2, p_count: int, p_candid
 		return p_best_dist_sq
 	if p_node.is_leaf:
 		for entry in p_node.entries:
-			var dist_sq := rect_center(entry.bounds).distance_squared_to(p_point)
+			var center: Vector2 = rect_center(entry.bounds)
+			var dist_sq := center.distance_squared_to(p_point)
+			# 候选已满且本条目不更近时跳过 append（平手必须入候选，
+			# 暴力排序平手按 entity 升序，相等距离可能挤出当前第 k 远）
+			if p_candidates.size() >= p_count and dist_sq > p_best_dist_sq:
+				continue
 			push_candidate(p_candidates, entry.entity, dist_sq, p_count)
 			if p_candidates.size() == p_count:
 				p_best_dist_sq = worst_dist_sq(p_candidates)

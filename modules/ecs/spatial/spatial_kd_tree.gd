@@ -100,9 +100,12 @@ func _build_tree() -> void:
 	if _entries.is_empty():
 		_dirty = false
 		return
+	# 用预计算中心点的 _Item 打包：建树排序的 lambda 只做纯 float 字段比较，
+	# 避免每比较一次调用 rect_center + Variant 字段访问（GDScript 下差一个数量级）
 	var items: Array = []
 	for entity in _entries:
-		items.append({"entity": entity, "bounds": _entries[entity]})
+		var bounds: Rect2 = _entries[entity]
+		items.append(_Item.new(entity, bounds, bounds.position.x + bounds.size.x * 0.5, bounds.position.y + bounds.size.y * 0.5))
 	_root = _build_recursive(items, AXIS_X)
 	_dirty = false
 
@@ -111,19 +114,20 @@ func _build_recursive(p_items: Array, p_axis: int) -> int:
 	if p_items.is_empty():
 		return -1
 	if p_items.size() == 1:
-		var only: Dictionary = p_items[0]
-		var node := _Node.new(only.bounds, only.entity)
+		var only: _Item = p_items[0]
+		var node := _Node.new(only.bounds, only.entity, only.cx, only.cy)
 		_nodes.append(node)
 		return _nodes.size() - 1
 
 	# 按当前轴的中心坐标排序取中位数
-	var axis_pos := 0 if p_axis == AXIS_X else 1
-	p_items.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
-		return rect_center(a.bounds)[axis_pos] < rect_center(b.bounds)[axis_pos])
+	if p_axis == AXIS_X:
+		p_items.sort_custom(func(a: _Item, b: _Item) -> bool: return a.cx < b.cx)
+	else:
+		p_items.sort_custom(func(a: _Item, b: _Item) -> bool: return a.cy < b.cy)
 
 	var mid := p_items.size() / 2
-	var mid_item: Dictionary = p_items[mid]
-	var node := _Node.new(mid_item.bounds, mid_item.entity)
+	var mid_item: _Item = p_items[mid]
+	var node := _Node.new(mid_item.bounds, mid_item.entity, mid_item.cx, mid_item.cy)
 	var node_idx := _nodes.size()
 	_nodes.append(node)
 	var next_axis := AXIS_Y if p_axis == AXIS_X else AXIS_X
@@ -162,11 +166,16 @@ func _nearest_recursive(p_idx: int, p_point: Vector2, p_count: int, p_candidates
 	if p_candidates.size() >= p_count and rect_min_dist_sq(node.bounds, p_point) > p_best_dist_sq:
 		return p_best_dist_sq
 
-	var entity_bounds: Rect2 = _entries.get(node.entity, Rect2())
-	var dist_sq := rect_center(entity_bounds).distance_squared_to(p_point)
-	push_candidate(p_candidates, node.entity, dist_sq, p_count)
-	if p_candidates.size() == p_count:
-		p_best_dist_sq = worst_dist_sq(p_candidates)
+	# 候选已满且本节点严格更远时跳过 append，避免无谓的 Dictionary 分配。
+	# 平手（dist == best）必须入候选：暴力排序平手按 entity 升序，
+	# 距离相等的实体可能把当前第 k 远挤出前 k。
+	var dx := node.cx - p_point.x
+	var dy := node.cy - p_point.y
+	var dist_sq := dx * dx + dy * dy
+	if p_candidates.size() < p_count or dist_sq <= p_best_dist_sq:
+		push_candidate(p_candidates, node.entity, dist_sq, p_count)
+		if p_candidates.size() == p_count:
+			p_best_dist_sq = worst_dist_sq(p_candidates)
 
 	# 先访问更近的子树，加速剪枝
 	var left_d := rect_min_dist_sq(_nodes[node.left].bounds, p_point) if node.left >= 0 else INF
@@ -188,9 +197,27 @@ func _nearest_recursive(p_idx: int, p_point: Vector2, p_count: int, p_candidates
 class _Node:
 	var bounds: Rect2
 	var entity: int = 0
+	var cx: float = 0.0
+	var cy: float = 0.0
 	var left: int = -1
 	var right: int = -1
 
-	func _init(p_bounds: Rect2, p_entity: int) -> void:
+	func _init(p_bounds: Rect2, p_entity: int, p_cx: float, p_cy: float) -> void:
 		bounds = p_bounds
 		entity = p_entity
+		cx = p_cx
+		cy = p_cy
+
+
+## 建树打包项：预计算中心点，排序 lambda 只比较 float 字段。
+class _Item:
+	var entity: int = 0
+	var bounds: Rect2
+	var cx: float = 0.0
+	var cy: float = 0.0
+
+	func _init(p_entity: int, p_bounds: Rect2, p_cx: float, p_cy: float) -> void:
+		entity = p_entity
+		bounds = p_bounds
+		cx = p_cx
+		cy = p_cy
