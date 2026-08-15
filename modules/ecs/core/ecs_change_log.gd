@@ -31,10 +31,15 @@ var removed_entities: PackedInt64Array = PackedInt64Array()
 var component_changes: Array[Dictionary] = []
 ## 溢出标记：容量耗尽后置 true，消费方应降级为全量处理
 var overflowed: bool = false
+## 已消费标记：clear() 置 true，任何新 mutation 重置 false。
+## 多消费者协调（单份日志、唯一 clear 负责人）：只读消费者读取时若
+## consumed == true，说明负责人已在消费时序之前清空——机器检测约定破坏。
+var consumed: bool = false
 
 
 ## 记录新增实体。
 func record_added_entity(p_entity: int) -> void:
+	consumed = false
 	if added_entities.size() >= max_entries:
 		overflowed = true
 		return
@@ -43,6 +48,7 @@ func record_added_entity(p_entity: int) -> void:
 
 ## 记录销毁实体。
 func record_removed_entity(p_entity: int) -> void:
+	consumed = false
 	if removed_entities.size() >= max_entries:
 		overflowed = true
 		return
@@ -52,6 +58,7 @@ func record_removed_entity(p_entity: int) -> void:
 ## 记录组件变更。
 ## [param p_component] 组件数据快照（remove 时传 null）
 func record_component_change(p_entity: int, p_type_id: int, p_kind: ChangeKind, p_component: Variant = null) -> void:
+	consumed = false
 	if component_changes.size() >= max_entries:
 		overflowed = true
 		return
@@ -70,9 +77,11 @@ func has_changes() -> bool:
 		or not component_changes.is_empty()
 
 
-## 清空全部记录（下一帧开始）。消费方在读取后调用。
+## 清空全部记录（下一帧开始）。由「唯一 clear 负责人」在帧末调用。
+## 多消费者场景下其他消费方只读不清（见文档「多消费者协调」）。
 func clear() -> void:
 	added_entities.clear()
 	removed_entities.clear()
 	component_changes.clear()
 	overflowed = false
+	consumed = true

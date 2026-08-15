@@ -71,10 +71,39 @@ for change in world.change_log.component_changes:
         delta.upserts[change.entity] = change.component
 ```
 
+## 多消费者协调（单份日志，唯一 clear 负责人）
+
+变更日志是**单份共享状态**——渲染脏标记、存档 delta、索引维护等多个
+消费方读的是同一份数据。框架不定义消费时序，但约定协调规则：
+
+1. **帧末唯一 clear 负责人**：游戏侧指定一个明确的清理者（如 EcsScheduler
+   的最后一个固定步长系统、或 GenerationService 的 scheduler tick 末尾），
+   其他消费者**只读不清**——谁 clear 谁负责，禁止多头清理；
+2. **只读消费者防御检查**：读取时若 `consumed == true`，说明负责人已在
+   消费时序之前清空——push_warning 提示时序错误并降级（全量扫描或跳过）；
+3. 负责人 `clear()` 后任何新 mutation 自动重置 `consumed`——下一帧消费不受影响。
+
+```gdscript
+# 负责人（帧末唯一 clear 点）：
+func on_frame_end(world: GF_EcsWorld) -> void:
+	world.change_log.clear()
+
+# 只读消费者（如渲染脏标记，帧内更早阶段）：
+var log := world.change_log
+if log.consumed:
+	push_warning("变更日志已被清空——消费时序在 clear 负责人之前？")
+	# 降级：本帧跳过增量处理
+	return
+for change in log.component_changes:
+	dirty[change.entity] = true
+```
+
 ## 注意
 
 - `component` 字段是**单帧内有效的引用**（add/set 时有值，remove 时为 null）——不要存留越过下一次 `clear()`
 - `overflowed` 为 true 时日志已不完整，消费方应全量重建，不可增量处理
+- 上面三种消费模式示例中的 `clear()` 仅在**该消费者是唯一消费者**时使用；
+  多消费者场景按本节约定执行
 
 ## See Also
 
