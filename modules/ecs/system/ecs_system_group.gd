@@ -5,6 +5,10 @@ class_name GF_EcsSystemGroup
 extends GF_IEcsSystemGroup
 
 var group_name: String = ""
+## 固定步长组：由 GF_EcsScheduler.tick_fixed() 驱动（delta 恒为
+## GF_Scheduler.fixed_step_seconds），普通组由 tick() 驱动（可变 delta）。
+## 决定论系统声明入 fixed 组（性能路线图 §2）。
+var fixed_tick: bool = false
 var _systems: Array[GF_EcsSystem] = []
 var _descriptors: Array[GF_EcsSystemDescriptor] = []
 var _initialized: bool = false
@@ -12,8 +16,9 @@ var _accumulators: Array[float] = []
 var _time_since_init: float = 0.0
 
 
-func _init(p_group_name: String = "") -> void:
+func _init(p_group_name: String = "", p_fixed_tick: bool = false) -> void:
 	group_name = p_group_name
+	fixed_tick = p_fixed_tick
 
 
 func add_system(p_system: GF_EcsSystem, p_descriptor: GF_EcsSystemDescriptor = null) -> void:
