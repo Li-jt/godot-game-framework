@@ -141,3 +141,15 @@ func test_threading_stats_provider_feeds_subsystems() -> void:
 	assert_true(_debug.get_subsystem_names().has("threading.submitted"))
 	assert_eq(_debug.subsystem_stats("threading.submitted").last_ms, 10.0)
 	assert_eq(_debug.subsystem_stats("threading.avg_duration_ms").last_ms, 1.5)
+
+
+func test_attach_threading_service_feeds_stats() -> void:
+	# §6 一代收尾：便捷接线真实 ThreadingService
+	var threading := GF_ThreadingService.new()
+	threading.module_name = "Threading"
+	threading.init_module()
+	_debug.attach_threading_service(threading)
+	_debug.tick_stats(0.016)
+	assert_true(_debug.get_subsystem_names().has("threading.submitted"),
+		"接线后 ThreadingService 统计入子系统")
+	assert_eq(_debug.subsystem_stats("threading.submitted").last_ms, 0.0)
