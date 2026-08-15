@@ -22,6 +22,9 @@ var records: Array[Dictionary] = []
 var enabled: bool = false
 ## 命令工厂注册表: command_key -> Callable(entry_data: Dictionary) -> GF_ICommand
 var _factories: Dictionary = {}
+## 非确定命令报错回调 (message: String) -> void。
+## 默认 push_error；使用方可替换为日志服务输出（测试可注入静默回调）。
+var error_reporter: Callable = Callable()
 
 
 func set_enabled(p_enabled: bool) -> void:
@@ -39,7 +42,11 @@ func record_command(p_command, p_key: String) -> bool:
 		return false
 	if not p_command.has_method("is_deterministic") or not p_command.is_deterministic():
 		if OS.is_debug_build():
-			push_error("[GF_CommandLog] 非确定命令不可入日志: %s（重放无法还原，已跳过记录）" % p_key)
+			var msg := "[GF_CommandLog] 非确定命令不可入日志: %s（重放无法还原，已跳过记录）" % p_key
+			if error_reporter.is_valid():
+				error_reporter.call(msg)
+			else:
+				push_error(msg)
 		return false
 	var entry_data := {}
 	if p_command.has_method("serialize_for_log"):
