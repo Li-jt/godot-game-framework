@@ -8,6 +8,9 @@ extends GF_IEcsScheduler
 const GROUP_INITIALIZATION: StringName = &"Initialization"
 const GROUP_SIMULATION: StringName = &"Simulation"
 const GROUP_PRESENTATION: StringName = &"Presentation"
+## 固定步长模拟组（性能路线图 §2）：delta 恒为 GF_Scheduler.fixed_step_seconds，
+## 决定论系统注册到此组（替代 GROUP_SIMULATION + 可变 delta）。
+const GROUP_SIMULATION_FIXED: StringName = &"SimulationFixed"
 ## 绑定到 Framework GF_Scheduler 时使用较高优先级，保证 ECS 逻辑先于世界表现同步执行。
 const FRAMEWORK_BIND_PRIORITY: int = -100
 
@@ -17,14 +20,16 @@ var _world: GF_EcsWorld = null
 var _ecb_pool: GF_ObjectPool = null
 var _active: bool = false
 var _framework_handle: GF_Scheduler.TickHandle = null
+var _fixed_handle: GF_Scheduler.TickHandle = null
 
 
 func _init(p_world: GF_EcsWorld = null) -> void:
 	_world = p_world
 	_ecb_pool = _make_ecb_pool()
-	# 预设三组默认顺序
+	# 预设组默认顺序（SimulationFixed 为固定步长决定论组，见 §2）
 	add_group(GROUP_INITIALIZATION)
 	add_group(GROUP_SIMULATION)
+	add_group(GROUP_SIMULATION_FIXED, true)
 	add_group(GROUP_PRESENTATION)
 
 
@@ -67,10 +72,11 @@ func set_world(p_world: GF_EcsWorld) -> void:
 
 
 ## 添加一个系统分组。
-func add_group(p_group_name: StringName) -> GF_EcsSystemGroup:
+## [param p_fixed_tick] true 时该组由 tick_fixed() 驱动（固定步长决定论组）。
+func add_group(p_group_name: StringName, p_fixed_tick: bool = false) -> GF_EcsSystemGroup:
 	if _groups.has(p_group_name):
 		return _groups[p_group_name]
-	var group := GF_EcsSystemGroup.new(p_group_name)
+	var group := GF_EcsSystemGroup.new(p_group_name, p_fixed_tick)
 	_groups[p_group_name] = group
 	_group_order.append(p_group_name)
 	return group
@@ -136,13 +142,25 @@ func start() -> void:
 	_active = true
 
 
-## 执行一帧。
+## 执行一帧（普通组：Initialization/Simulation/Presentation）。
 func tick(p_delta: float) -> void:
+	_tick_groups(p_delta, false)
+
+
+## 执行固定步长组的单步（决定论组，delta 恒为固定步长）。
+## 由 GF_Scheduler SIMULATION_FIXED 组驱动（性能路线图 §2）。
+func tick_fixed(p_delta: float) -> void:
+	_tick_groups(p_delta, true)
+
+
+func _tick_groups(p_delta: float, p_fixed_only: bool) -> void:
 	if not _active or _world == null:
 		return
 
 	for group_name in _group_order:
 		var group: GF_EcsSystemGroup = _groups[group_name]
+		if group.fixed_tick != p_fixed_only:
+			continue
 		if group.system_count() == 0:
 			continue
 
@@ -179,7 +197,8 @@ func get_group_names() -> Array[StringName]:
 
 
 ## 将自身注册到 Framework GF_Scheduler，确保 ECS tick 在正确的阶段执行。
-## 绑定后 GF_EcsScheduler.tick() 会由 Framework GF_Scheduler 自动驱动。
+## 绑定后 GF_EcsScheduler.tick() 会由 Framework GF_Scheduler 自动驱动；
+## 固定组经 SIMULATION_FIXED 组按固定步长驱动 tick_fixed()。
 func bind_to_framework_scheduler(p_scheduler: GF_Scheduler) -> GF_OperationResult:
 	if p_scheduler == null:
 		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "Framework 调度器不能为空", "GF_EcsScheduler")
@@ -187,6 +206,12 @@ func bind_to_framework_scheduler(p_scheduler: GF_Scheduler) -> GF_OperationResul
 		GF_Scheduler.TickGroup.SIMULATION,
 		"GF_EcsScheduler",
 		_framework_tick,
+		FRAMEWORK_BIND_PRIORITY
+	)
+	_fixed_handle = p_scheduler.register(
+		GF_Scheduler.TickGroup.SIMULATION_FIXED,
+		"GF_EcsScheduler.Fixed",
+		_framework_fixed_tick,
 		FRAMEWORK_BIND_PRIORITY
 	)
 	return GF_OperationResult.ok()
@@ -204,6 +229,11 @@ func stop_ecs_scheduler() -> void:
 
 func _framework_tick(p_delta: float) -> void:
 	tick(p_delta)
+
+
+## SIMULATION_FIXED 组回调：p_delta 恒为固定步长，驱动决定论组单步。
+func _framework_fixed_tick(p_delta: float) -> void:
+	tick_fixed(p_delta)
 
 
 func _make_ecb_pool() -> GF_ObjectPool:

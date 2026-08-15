@@ -7,6 +7,7 @@ extends Node
 enum TickGroup {
 	PHYSICS = -10,     # 固定步长（_physics_process 驱动，默认 60Hz）
 	FRAME = 0,         # 渲染相关（_process 驱动，可变帧率）
+	SIMULATION_FIXED = 5,  # 决定论模拟（accumulator 固定步长，步长可配）
 	SIMULATION = 10,   # 游戏逻辑（在 PHYSICS 或 FRAME 之后运行）
 	UI = 50,           # UI 更新
 	SAVE = 80,         # 自动保存
@@ -43,6 +44,19 @@ var perf_monitoring: bool = false
 
 ## 上一帧各 TickGroup 的耗时（毫秒）。perf_monitoring 开启时填充。
 var tick_group_times: Dictionary = {}
+
+## SIMULATION_FIXED 组固定步长（秒），默认 30Hz。
+## 与 PHYSICS 的分工：PHYSICS 步长受 physics_ticks_per_second 控制且与
+## 物理插值耦合；本组是独立可配的决定论模拟步长。
+var fixed_step_seconds: float = 1.0 / 30.0
+
+## 单帧最大追帧步数（防螺旋死亡：单帧落后过多时丢弃多余累计）。
+var max_steps_per_frame: int = 3
+
+## SIMULATION_FIXED 组逻辑 tick 计数（单调递增，决定论计时基准）。
+var fixed_tick_index: int = 0
+
+var _fixed_accumulator: float = 0.0
 
 var _entries: Array[TickEntry] = []
 var _dirty: bool = false
@@ -152,6 +166,7 @@ func _process(p_delta: float) -> void:
 		_dirty = false
 
 	var dt := p_delta * time_scale
+	_tick_fixed_group(dt)
 	_tick_groups(dt, [
 		TickGroup.FRAME,
 		TickGroup.SIMULATION,
@@ -186,6 +201,30 @@ func _tick_groups(p_dt: float, p_groups: Array) -> void:
 				float(Time.get_ticks_usec() - start) / 1000.0
 		else:
 			_tick_entries(p_dt, func(e: TickEntry): return e.group == group)
+
+
+## SIMULATION_FIXED 组：accumulator 固定步长推进。
+## 回调 delta 恒为 fixed_step_seconds，每步 fixed_tick_index 递增；
+## 单帧最多 max_steps_per_frame 步，超出部分丢弃（防螺旋死亡）。
+func _tick_fixed_group(p_dt: float) -> void:
+	if _paused_groups.has(TickGroup.SIMULATION_FIXED):
+		return
+	_fixed_accumulator += p_dt
+	var steps := 0
+	while _fixed_accumulator >= fixed_step_seconds and steps < max_steps_per_frame:
+		_fixed_accumulator -= fixed_step_seconds
+		steps += 1
+		if perf_monitoring:
+			var start := Time.get_ticks_usec()
+			_tick_entries(fixed_step_seconds, func(e: TickEntry): return e.group == TickGroup.SIMULATION_FIXED)
+			tick_group_times[TickGroup.find_key(TickGroup.SIMULATION_FIXED)] = \
+				float(Time.get_ticks_usec() - start) / 1000.0
+		else:
+			_tick_entries(fixed_step_seconds, func(e: TickEntry): return e.group == TickGroup.SIMULATION_FIXED)
+		fixed_tick_index += 1
+	if steps == max_steps_per_frame:
+		# 追帧上限：丢弃多余累计，避免永远追不上
+		_fixed_accumulator = fmod(_fixed_accumulator, fixed_step_seconds)
 
 
 func _tick_entries(p_dt: float, p_filter: Callable) -> void:
