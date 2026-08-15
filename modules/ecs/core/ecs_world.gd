@@ -60,6 +60,13 @@ func entity_count() -> int:
 	return _entities.size()
 
 
+## 已分配的最大实体 ID（实体 ID 单调递增不复用，增量扫描游标用）。
+## 供需要「发现新实体」的消费方（如 GrowthSystem 缓存增量维护）分帧扫描
+## (last_cursor, max_entity_id()] 区间，避免周期性全量 query 的规模级尖峰。
+func max_entity_id() -> int:
+	return _next_entity_id - 1
+
+
 # ============================================================
 # 组件操作
 # ============================================================

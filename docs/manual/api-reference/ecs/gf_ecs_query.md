@@ -62,6 +62,25 @@ var plan := query.build()
 3. 排除 `without` 条件的实体
 4. 收集每个匹配实体的 required 和 optional 组件数据
 
+### execute_entities(p_world: GF_EcsWorld) -> PackedInt64Array
+
+轻量查询：只返回匹配实体的 ID 列表，不构建行对象与组件字典（零分配）。供只需实体 ID 的高频消费方使用（系统缓存重建、增量索引维护等）——数千实体规模下，每帧调用 `execute()` 的行对象与组件字典分配是周期性 GC 尖峰的主要来源。
+
+与 `execute()` 的过滤语义相同（with/without 参与判定）；`optional` 不影响匹配判定，对 entities-only 查询是 no-op，结果中也不附带 optional 数据。
+
+**热路径指引**：每帧高频遍历用 `execute_entities()`（或 `GF_EcsWorld.max_entity_id()` + 游标），`execute()` 留给冷路径（事件响应、存档等低频场景）。
+
+```gdscript
+var _growth_entities: PackedInt64Array
+
+func on_tick(p_world: GF_EcsWorld, p_ecb: GF_EcsCommandBuffer, p_delta: float) -> void:
+    # 高频路径：零分配遍历，组件读取走 get_component 或本地缓存
+    _growth_entities = _plan.execute_entities(p_world)
+    for entity in _growth_entities:
+        var data = p_world.get_component(entity, &"Growth")
+        # ...
+```
+
 ## GF_EcsQueryResult 公共方法
 
 | 方法 | 返回值 | 描述 |
