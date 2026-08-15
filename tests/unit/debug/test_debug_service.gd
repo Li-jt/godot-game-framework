@@ -91,3 +91,53 @@ func test_reset_network_stats_clears() -> void:
 	_debug.reset_network_stats()
 	assert_eq(_debug.network_requests, 0)
 	assert_eq(_debug.network_errors, 0)
+
+
+# ============================================================
+# 子系统耗时统计（性能路线图 §4）
+# ============================================================
+
+func test_perf_stats_creates_and_reuses() -> void:
+	var stats := _debug.perf_stats("GrowthSystem")
+	var stats2 := _debug.perf_stats("GrowthSystem")
+	assert_eq(stats, stats2)
+	assert_true(stats is GF_PerfStats)
+
+
+func test_subsystem_stats_unknown_returns_empty() -> void:
+	assert_eq(_debug.subsystem_stats("Nope"), {})
+
+
+func test_subsystem_stats_reports_values() -> void:
+	var stats := _debug.perf_stats("GrowthSystem")
+	stats.record(2.0)
+	stats.record(4.0)
+	var snap := _debug.subsystem_stats("GrowthSystem")
+	assert_eq(snap.avg_ms, 3.0)
+	assert_eq(snap.max_ms, 4.0)
+
+
+func test_get_subsystem_names_returns_all() -> void:
+	_debug.perf_stats("A")
+	_debug.perf_stats("B")
+	var names := _debug.get_subsystem_names()
+	assert_eq(names.size(), 2)
+	assert_true(names.has("A"))
+	assert_true(names.has("B"))
+
+
+func test_tick_stats_syncs_current_frame() -> void:
+	var stats := _debug.perf_stats("GrowthSystem")
+	_debug.tick_stats(0.016)
+	assert_eq(stats.current_frame, 1)
+	_debug.tick_stats(0.016)
+	assert_eq(stats.current_frame, 2)
+
+
+func test_threading_stats_provider_feeds_subsystems() -> void:
+	_debug.threading_stats_provider = func() -> Dictionary:
+		return {"submitted": 10, "avg_duration_ms": 1.5}
+	_debug.tick_stats(0.016)
+	assert_true(_debug.get_subsystem_names().has("threading.submitted"))
+	assert_eq(_debug.subsystem_stats("threading.submitted").last_ms, 10.0)
+	assert_eq(_debug.subsystem_stats("threading.avg_duration_ms").last_ms, 1.5)
