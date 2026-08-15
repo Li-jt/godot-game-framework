@@ -11,6 +11,10 @@ extends RefCounted
 
 var _handlers: Dictionary = {}  # String command_key -> handler
 
+## 可选命令日志（性能路线图 §3.3）。attach_command_log 接线后，
+## execute 时自动记录确定性命令（validate 通过后、执行前）。
+var command_log: GF_CommandLog = null
+
 
 ## 注册命令处理器。重复注册会覆盖旧处理器。
 func register_handler(p_handler) -> GF_OperationResult:
@@ -45,6 +49,9 @@ func execute(p_command, p_context: Dictionary) -> GF_OperationResult:
 		return validate_result
 
 	var key := _resolve_command_key(p_command)
+	if command_log != null and command_log.is_enabled():
+		command_log.record_command(p_command, key)
+
 	if not key.is_empty() and _handlers.has(key):
 		return _handlers[key].handle(p_command, p_context)
 
@@ -52,6 +59,11 @@ func execute(p_command, p_context: Dictionary) -> GF_OperationResult:
 		return p_command.execute(p_context)
 
 	return GF_OperationResult.fail(GF_OperationResult.ERR_NOT_FOUND, "未找到命令处理器且命令不可直接执行: %s" % key, "GF_CommandBus")
+
+
+## 接线命令日志。execute 时自动记录确定性命令。
+func attach_command_log(p_log: GF_CommandLog) -> void:
+	command_log = p_log
 
 
 ## 查询命令键是否已注册处理器。

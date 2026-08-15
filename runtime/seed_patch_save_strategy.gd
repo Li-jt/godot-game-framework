@@ -12,8 +12,12 @@ extends GF_SaveStrategy
 
 ## 世界种子（确定性生成入口）
 var seed: int = 0
-## 改动记录（格式由使用方定义，框架不解释内容）
-var patch_records: Array = []
+## 改动记录（格式由使用方定义，框架不解释内容；
+## command_log 接线后默认取自命令日志）
+var patch_records: Variant = []
+## 可选命令日志引用（§3.3）：接线后 build_payload 的改动记录
+## 自动使用命令日志序列化形态，作为 SEED_PATCH 默认实现
+var command_log: GF_CommandLog = null
 ## 重放 hook（使用方注入）：
 ## - reset_world_hook: () -> void，重置世界到初始态
 ## - generator_hook: (seed: int) -> void，按种子生成世界
@@ -31,14 +35,17 @@ func set_seed(p_seed: int) -> void:
 	seed = p_seed
 
 
-func set_patch_records(p_records: Array) -> void:
+func set_patch_records(p_records: Variant) -> void:
 	patch_records = p_records
 
 
 func build_payload(p_data: Dictionary) -> Dictionary:
+	var records: Variant = patch_records
+	if command_log != null:
+		records = command_log.to_dict()
 	return {
 		"seed": seed,
-		"patch_records": patch_records.duplicate(true),
+		"patch_records": records,
 		"base_data": p_data,
 	}
 
