@@ -125,6 +125,7 @@ func _meta_to_dict(p_meta: GF_SaveMeta) -> Dictionary:
 		"slot_id": p_meta.slot_id,
 		"save_time": p_meta.save_time,
 		"save_version": p_meta.save_version,
+		"save_mode": p_meta.save_mode,
 		"game_version": p_meta.game_version,
 		"play_time_seconds": p_meta.play_time_seconds,
 		"summary": p_meta.summary,
@@ -136,6 +137,7 @@ func _meta_from_dict(p_dict: Dictionary) -> GF_SaveMeta:
 	m.slot_id = p_dict.get("slot_id", 0)
 	m.save_time = p_dict.get("save_time", "")
 	m.save_version = p_dict.get("save_version", 1)
+	m.save_mode = p_dict.get("save_mode", "full")
 	m.game_version = p_dict.get("game_version", "")
 	m.play_time_seconds = p_dict.get("play_time_seconds", 0.0)
 	m.summary = p_dict.get("summary", "")

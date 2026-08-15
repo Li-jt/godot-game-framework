@@ -24,6 +24,10 @@ var _log: GF_LogService = null
 var _migrators: Dictionary = {}
 var _saveables: Dictionary = {}  # String key → Variant（GF_ISaveable 或 Node 子类）
 
+## 存档策略（默认 FULL 全量快照，向后兼容）。
+## 使用方通过 set_strategy() 切换 DELTA / SEED_PATCH（性能路线图 §3.2）。
+var strategy: GF_SaveStrategy = null
+
 
 func _set_bootstrap(p_bs) -> void:
 	_bootstrap = p_bs
@@ -48,6 +52,18 @@ func configure() -> GF_OperationResult:
 	if _provider != null and _provider.has_method("configure"):
 		var fs: GF_FileSystemService = _bootstrap.service(GF_FileSystemService) as GF_FileSystemService
 		_provider.configure(fs, _path_resolver.get_save_root(), _log)
+	if strategy == null:
+		strategy = GF_FullSaveStrategy.new()
+	return GF_OperationResult.ok()
+
+
+## 切换存档策略（FULL / DELTA / SEED_PATCH）。
+## 在首次 save 前声明；DELTA 策略切换后可用其 reset_state() 重置基底。
+func set_strategy(p_strategy: GF_SaveStrategy) -> GF_OperationResult:
+	if p_strategy == null:
+		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "策略不能为 null", module_name)
+	strategy = p_strategy
+	_log.info("Save", "存档策略切换为: %s" % p_strategy.get_mode_name())
 	return GF_OperationResult.ok()
 
 
@@ -168,10 +184,12 @@ func unregister_saveables_by_owner(p_owner: String) -> int:
 # 公开方法
 # ============================================================
 
-## 保存全部已注册的 GF_ISaveable 模块
+## 保存全部已注册的 GF_ISaveable 模块（走存档策略）。
 func save_all(p_slot: int, p_meta: GF_SaveMeta) -> GF_OperationResult:
 	var data := _build_save_data()
-	return save(p_slot, data, p_meta)
+	var payload: Dictionary = strategy.build_payload(data)
+	p_meta.save_mode = strategy.get_mode_name()
+	return save(p_slot, payload, p_meta)
 
 
 ## 保存指定数据。写入时自动标记当前 GF_SaveVersion。
@@ -185,6 +203,10 @@ func load_and_restore(p_slot: int) -> GF_OperationResult:
 	var result := load_slot(p_slot)
 	if result.is_fail():
 		return result
+	if strategy.get_mode_name() == "seed_patch":
+		# 重放编排：重置世界 → 注入种子生成 → 应用改动记录
+		var seed_strategy := strategy as GF_SeedPatchSaveStrategy
+		seed_strategy.replay()
 	_restore_save_data(result.data as Dictionary)
 	return GF_OperationResult.ok()
 
@@ -199,6 +221,14 @@ func load_slot(p_slot: int) -> GF_OperationResult:
 	var wrapper: Dictionary = raw_result.data
 	var meta: Dictionary = wrapper.get("meta", {})
 	var data: Dictionary = wrapper.get("data", {})
+
+	# 按存档 mode 恢复策略形态（旧存档无 save_mode 字段 → full）。
+	# 先合成全量数据、再走版本迁移链——迁移器只感知全量模块数据，
+	# 不感知策略形态（DELTA 的 base+deltas 在此处已合成）。
+	var save_mode: String = meta.get("save_mode", "full")
+	var mode_strategy: GF_SaveStrategy = _strategy_for_mode(save_mode)
+	data = mode_strategy.restore_payload(data)
+
 	var data_version: int = meta.get("save_version", 0)
 
 	if data_version == GF_SaveVersion.CURRENT:
@@ -306,3 +336,18 @@ func _on_saveable_child_exited(p_child: Node) -> void:
 ## Node 和 RefCounted 是不同的继承链，不能用 is 检查，故用方法存在性判断。
 func _is_saveable(p_obj) -> bool:
 	return p_obj.has_method("save_key") and p_obj.has_method("on_save") and p_obj.has_method("on_load")
+
+
+## 按存档 mode 选取恢复策略。与当前配置策略一致的模式用当前实例
+## （SEED_PATCH 需要还原 seed/patch 到活跃策略供 replay 使用），
+## 其余模式用临时策略实例（restore_payload 无状态即可完成合成）。
+func _strategy_for_mode(p_mode: String) -> GF_SaveStrategy:
+	if strategy != null and strategy.get_mode_name() == p_mode:
+		return strategy
+	match p_mode:
+		"delta":
+			return GF_DeltaSaveStrategy.new()
+		"seed_patch":
+			return GF_SeedPatchSaveStrategy.new()
+		_:
+			return GF_FullSaveStrategy.new()
