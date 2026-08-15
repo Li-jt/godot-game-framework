@@ -3,10 +3,11 @@
 class_name GF_EcsTestFixture
 extends RefCounted
 
-const COMP_POSITION: StringName = &"Position"
-const COMP_VELOCITY: StringName = &"Velocity"
-const COMP_HEALTH: StringName = &"Health"
-const COMP_NAME: StringName = &"Name"
+# GDScript const 不支持 class_name 引用初始化（非编译期常量），用 static var
+static var COMP_POSITION: GDScript = FakeCompPosition
+static var COMP_VELOCITY: GDScript = FakeCompVelocity
+static var COMP_HEALTH: GDScript = FakeCompHealth
+static var COMP_NAME: GDScript = FakeCompName
 
 var world: GF_EcsWorld = null
 var entity_fast: int = 0      ## entity with Position + Velocity
@@ -44,5 +45,5 @@ func assert_entity_count(p_expected: int) -> bool:
 	return world.entity_count() == p_expected
 
 
-func assert_has_component(p_entity: int, p_type: StringName) -> bool:
+func assert_has_component(p_entity: int, p_type: GDScript) -> bool:
 	return world.has_component(p_entity, p_type)

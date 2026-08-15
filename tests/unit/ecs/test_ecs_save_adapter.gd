@@ -20,7 +20,7 @@ func after_each() -> void:
 
 func test_save_returns_dictionary_with_version_and_snapshot() -> void:
 	var id := _world.spawn()
-	_world.add_component(id, &"Position", {"x": 10, "y": 20})
+	_world.add_component(id, FakeCompPosition, {"x": 10, "y": 20})
 
 	var save_data := _adapter.save(_world)
 	assert_not_null(save_data)
@@ -30,7 +30,7 @@ func test_save_returns_dictionary_with_version_and_snapshot() -> void:
 
 func test_load_restores_entities() -> void:
 	var id := _world.spawn()
-	_world.add_component(id, &"Position", {"x": 1, "y": 2})
+	_world.add_component(id, FakeCompPosition, {"x": 1, "y": 2})
 
 	var save_data := _adapter.save(_world)
 	_world.reset()
@@ -43,13 +43,13 @@ func test_load_restores_entities() -> void:
 func test_roundtrip_preserves_component_data() -> void:
 	var id := _world.spawn()
 	var data := {"x": 42, "y": 99}
-	_world.add_component(id, &"Position", data)
+	_world.add_component(id, FakeCompPosition, data)
 
 	var save_data := _adapter.save(_world)
 	_world.reset()
 
 	_adapter.load(_world, save_data)
-	assert_eq(_world.get_component(id, &"Position"), data)
+	assert_eq(_world.get_component(id, FakeCompPosition), data)
 
 
 func test_set_and_get_save_version() -> void:
@@ -71,7 +71,7 @@ func test_register_migration_and_load_old_version() -> void:
 
 	# 手动构造 v1 存档
 	var id := _world.spawn()
-	_world.add_component(id, &"Position", {"x": 1, "y": 1})
+	_world.add_component(id, FakeCompPosition, {"x": 1, "y": 1})
 	var save_data := _adapter.save(_world)
 	save_data.save_version = 1
 

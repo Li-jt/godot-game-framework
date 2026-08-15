@@ -3,15 +3,13 @@
 ## 组件工厂注册表：手动注册、自动发现、存档集成。
 extends GutTest
 
-const FACTORY_PATH := "res://ecs/save/ecs_component_factory.gd"
-
 var _world: GF_EcsWorld
 var _adapter: GF_EcsSaveAdapter
-var _factory
+var _factory: GF_EcsComponentFactory
 
 
-func _new_factory():
-	return load(FACTORY_PATH).new()
+func _new_factory() -> GF_EcsComponentFactory:
+	return GF_EcsComponentFactory.new()
 
 
 func before_each() -> void:
@@ -79,38 +77,36 @@ func test_registered_types_returns_all() -> void:
 # ============================================================
 
 func test_register_script_auto_discovers_type_and_factory() -> void:
-	# 加载 test helper 组件类
-	var script: GDScript = load("res://tests/helpers/fake_component.gd")
-	var ok: bool = _factory.register_script(script)
+	# test helper 组件类（class_name 全局引用）
+	var ok: bool = _factory.register_script(FakeComponent)
 	assert_true(ok)
-	assert_true(_factory.has_factory(&"FakeHealth"))
+	assert_true(_factory.has_factory(FakeComponent))
 
 	# 通过工厂重建
-	var result = _factory.create(&"FakeHealth", {"hp": 99, "max_hp": 150})
+	var result = _factory.create(FakeComponent, {"hp": 99, "max_hp": 150})
 	assert_eq(result.hp, 99)
 	assert_eq(result.max_hp, 150)
 
 
 func test_register_script_fails_for_non_component_base() -> void:
 	# GDScript 引用非 GF_EcsComponentBase 子类 → 返回 false
-	var script: GDScript = load("res://ecs/save/ecs_component_factory.gd")
-	var ok: bool = _factory.register_script(script)
+	var ok: bool = _factory.register_script(GF_EcsComponentFactory)
 	assert_false(ok)
 
 
 func test_discover_from_registers_multiple() -> void:
-	var s1: GDScript = load("res://tests/helpers/fake_component.gd")
-	# s1 注册为 FakeHealth，这里用同一脚本模拟多种类型不够好
+	var s1: GDScript = FakeComponent
+	# s1 注册为 FakeComponent，这里用同一脚本模拟多种类型不够好
 	# 直接测 discover_from 的计数逻辑
 	var count: int = _factory.discover_from([s1])
 	assert_eq(count, 1)
-	assert_true(_factory.has_factory(&"FakeHealth"))
+	assert_true(_factory.has_factory(FakeComponent))
 
 
 func test_discover_from_counts_only_successful() -> void:
 	# 混合有效和无效脚本
-	var valid: GDScript = load("res://tests/helpers/fake_component.gd")
-	var invalid: GDScript = load("res://ecs/save/ecs_component_factory.gd")  # 非组件类
+	var valid: GDScript = FakeComponent
+	var invalid: GDScript = GF_EcsComponentFactory  # 非组件类
 	var count: int = _factory.discover_from([valid, invalid])
 	assert_eq(count, 1)
 
@@ -120,17 +116,17 @@ func test_discover_from_counts_only_successful() -> void:
 # ============================================================
 
 func test_save_load_with_auto_discovered_component() -> void:
-	_factory.register_script(load("res://tests/helpers/fake_component.gd"))
+	_factory.register_script(FakeComponent)
 	_adapter.component_factory = _factory
 
 	var entity := _world.spawn()
-	_world.add_component(entity, &"FakeHealth", {"hp": 60, "max_hp": 120})
+	_world.add_component(entity, FakeComponent, {"hp": 60, "max_hp": 120})
 	var save_data := _adapter.save(_world)
 
 	_world.reset()
 	_adapter.load(_world, save_data)
 
-	var restored = _world.get_component(entity, &"FakeHealth")
+	var restored = _world.get_component(entity, FakeComponent)
 	assert_eq(restored.hp, 60)
 	assert_eq(restored.max_hp, 120)
 
@@ -143,46 +139,48 @@ func test_save_load_without_factory_uses_raw_data() -> void:
 	_adapter.component_factory = null
 
 	var entity := _world.spawn()
-	_world.add_component(entity, &"Position", {"x": 10, "y": 20})
+	_world.add_component(entity, FakeCompPosition, {"x": 10, "y": 20})
 	var save_data := _adapter.save(_world)
 
 	_world.reset()
 	var result := _adapter.load(_world, save_data)
 	assert_true(result.is_ok())
-	assert_eq(_world.get_component(entity, &"Position"), {"x": 10, "y": 20})
+	assert_eq(_world.get_component(entity, FakeCompPosition), {"x": 10, "y": 20})
 
 
 func test_mixed_factory_registered_and_unregistered_types() -> void:
-	_factory.register(&"Health", func(p_data: Dictionary):
+	# 手动注册用 global_name 字符串作 key（与存档序列化的 type_name 匹配）
+	_factory.register("FakeCompHealth", func(p_data: Dictionary):
 		return {"hp": p_data.hp, "_via_factory": true}
 	)
 	_adapter.component_factory = _factory
 
 	var entity := _world.spawn()
-	_world.add_component(entity, &"Health", {"hp": 75})
-	_world.add_component(entity, &"Position", {"x": 5, "y": 5})
+	_world.add_component(entity, FakeCompHealth, {"hp": 75})
+	_world.add_component(entity, FakeCompPosition, {"x": 5, "y": 5})
 	var save_data := _adapter.save(_world)
 
 	_world.reset()
 	_adapter.load(_world, save_data)
 
-	var health = _world.get_component(entity, &"Health")
+	var health = _world.get_component(entity, FakeCompHealth)
 	assert_true(health._via_factory)
 	assert_eq(health.hp, 75)
 
-	var pos = _world.get_component(entity, &"Position")
+	var pos = _world.get_component(entity, FakeCompPosition)
 	assert_eq(pos, {"x": 5, "y": 5})
 
 
 func test_multiple_entities_with_factory() -> void:
-	_factory.register(&"Item", func(p_data: Dictionary):
+	# 手动注册用 global_name 字符串作 key（与存档序列化的 type_name 匹配）
+	_factory.register("FakeCompItem", func(p_data: Dictionary):
 		return {"name": p_data.name, "qty": p_data.qty, "rebuilt": true}
 	)
 	_adapter.component_factory = _factory
 
 	for i in 10:
 		var e := _world.spawn()
-		_world.add_component(e, &"Item", {"name": "Item_%d" % i, "qty": i})
+		_world.add_component(e, FakeCompItem, {"name": "Item_%d" % i, "qty": i})
 
 	var save_data := _adapter.save(_world)
 	_world.reset()
@@ -191,7 +189,7 @@ func test_multiple_entities_with_factory() -> void:
 	assert_eq(_world.entity_count(), 10)
 	for i in 10:
 		var e := i + 1
-		var item = _world.get_component(e, &"Item")
+		var item = _world.get_component(e, FakeCompItem)
 		assert_true(item.rebuilt)
 		assert_eq(item.name, "Item_%d" % i)
 
@@ -201,29 +199,29 @@ func test_multiple_entities_with_factory() -> void:
 # ============================================================
 
 func test_factory_returns_null_uses_null() -> void:
-	_factory.register(&"Optional", func(_d: Dictionary):
+	_factory.register("FakeCompOptional", func(_d: Dictionary):
 		return null
 	)
 	_adapter.component_factory = _factory
 
 	var entity := _world.spawn()
-	_world.add_component(entity, &"Optional", {"key": "val"})
+	_world.add_component(entity, FakeCompOptional, {"key": "val"})
 	var save_data := _adapter.save(_world)
 
 	_world.reset()
 	_adapter.load(_world, save_data)
 
-	assert_null(_world.get_component(entity, &"Optional"))
+	assert_null(_world.get_component(entity, FakeCompOptional))
 
 
 func test_empty_factory_no_effect() -> void:
 	_adapter.component_factory = _factory
 
 	var entity := _world.spawn()
-	_world.add_component(entity, &"Data", {"a": 1})
+	_world.add_component(entity, FakeCompData, {"a": 1})
 	var save_data := _adapter.save(_world)
 
 	_world.reset()
 	var result := _adapter.load(_world, save_data)
 	assert_true(result.is_ok())
-	assert_eq(_world.get_component(entity, &"Data"), {"a": 1})
+	assert_eq(_world.get_component(entity, FakeCompData), {"a": 1})

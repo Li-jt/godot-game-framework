@@ -61,7 +61,7 @@ func test_empty_query_matches_all() -> void:
 
 func test_query_returns_empty_when_no_match() -> void:
 	var query := GF_EcsQuery.new()
-	query.with_component(&"NonexistentComponent")
+	query.with_component(FakeCompNonexistent)
 	var plan := query.build()
 	var result: GF_EcsQueryResult = plan.execute(_world)
 	assert_eq(result.count(), 0)
@@ -80,3 +80,57 @@ func test_query_result_contains_entity_and_components() -> void:
 	assert_not_null(comp)
 	assert_true(comp.has("x"))
 	assert_true(comp.has("y"))
+
+
+# ============================================================
+# execute_entities 零分配查询（性能路线图 §1.1）
+# ============================================================
+
+func test_execute_entities_with_filter() -> void:
+	var plan := GF_EcsQuery.new().with_component(GF_EcsTestFixture.COMP_VELOCITY).build()
+	var entities := plan.execute_entities(_world)
+	assert_eq(entities.size(), 2)
+
+
+func test_execute_entities_without_filter() -> void:
+	var plan := GF_EcsQuery.new() \
+		.with_component(GF_EcsTestFixture.COMP_POSITION) \
+		.without_component(GF_EcsTestFixture.COMP_VELOCITY) \
+		.build()
+	var entities := plan.execute_entities(_world)
+	assert_eq(entities.size(), 2)
+
+
+func test_execute_entities_multiple_with() -> void:
+	var plan := GF_EcsQuery.new() \
+		.with_component(GF_EcsTestFixture.COMP_POSITION) \
+		.with_component(GF_EcsTestFixture.COMP_HEALTH) \
+		.build()
+	var entities := plan.execute_entities(_world)
+	assert_eq(entities.size(), 1)
+	assert_eq(entities[0], _fixture.entity_dead)
+
+
+func test_execute_entities_empty_query_matches_all() -> void:
+	var plan := GF_EcsQuery.new().build()
+	var entities := plan.execute_entities(_world)
+	assert_eq(entities.size(), _world.entity_count())
+
+
+func test_execute_entities_unknown_type_returns_empty() -> void:
+	var plan := GF_EcsQuery.new().with_component(FakeCompNonexistent).build()
+	var entities := plan.execute_entities(_world)
+	assert_eq(entities.size(), 0)
+
+
+func test_execute_entities_matches_execute_entity_list() -> void:
+	# 对拍：零分配路径的结果集合与 execute().entities() 一致
+	var plan := GF_EcsQuery.new() \
+		.with_component(GF_EcsTestFixture.COMP_POSITION) \
+		.without_component(GF_EcsTestFixture.COMP_VELOCITY) \
+		.build()
+	var light := plan.execute_entities(_world)
+	var full := plan.execute(_world).entities()
+	assert_eq(light.size(), full.size())
+	for entity in light:
+		assert_true(full.has(entity), "execute_entities 结果应包含在 execute 结果中")

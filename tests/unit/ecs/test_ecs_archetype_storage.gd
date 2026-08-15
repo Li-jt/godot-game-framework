@@ -3,19 +3,16 @@
 ## 覆盖 Archetype 特有逻辑：实体迁移、多类型共存、清理等。
 extends GutTest
 
-const ARCH_PATH := "res://ecs/storage/ecs_archetype_storage.gd"
-
 var _manager_ref = null
 
 
-func _new_storage(p_type_id: int):
-	return load(ARCH_PATH).new(p_type_id)
+func _new_storage(p_type_id: int) -> GF_EcsArchetypeStorage:
+	return GF_EcsArchetypeStorage.new(p_type_id)
 
 
 func before_each() -> void:
 	# 每次测试前重置共享的 _ArchetypeManager
-	var cls = load(ARCH_PATH)
-	cls._manager = null
+	GF_EcsArchetypeStorage._manager = null
 
 
 # ============================================================
