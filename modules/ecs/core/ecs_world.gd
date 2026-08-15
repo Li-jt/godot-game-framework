@@ -9,6 +9,9 @@ var _registry: GF_EcsComponentTypeRegistry = null
 var _storage_index: GF_EcsStorageIndex = null
 var _version: int = 0
 var _next_entity_id: int = 1
+## 世界级变更日志（单帧生命周期，性能路线图 §1.4）。
+## 每次 mutation 自动追加；消费方读取后调用 change_log.clear()。
+var change_log: GF_EcsChangeLog = null
 ## 世界级单例资源字典。与 Component 不同，Resource 全局只有一份，
 ## 通过 set_resource/get_resource 存取，不需要 Entity 访问。
 ## 等价于 Bevy 的 Resource<T>、守望先锋 ECS 的 singleton component。
@@ -18,6 +21,7 @@ var _resources: Dictionary = {}
 func _init() -> void:
 	_registry = GF_EcsComponentTypeRegistry.new()
 	_storage_index = GF_EcsStorageIndex.new()
+	change_log = GF_EcsChangeLog.new()
 
 
 # ============================================================
@@ -30,6 +34,7 @@ func spawn() -> int:
 	_next_entity_id += 1
 	_entities[id] = true
 	_version += 1
+	change_log.record_added_entity(id)
 	return id
 
 
@@ -42,6 +47,7 @@ func despawn(p_entity: int) -> bool:
 		if storage != null and storage.contains(p_entity):
 			storage.erase(p_entity)
 	_version += 1
+	change_log.record_removed_entity(p_entity)
 	return true
 
 
@@ -54,6 +60,7 @@ func _force_spawn(p_entity: int) -> void:
 	_entities[p_entity] = true
 	_next_entity_id = maxi(_next_entity_id, p_entity + 1)
 	_version += 1
+	change_log.record_added_entity(p_entity)
 
 
 func entity_count() -> int:
@@ -84,6 +91,7 @@ func add_component(p_entity: int, p_type: GDScript, p_data: Variant) -> GF_Opera
 		return GF_OperationResult.fail(GF_OperationResult.ERR_CONFLICT, "实体 %d 已拥有组件 %s" % [p_entity, _registry._type_name(p_type)], "GF_EcsWorld")
 	storage.insert(p_entity, p_data)
 	_version += 1
+	change_log.record_component_change(p_entity, type_id, GF_EcsChangeLog.ChangeKind.COMPONENT_ADDED, p_data)
 	return GF_OperationResult.ok()
 
 
@@ -97,6 +105,7 @@ func set_component(p_entity: int, p_type: GDScript, p_data: Variant) -> GF_Opera
 	var storage := _storage_index.get_or_create_storage(type_id)
 	storage.insert(p_entity, p_data)
 	_version += 1
+	change_log.record_component_change(p_entity, type_id, GF_EcsChangeLog.ChangeKind.COMPONENT_CHANGED, p_data)
 	return GF_OperationResult.ok()
 
 
@@ -123,6 +132,7 @@ func remove_component(p_entity: int, p_type: GDScript) -> void:
 		return
 	storage.erase(p_entity)
 	_version += 1
+	change_log.record_component_change(p_entity, type_id, GF_EcsChangeLog.ChangeKind.COMPONENT_REMOVED)
 
 
 func has_component(p_entity: int, p_type: GDScript) -> bool:
@@ -181,6 +191,7 @@ func reset() -> void:
 	_next_entity_id = 1
 	_version = 0
 	_resources.clear()
+	change_log.clear()
 
 
 # ============================================================

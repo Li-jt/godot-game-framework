@@ -143,9 +143,21 @@ if pos != null:
 
 获取当前世界版本号。每次 spawn / despawn / add_component / set_component / remove_component 都会递增此值。可用于脏标记检测和缓存失效。
 
+#### change_log
+
+世界级变更日志（[GF_EcsChangeLog](./gf_ecs_change_log.md)）。每次 mutation 自动追加，单帧生命周期——消费方在 tick 边界读取后调用 `change_log.clear()`。三种消费模式（增量索引维护、脏标记收集、存档 delta 累计）见变更日志文档。
+
+```gdscript
+# 每帧消费实体增删
+var log := world.change_log
+for entity in log.removed_entities:
+    _on_entity_removed(entity)
+log.clear()
+```
+
 #### reset() -> void
 
-重置世界：清空所有实体、组件数据、资源字典，重置 ID 分配器和版本号。
+重置世界：清空所有实体、组件数据、资源字典，重置 ID 分配器和版本号，并清空变更日志。
 
 ## 接口规范 (GF_IEcsWorld)
 
@@ -186,6 +198,7 @@ world.despawn(player)
 ## See Also
 
 - [GF_EcsQuery](./gf_ecs_query.md) -- 查询系统
+- [GF_EcsChangeLog](./gf_ecs_change_log.md) -- 变更日志
 - [GF_EcsCommandBuffer](./gf_ecs_command_buffer.md) -- 命令缓冲
 - [GF_EcsComponentTypeRegistry](./gf_ecs_component_type_registry.md) -- 组件类型注册
 - [GF_EcsStorage](./gf_ecs_storage.md) -- 组件存储实现
