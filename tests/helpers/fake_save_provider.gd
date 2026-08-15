@@ -7,7 +7,10 @@ var _store: Dictionary = {}  ## int slot → {"meta": ..., "data": ...}
 
 
 func save(p_slot: int, p_data: Dictionary, p_meta: GF_SaveMeta) -> GF_OperationResult:
-	_store[p_slot] = {"meta": {"save_version": p_meta.save_version}, "data": p_data}
+	_store[p_slot] = {
+		"meta": {"save_version": p_meta.save_version, "save_mode": p_meta.save_mode},
+		"data": p_data,
+	}
 	return GF_OperationResult.ok()
 
 

@@ -12,9 +12,11 @@ func before_each() -> void:
 	_log = GF_FakeLogService.new()
 	_log.module_name = "FakeLog"
 	_log.init_module()
-	var provider := GF_FakeSaveProvider.new()
-	var path_resolver := GF_PathResolver.new()
-	_service.configure(provider, path_resolver, _log)
+	# 绕过 bootstrap 直接注入（configure 依赖 bootstrap 服务解析，测试无 bootstrap）
+	_service._provider = GF_FakeSaveProvider.new()
+	_service._path_resolver = GF_PathResolver.new()
+	_service._log = _log
+	_service.strategy = GF_FullSaveStrategy.new()
 
 
 func after_each() -> void:

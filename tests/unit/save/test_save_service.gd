@@ -16,7 +16,11 @@ func before_each() -> void:
 	_service = GF_SaveService.new()
 	_service.module_name = "SaveService"
 	_service.init_module()
-	_service.configure(_provider, _path_resolver, _log)
+	# 绕过 bootstrap 直接注入（configure 依赖 bootstrap 服务解析，测试无 bootstrap）
+	_service._provider = _provider
+	_service._path_resolver = _path_resolver
+	_service._log = _log
+	_service.strategy = GF_FullSaveStrategy.new()
 
 
 func after_each() -> void:
@@ -111,9 +115,9 @@ func test_load_and_restore_distributes_correctly() -> void:
 
 func test_load_and_restore_orders_by_priority() -> void:
 	var order: Array[String] = []
-	var early := _make_saveable_cb("early", {}, func(_d): order.append("early"), 1)
-	var mid := _make_saveable_cb("mid", {}, func(_d): order.append("mid"), 50)
-	var late := _make_saveable_cb("late", {}, func(_d): order.append("late"), 100)
+	var early: Variant = _make_saveable_cb("early", {}, func(_d): order.append("early"), 1)
+	var mid: Variant = _make_saveable_cb("mid", {}, func(_d): order.append("mid"), 50)
+	var late: Variant = _make_saveable_cb("late", {}, func(_d): order.append("late"), 100)
 	_service.register_saveable(early)
 	_service.register_saveable(mid)
 	_service.register_saveable(late)
