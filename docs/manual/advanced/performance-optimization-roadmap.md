@@ -180,7 +180,13 @@ var component_changes: Array[Dictionary]   # {entity, type_id, component}（池�
   追加日志条目；ECB apply 时批量追加；
 - 消费者（使用方系统）通过 `world.change_log` 读取，框架不定义消费时序——
   **消费语义由使用方决定**（文档给三种消费模式的示例：增量索引维护、
-  脏标记收集、存档 delta 累计）。
+  脏标记收集、存档 delta 累计）；
+- **多消费者协调**：日志是单份共享的——游戏侧须定帧末**唯一 clear 负责人**
+  （如 EcsScheduler 最后一个 fixed 系统或 GenerationService 的 tick 末尾），
+  其他消费者只读不清；框架提供 `consumed` 标记做机器检测（约定破坏时
+  只读消费者可 push_warning 降级）。见
+  [gf_ecs_change_log.md](../../manual/api-reference/ecs/gf_ecs_change_log.md)
+  的「多消费者协调」。
 
 **与 1.1 的关系**：变更日志落地后，`execute_entities()` + 游标不再是唯一解，
 但保留（变更日志消费方需要实体列表时仍比全量 query 便宜）。
