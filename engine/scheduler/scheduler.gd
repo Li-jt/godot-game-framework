@@ -37,6 +37,13 @@ var time_scale: float = 1.0
 var paused: bool = false
 var _paused_groups: Array = []  # Array[TickGroup]
 
+## 性能计时开关。true 时按 TickGroup 统计耗时到 tick_group_times。
+## 由 GF_DebugService.attach_scheduler() 开启（opt-in，默认零开销）。
+var perf_monitoring: bool = false
+
+## 上一帧各 TickGroup 的耗时（毫秒）。perf_monitoring 开启时填充。
+var tick_group_times: Dictionary = {}
+
 var _entries: Array[TickEntry] = []
 var _dirty: bool = false
 
@@ -145,7 +152,13 @@ func _process(p_delta: float) -> void:
 		_dirty = false
 
 	var dt := p_delta * time_scale
-	_tick_entries(dt, func(e: TickEntry): return e.group != TickGroup.PHYSICS)
+	_tick_groups(dt, [
+		TickGroup.FRAME,
+		TickGroup.SIMULATION,
+		TickGroup.UI,
+		TickGroup.SAVE,
+		TickGroup.DEBUG,
+	])
 
 
 ## _physics_process 驱动 PHYSICS 组（固定步长）。
@@ -158,7 +171,21 @@ func _physics_process(p_delta: float) -> void:
 		_dirty = false
 
 	var dt := p_delta * time_scale
-	_tick_entries(dt, func(e: TickEntry): return e.group == TickGroup.PHYSICS)
+	_tick_groups(dt, [TickGroup.PHYSICS])
+
+
+## 逐组 tick。perf_monitoring 开启时统计每组耗时到 tick_group_times。
+func _tick_groups(p_dt: float, p_groups: Array) -> void:
+	for group in p_groups:
+		if _paused_groups.has(group):
+			continue
+		if perf_monitoring:
+			var start := Time.get_ticks_usec()
+			_tick_entries(p_dt, func(e: TickEntry): return e.group == group)
+			tick_group_times[TickGroup.find_key(group)] = \
+				float(Time.get_ticks_usec() - start) / 1000.0
+		else:
+			_tick_entries(p_dt, func(e: TickEntry): return e.group == group)
 
 
 func _tick_entries(p_dt: float, p_filter: Callable) -> void:
