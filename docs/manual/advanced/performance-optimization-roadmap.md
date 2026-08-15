@@ -192,6 +192,10 @@ Flecs 集成形态下由 change detection 承载，§1.6 交付时用现有测�
 
 ### 1.5 字段级列存储（GDScript 探路，明确收益边界）
 
+**状态（2026-08 降级为 API 设计参考）**：使用方无列存储反馈、C 排期未定——
+GDScript 版列存储不实现。本节保留作为 §1.6 原生后端的 API 形态参考
+（schema 声明、`get_field` 列读语义在 C++/Flecs 版保持同构，使用方无迁移成本）。
+
 **现状**：`ecs_sparse_set_storage.gd` 是「每组件类型一个 `Dictionary` sparse +
 `Array[Variant]` dense」；可选 `ecs_archetype_storage.gd` 有 archetype 分组 +
 列式 `Array`（非 PackedArray），`_find_archetype` 线性扫描，默认不用。
@@ -210,8 +214,7 @@ Flecs 集成形态下由 change detection 承载，§1.6 交付时用现有测�
 2. **对「组件对象不存在但字段存在」的中间态做验证**——为 C++ 版验证
    「列是真值、组件对象是冷快照」的模式。
 
-若使用方（survival 游戏文档 §1）的平行 PackedArray 缓存验证有效且 C++ 排期临近，
-本节可**降级为纯 API 设计文档**，跳过 GDScript 实现，直接进 §1.6。
+（本节已降级为 API 设计参考，不实现，见本节状态。）
 
 ### 1.6 GDExtension 存储后端（C++，长期）
 
@@ -503,9 +506,13 @@ Mutex 回传），使用方已用于后台地形生成；但 ECS 与线程零集
 
 **方案**：
 
-1. **一代收尾**：job 统计接入 §4 性能观测（已有统计字段，接线即可）；
-   「纯数据任务」提交模式文档化推广（使用方把存档序列化、气候计算等
-   可并行的纯计算持续搬入 job 系统）；
+1. **一代收尾**（✅ 已交付）：
+   - job 统计接入 §4 性能观测——`GF_DebugService.attach_threading_service()`
+     便捷接线，每帧自动记录 `threading.submitted / queue_peak /
+     avg_duration_ms` 等子系统项；
+   - 「纯数据任务」提交模式文档化——
+     [pure-data-jobs.md](../../manual/best-practices/pure-data-jobs.md)
+     （submit → pump → 回收 + 四硬约束 + 统计观测指标）；
 2. **二代（C++ 前置，远期）**：§1.6/§1.7 落地后，模拟循环可在原生层
    并行化——按区域分块（§5 的区域分组复用为任务粒度）、每块独立游标遍历、
    每线程局部 ECB 合并回主线程。**合并冲突语义**：分块保证写隔离（组件写入
@@ -537,7 +544,8 @@ Mutex 回传），使用方已用于后台地形生成；但 ECS 与线程零集
   ⏳ §2 固定步长调度（通用件，下一步）
   ⏳ §3.4 生成接口（仅接口本身，SEED_PATCH 配套）
   ⬇ §5 区域管理（下沉到使用方——大世界专用，见「通用性边界」）
-  §1.5 列存储（按使用方反馈决定：实现 or 降级为 API 设计）
+  ⬇ §1.5 列存储（已降级为 §1.6 的 API 设计参考，不实现）
+  ✅ §6 一代收尾（线程统计接线 + 纯数据任务文档）
 
 阶段 B/C 之间（gate）
   §1.8 GDExtension 探针（Flecs 最小集成 + 三个实测数据 → 阶段 C go/no-go）

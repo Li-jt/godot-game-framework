@@ -170,3 +170,11 @@ func get_subsystem_names() -> Array[String]:
 func attach_scheduler(p_scheduler: GF_Scheduler) -> void:
 	_scheduler = p_scheduler
 	p_scheduler.perf_monitoring = true
+
+
+## 便捷接线：把 GF_ThreadingService 的统计注册为固定子系统项
+## （threading.submitted / queue_peak / avg_duration_ms 等，随 tick_stats
+## 每帧自动刷新）——性能路线图 §6「一代收尾」。
+func attach_threading_service(p_service: GF_ThreadingService) -> void:
+	threading_stats_provider = func() -> Dictionary:
+		return p_service.get_stats()
