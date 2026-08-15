@@ -132,6 +132,50 @@ func test_reset_clears_log() -> void:
 
 
 # ============================================================
+# 多消费者协调（consumed 防御标记）
+# ============================================================
+
+func test_consumed_false_initially() -> void:
+	assert_false(_world.change_log.consumed)
+
+
+func test_clear_sets_consumed() -> void:
+	_world.spawn()
+	_world.change_log.clear()
+	assert_true(_world.change_log.consumed, "clear 后标记已消费")
+
+
+func test_mutation_resets_consumed() -> void:
+	_world.spawn()
+	_world.change_log.clear()
+	assert_true(_world.change_log.consumed)
+	var id2 := _world.spawn()
+	assert_false(_world.change_log.consumed, "新 mutation 重置消费标记")
+
+
+func test_readonly_consumer_detects_premature_clear() -> void:
+	# 模拟时序错误：负责人先 clear，只读消费者后读——consumed 检测约定破坏
+	_world.spawn()
+	_world.add_component(1, FakeCompPosition, {"x": 0, "y": 0})
+	_world.change_log.clear()  # 负责人（帧末）
+	var log := _world.change_log
+	assert_true(log.consumed, "只读消费者可检测日志已被清空")
+
+
+func test_multi_consumer_flow() -> void:
+	# 正常时序：只读消费者先读（不 clear），负责人帧末 clear
+	_world.spawn()
+	_world.add_component(1, FakeCompHealth, {"hp": 10})
+	var log := _world.change_log
+	assert_false(log.consumed)
+	assert_eq(log.added_entities.size(), 1)
+	# 只读消费（不清）
+	log.clear()  # 帧末唯一负责人
+	assert_true(log.consumed)
+	assert_false(log.has_changes())
+
+
+# ============================================================
 # 溢出降级
 # ============================================================
 
