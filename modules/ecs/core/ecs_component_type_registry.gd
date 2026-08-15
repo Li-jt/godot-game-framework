@@ -55,8 +55,15 @@ func type_name_of(p_id: int) -> String:
 
 
 ## 根据可读类型名（如 "Position"）获取类型引用，供反序列化使用。
+## 注册表为空时（存档恢复 world.reset() 之后）从全局 class 列表按名解析。
 func type_by_name(p_name: String) -> GDScript:
-	return _name_to_type.get(p_name, null)
+	if _name_to_type.has(p_name):
+		return _name_to_type[p_name]
+	# 存档恢复路径：运行时按名反射（非静态类型引用），load() 仅此一处合法使用。
+	for entry in ProjectSettings.get_global_class_list():
+		if entry.get("class", "") == p_name:
+			return load(entry.get("path", ""))
+	return null
 
 
 ## 获取指定类型的版本号。
