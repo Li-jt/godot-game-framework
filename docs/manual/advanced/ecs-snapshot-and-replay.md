@@ -105,20 +105,23 @@ func save_full_snapshot() -> GF_EcsWorldSnapshot:
 
 只记录从上一帧以来的变化（spawn/despawn/组件变更）。适合回放和网络同步。
 
-原理：利用 ECS World 的版本号和 CommandBuffer 记录，只序列化变更的实体和组件。
+原理：从世界变更日志（`GF_EcsChangeLog`，性能路线图 §1.4）构建
+`GF_EcsDelta`——只遍历本帧变更（O(变更量)），替代全量快照 diff（O(全量)）。
 
 ```gdscript
-# 增量快照：只记录变化
-func build_delta(p_world: GF_EcsWorld, p_prev_version: int) -> Dictionary:
-    var delta := {
-        "from_version": p_prev_version,
-        "to_version": p_world.get_version(),
-        "spawned": [],     # 新创建的实体
-        "despawned": [],   # 销毁的实体
-        "changed": {},     # {entity: {type_name: data}}
-    }
-    # ... 通过 ECS 的变更日志构建 delta ...
+# 增量快照：从变更日志构建 delta
+var _delta_builder := GF_EcsDeltaBuilder.new()
+
+func build_delta(p_world: GF_EcsWorld) -> GF_EcsDelta:
+    var delta := _delta_builder.build(p_world)
+    p_world.change_log.clear()  # 消费后清空（框架不定义消费时序）
     return delta
+
+# 应用增量（upsert + 删除语义：组件移除 → 实体销毁 → upsert）
+func apply_delta(p_world: GF_EcsWorld, p_delta: GF_EcsDelta) -> void:
+    var result := GF_EcsSnapshotApplier.new().apply_delta(p_world, p_delta)
+    if result.is_fail():
+        push_error("delta 应用失败: %s" % result.error.message)
 ```
 
 ## 完整示例：回放系统
