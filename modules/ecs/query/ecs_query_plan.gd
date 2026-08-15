@@ -15,6 +15,64 @@ func _init(p_with: Array, p_without: Array, p_optional: Array) -> void:
 	_optional_types = p_optional.duplicate()
 
 
+## 轻量查询：只返回匹配实体的 ID 列表，不构建 row/组件数据。
+## 供只需实体 ID 的高频消费方使用（如系统缓存重建——数千实体时
+## execute() 的每行 row 对象与组件字典分配是明显的周期性 GC 尖峰）。
+func execute_entities(p_world: GF_EcsWorld) -> PackedInt64Array:
+	var registry := p_world._get_registry()
+	var storage_index := p_world._get_storage_index()
+
+	# 预解析 with/without 的 type_id 与存储引用——每实体循环内零字典查找
+	# （type_id_of/get_storage 从「每实体×每类型」降为「每类型一次」）
+	var with_storages: Array[GF_IEcsStorage] = []
+	for with_type in _with_types:
+		var tid := registry.type_id_of(with_type)
+		if tid == 0:
+			return PackedInt64Array()
+		var storage := storage_index.get_storage(tid)
+		if storage == null:
+			return PackedInt64Array()
+		with_storages.append(storage)
+
+	var without_storages: Array[GF_IEcsStorage] = []
+	for without_type in _without_types:
+		var tid := registry.type_id_of(without_type)
+		if tid != 0:
+			var storage := storage_index.get_storage(tid)
+			if storage != null:
+				without_storages.append(storage)
+
+	var candidates: PackedInt64Array
+	if with_storages.is_empty():
+		candidates = p_world.all_entities()
+	else:
+		candidates = with_storages[0].entities()
+
+	var result := PackedInt64Array()
+	for entity in candidates:
+		if not p_world.has_entity(entity):
+			continue
+
+		var matches := true
+		for storage in with_storages:
+			if not storage.contains(entity):
+				matches = false
+				break
+		if not matches:
+			continue
+
+		var excluded := false
+		for storage in without_storages:
+			if storage.contains(entity):
+				excluded = true
+				break
+		if excluded:
+			continue
+
+		result.append(entity)
+	return result
+
+
 ## 对指定世界执行查询，返回匹配的实体和组件数据。
 func execute(p_world: GF_EcsWorld) -> GF_EcsQueryResult:
 	var registry := p_world._get_registry()

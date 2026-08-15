@@ -68,6 +68,20 @@ if world.despawn(entity):
 
 返回当前存活的实体数量。
 
+#### max_entity_id() -> int
+
+已分配的最大实体 ID（实体 ID 单调递增不复用）。供「发现新实体」的消费方做分帧增量扫描：记录游标 `cursor`，每帧扫描 `(cursor, max_entity_id()]` 区间的新实体，避免周期性全量查询的规模级尖峰。
+
+**热路径指引**：高频遍历用 `GF_EcsQueryPlan.execute_entities()`（零分配）或本方法 + 游标；`GF_EcsQueryPlan.execute()` 会分配行对象与组件字典，留给冷路径。
+
+```gdscript
+# 增量发现新实体（每帧或按需扫描，替代周期性全量查询）
+for id in range(cursor + 1, world.max_entity_id() + 1):
+    if world.has_entity(id):
+        _on_new_entity(id)
+cursor = world.max_entity_id()
+```
+
 #### all_entities() -> PackedInt64Array
 
 返回所有存活实体 ID 列表。
