@@ -316,32 +316,34 @@ GF_EcsWorld                           原生存储后端
 **分两步交付**：先做「存储 + 查询下沉」（GDScript 系统仍可跑，行为一致），
 再做 §1.7「系统执行环境」——第一步单独交付时**不承诺性能收益**，只有正确性。
 
-### 1.7 GDExtension 系统执行环境 ⏳ 未启动
+### 1.7 GDExtension 系统执行环境 ✅ 已交付（2026-08-16）
 
-**现状**：`GF_EcsSystem.on_tick` 是 GDScript 虚方法，主线程解释执行。
-
-**方案**：提供原生系统基类——使用方系统注册为「字段 schema + 原生 tick 回调」
-（C++ 实现，GDScript 定义声明）：
+**交付形态**（最小闭环，Variant 列形态）：
 
 ```text
-GF_EcsNativeSystem（C++ 基类，GDExtension 注册）
-  ├─ 声明组件字段 schema（与 §1.6 列存储共用）
-  ├─ tick()：在 C++ 侧直接游标遍历列 → 纯算术推进 → 批量写回列
-  └─ 离散事件回调（GDScript）：阶段切换/死亡等低频逻辑仍回 GDScript 写
+GF_EcsNativeSystem（C++ 基类，gdextension/src/gf_ecs_native_system.h）
+  ├─ tick(it, delta)：C++ 侧游标遍历组件列 → 算术推进 → 直写列
+  └─ GF_NATIVE_SYSTEM_REGISTER 宏：dylib 加载时注册工厂，GDScript 按名实例化
+GF_EcsNativeSystemHost（C++）：工厂表 + 多组件 query + tick_all(delta)
+GF_EcsNativeSystemService（GDScript）：set_world(NATIVE) + register_system +
+  bind_to_scheduler（SIMULATION 组）
 ```
 
-**归属**：框架提供执行环境（基类 + 调度接入），**具体系统逻辑由使用方用 C++ 编写**
-（框架不含任何业务规则）。框架 docs 提供完整的「原生系统开发指南」：
-编译链（SConstruct/CMake）、字段注册、事件跨界、调试。
+**验收**：1 万实体 Position+=Velocity·dt 基准 **21.8x**（验收线 10x），
+结果一致性断言通过（tests/benchmark/test_ecs_native_system_benchmark.gd）。
+GDScript 档耗时波动大（GC 噪声 0.7-2.1s），原生档稳定 ~48ms。
 
-**收益预期**：热点系统的 tick 循环从「解释执行 + 每实体字典查找 + 堆分配」
-变为「原生列遍历 + 寄存器运算」，预期 10x~100x 量级（按字段数和分支复杂度波动），
-这是 9 万实体场景从「每帧预算紧张」到「余量充足」的根本跨越。
-**前提条件**：热点循环内 GDScript↔C++ 边界调用次数 O(1)（循环整体在 C++ 侧）、
-热字段走原生 POD 列、无 GDScript 回调混入热路径。
-**验收拆分**：第一步（存储 + 查询下沉）只验收「行为一致 + 回归测试全绿 +
-原生游标正确性」，不验收性能；第二步（执行环境）验收「tick 预算占比下降 ≥ 10x
-或降至 3% 以下」。
+**实测修正的关键假设**：
+1. **Flecs 4 field 索引是 0-based**（v3 的 1-based 惯例不适用——v4 的
+   `it->ptrs[index]` 直接下标，`index < it->field_count`）；
+2. **Variant 边界浅共享**：循环 add 复用同一字典会让全部实体共享底层
+   （使用方必须每实体独立实例，与 GDScript 后端同语义——指南 §4.1）；
+3. 直写列不产生变更事件——需要感知时 `ecs_modified_id` 手动触发（指南 §4.2）。
+
+**边界（写进指南）**：POD 热字段列（schema 注册）未交付——当前系统 tick
+内解包 Variant/Dictionary（仍达 21.8x）；离散事件回调模式（GDScript 低频逻辑）
+未实现，需要变更事件的写入留在 GDScript 层。开发指南：
+[docs/manual/advanced/native-system-guide.md](../../manual/advanced/native-system-guide.md)。
 
 ### 1.8 GDExtension 探针（阶段 B/C 之间的 gate）✅ 已交付（go）
 
