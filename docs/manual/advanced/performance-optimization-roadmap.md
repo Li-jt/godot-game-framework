@@ -277,10 +277,13 @@ C++ 侧（当前原生分支候选集取最小集 + GDScript 过滤，正确性�
 3. 编译链 + 三平台 CI（分发策略见下）；
 4. §1.7 的使用方原生系统开发指南（即「Flecs system 开发指南」）。
 
-**分发策略**（C++ 底座引入后框架分发模式的澄清）：框架保持「Git 仓库纯代码」
-分发——C++ 源码（Flecs amalgamated + godot-cpp）随仓库走 submodule/复制，
-使用方本地 SConstruct 构建；**不承诺预编译二进制**（跨 Godot 版本 ABI 不稳定，
-维护成本不可控）。不引入编译链的使用方留在 GDScript 后端（阶段 C 本身 opt-in）。
+**分发策略**（2026-08 修订：预编译随仓库分发）：C++ 源码（Flecs amalgamated
++ godot-cpp）随仓库走 submodule/复制；**预编译二进制随仓库分发**
+（`addons/gf_ecs_native/bin/` 提交 git），使用方拉取即用——GDExtension ABI
+在 Godot 4.x 系列内稳定（`compatibility_minimum=4.7` 机制），4.7+ 直接加载。
+平台覆盖按需渐进（macOS universal 先行；无二进制平台自动降级 GDScript 后端）。
+需要编译链的场景只剩 §1.7 原生系统开发（自身 C++ 必须编进 dylib）与
+自定义构建。二进制随框架版本升级（Godot 大版本 / Flecs 版本变更时重编提交）。
 
 **工作量对比**（单人全职）：Flecs 集成约 2-3k 行胶水 / 2-3 个月；自研完整后端
 约 6-10k 行 C++ / 3.5-5.5 个月。是否走 Flecs 由 §1.8 探针实测决定，开工前不拍板。

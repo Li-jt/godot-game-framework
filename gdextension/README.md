@@ -36,11 +36,21 @@ gdextension/
     └── gf_ecs_native_world.cpp   # GF_EcsNativeWorld：Flecs world 封装
 ```
 
-## 分发策略（§1.6）
+## 分发策略（§1.6，2026-08 修订：预编译随仓库分发）
 
-框架保持「Git 仓库纯代码」分发：C++ 源码随仓库走（submodule + vendored
-amalgamated），使用方本地编译，**不承诺预编译二进制**（跨 Godot 版本 ABI
-不稳定）。不引入编译链的使用方留在 GDScript 后端（NATIVE 本身 opt-in）。
+**NATIVE 后端使用方零编译链门槛**：预编译二进制随仓库分发
+（`../addons/gf_ecs_native/bin/`，已提交 git），拉取框架即自动加载——
+Godot 4.x 系列内 GDExtension ABI 稳定（`compatibility_minimum=4.7`），
+4.7+ 版本直接可用。当前平台覆盖：macOS universal（arm64+x86_64）。
+其他平台按需补位（未提供二进制的平台自动降级为纯 GDScript 后端，
+框架功能不受影响）。
+
+**需要编译链的场景**：
+1. §1.7 原生系统开发（自己的 C++ 系统代码必须编进 dylib）；
+2. 需要其他平台/自定义构建。
+
+编译步骤见上文「编译」。二进制更新流程：框架升级 Godot 大版本或
+Flecs 版本时，重新编译并提交 `addons/gf_ecs_native/bin/`。
 
 ## 版本对应
 

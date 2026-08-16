@@ -134,7 +134,9 @@ func configure() -> GF_OperationResult:
 - **ECS 核心**：World、SparseSet/Archetype 双存储、Query、CommandBuffer、Scheduler、Snapshot、Save 适配
 - **ECS 原生后端（Flecs/GDExtension）**：`GF_EcsWorld.new(StorageBackend.NATIVE)` 一键切换，
   API 面不变、GDScript 系统零迁移（对拍测试 45 用例验证）；探针实测查询路径
-  12x-58x 收益。opt-in：需本地编译 `gdextension/`（见该目录 README）
+  12x-58x 收益。**预编译二进制随仓库分发，拉取即用**（Godot 4.7+，macOS
+  universal 先行，其他平台按需补位）；编写 C++ 原生系统（§1.7）才需要
+  本地编译链（见 gdextension/README.md）
 
 ## ECS 的定位：双后端策略
 
