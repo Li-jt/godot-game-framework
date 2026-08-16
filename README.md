@@ -132,31 +132,38 @@ func configure() -> GF_OperationResult:
 
 - **声明式启动装配**：`_assemble()` 中按需 `register()`，依赖自动拓扑排序初始化
 - **ECS 核心**：World、SparseSet/Archetype 双存储、Query、CommandBuffer、Scheduler、Snapshot、Save 适配
+- **ECS 原生后端（Flecs/GDExtension）**：`GF_EcsWorld.new(StorageBackend.NATIVE)` 一键切换，
+  API 面不变、GDScript 系统零迁移（对拍测试 45 用例验证）；探针实测查询路径
+  12x-58x 收益。opt-in：需本地编译 `gdextension/`（见该目录 README）
 
-## ECS 的定位：代码组织工具，不是性能工具
+## ECS 的定位：双后端策略
 
-**重要声明**：当前 ECS 实现的价值在于**代码组织**——把游戏状态统一收进 World、把逻辑规整为 System、把变更约束到 CommandBuffer。它约束的是**代码结构**，不是**数据布局**。
+ECS 模块提供两个存储后端，使用方按规模选择：
 
-### 为什么它不是性能工具
+- **GDScript 后端**（默认）：`SparseSet`/`Archetype` 存储。价值在**代码组织**——
+  把游戏状态统一收进 World、把逻辑规整为 System、把变更约束到 CommandBuffer。
+  零依赖、零编译，适用于实体量万级以下的项目；
+- **原生后端**（opt-in）：Flecs + GDExtension（性能路线图 §1.6 第一步）。
+  存储、查询、变更日志、快照全部下沉，`StorageBackend.NATIVE` 切换。
+  适用于万级实体以上、tick 预算紧张的项目。
 
-| 维度 | 当前实现 | 性能 ECS（Unity DOTS / Bevy / Flecs） |
-|------|---------|--------------------------------------|
-| 组件数据 | `Dictionary` / `RefCounted`，存为 `Variant` | 紧凑 struct，连续内存 |
-| 存储布局 | 每个组件一个独立存储，Dictionary 查找 | SoA（结构数组），列式连续布局 |
-| 访问路径 | GDScript 解释执行 + Variant 装箱 | C++/Rust 编译执行，零装箱 |
-| 遍历方式 | `for row in query.execute()` 每行取字典 | 连续数组扫描，CPU cache 友好 |
-| 系统执行 | 单线程顺序执行 | 可并行调度，SIMD 优化 |
+### 双后端对比
 
-### 如何升级为性能工具
+| 维度 | GDScript 后端 | 原生后端（Flecs） |
+|------|--------------|-------------------|
+| 组件数据 | `Dictionary` / `RefCounted`，存为 `Variant` | Flecs 列存储（当前列存 Variant，热字段 POD 列随 §1.7 交付） |
+| 存储布局 | 每组件独立存储，Dictionary 查找 | Sparse set 列式，连续内存 |
+| 查询路径 | GDScript 解释执行 + Variant 装箱 | 原生游标（实测 12x-58x，见性能路线图 §1.8） |
+| 变更日志 | GDScript 组装 | Flecs observer 事件流 + 门面组装（语义对拍一致） |
+| 部署 | 纯 GDScript，零依赖 | 本地 SConstruct 编译（godot-cpp submodule + Flecs amalgamated） |
 
-如果实体数量达到万级、单帧系统开销成为瓶颈，按以下路径升级：
+### 后续升级路径
 
-1. **PackedArray 存储**：组件字段改用 `PackedFloat32Array` / `PackedInt32Array` 列式存储（SoA），去掉 Dictionary 和 Variant 装箱
-2. **GDExtension 热循环**：将 `GF_EcsQueryPlan.execute()` 和 System 的 tick 循环下沉到 C++/Rust 原生代码
-3. **并行系统调度**：`GF_EcsScheduler` 增加依赖图分析，无数据冲突的系统并行执行
-4. **缓存友好的实体排序**：按 Archetype 迭代实体，保证同帧访问的组件在连续内存中
+1. **原生系统执行环境**（§1.7，路线图排期）：热点 System 的 tick 循环整体下沉
+   C++，预期 10x-100x
+2. **并行系统调度**（§6.2，C++ 底座后）：按区域分块并行模拟
 
-升级路径 1-2 可保持现有 API 不变（存储层是 `GF_IEcsStorage` 接口可插拔），Game 层代码无需改动。
+详见 [docs/manual/advanced/performance-optimization-roadmap.md](docs/manual/advanced/performance-optimization-roadmap.md)。
 - **ThreadingService**：后台任务提交与主线程回收（优先级、取消、超时、重试）
 - **InputService v4.0**：Action 归一化、上下文栈、键位重绑定、录制回放
 - **SaveService**：ISaveable 自注册、多槽位、版本迁移链、恢复优先级、原子写入
