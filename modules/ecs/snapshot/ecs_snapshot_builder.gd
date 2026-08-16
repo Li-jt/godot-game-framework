@@ -21,6 +21,19 @@ func build(p_world: GF_EcsWorld) -> GF_EcsWorldSnapshot:
 		}
 
 	# 实体组件数据
+	if p_world._get_native_backend() != null:
+		# 原生后端：无 GDScript storage 层，经公共 API 遍历
+		for entity in p_world.all_entities():
+			var entity_data: Dictionary = {"entity": entity, "components": {}}
+			for p_type in registry.all_types():
+				if not p_world.has_component(entity, p_type):
+					continue
+				var type_name: String = registry.type_name_of(registry.type_id_of(p_type))
+				var component: Variant = p_world.get_component(entity, p_type)
+				entity_data["components"][type_name] = _serialize_component(component)
+			snapshot.entities.append(entity_data)
+		return snapshot
+
 	var storage_index: GF_EcsStorageIndex = p_world._get_storage_index()
 	for entity in p_world.all_entities():
 		var entity_data: Dictionary = {"entity": entity, "components": {}}
