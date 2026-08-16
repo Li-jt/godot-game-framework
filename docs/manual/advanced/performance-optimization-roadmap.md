@@ -42,7 +42,7 @@
 | §3.2 SEED_PATCH 策略 | ⚠️ 边缘（程序化生成专用，三策略之一 opt-in） | 已交付 |
 | §3.4 生成协议 | ⚠️ 程序化生成专用 | 只留接口本身（SEED_PATCH 配套） |
 | **§5 区域管理** | ❌ 大世界流式加载专用 | **下沉到使用方**，框架不实现 |
-| §2 固定步长 / §6 多线程 / §1.6-§1.7 C++ | ✅ 通用 | 按路线图推进 |
+| §2 固定步长 / §6 多线程 / §1.6-§1.7 C++ | ✅ 通用 | 按路线图推进（§1.8 探针已 go） |
 
 **框架收在哪里**：ECS + 存档 + 命令 + 调度 + 观测的**通用机制层**；
 大世界专属的一切（区域卸载、程序化生成编排）在使用方 game/ 层生长，
@@ -222,15 +222,16 @@ GDScript 版列存储不实现。本节保留作为 §1.6 原生后端的 API �
 
 （本节已降级为 API 设计参考，不实现，见本节状态。）
 
-### 1.6 GDExtension 存储后端（C++，长期）⏳ 未启动
+### 1.6 GDExtension 存储后端（C++，长期）⏳ 未启动（§1.8 探针已 go，形态定案）
 
 **为什么必须 C++**：GDScript 的性能天花板在于——每实体组件是堆对象（无 SoA 布局）、
 字典查找、Variant 装箱、GC。戴森球 DOP 的「紧密排列数组 + 缓存友好 + 主动内存管理」
 在 GDScript 内不可达。这是框架层唯一的根本解。
 
-**首选路线：Flecs 集成（2026-08 调研结论）**：[Flecs](https://github.com/SanderMertens/flecs)
+**首选路线：Flecs 集成（2026-08 调研结论，§1.8 探针已确认 go）**：[Flecs](https://github.com/SanderMertens/flecs)
 （MIT，C99 API，amalgamated 单文件分发）是现成 C++ ECS 库中的最佳候选——
-能力面与本路线图逐条对应，官方仓库自带 Godot 示例：
+能力面与本路线图逐条对应（官方仓库的 Godot 示例已从 master 移除，
+2026-08 核实；godot-glecs 为现存唯一绑定参考）：
 
 | 路线图需求 | Flecs 能力 |
 |-----------|-----------|
@@ -246,7 +247,7 @@ GDScript 版列存储不实现。本节保留作为 §1.6 原生后端的 API �
 | 候选 | 评估 |
 |------|------|
 | Flecs 库本体（集成） | ✅ 首选：成熟度最高、能力面全覆盖、MIT、C API 稳定 |
-| godot-glecs（Flecs 现成绑定） | ⚠️ 仅作参考实现：预编译只覆盖 Linux/Windows（无 macOS）、无 license 文件、API 面是 Flecs 原生语义而非框架 API |
+| godot-glecs（Flecs 现成绑定） | ⚠️ 仅作参考实现：预编译只覆盖 Linux/Windows（无 macOS）、API 面是 Flecs 原生语义而非框架 API。license 事实修正（2026-08）：现为 MIT，但实质更新停在 2024-11、绑定层基于 godot-cpp 4.3，仅作 API 形状参考 |
 | EnTT | ⚠️ 备选：header-only 性能天花板略高，但模板 API 跨 GDExtension 边界胶水成本最高、无自带多线程调度/变更检测、Godot 集成先例为零 |
 | 自研窄化 | 兜底：只做列存储 + 查询游标，不做完整 ECS（门面适配成本超预期时启用） |
 
@@ -327,27 +328,48 @@ GF_EcsNativeSystem（C++ 基类，GDExtension 注册）
 原生游标正确性」，不验收性能；第二步（执行环境）验收「tick 预算占比下降 ≥ 10x
 或降至 3% 以下」。
 
-### 1.8 GDExtension 探针（阶段 B/C 之间的 gate）⏳ 未启动
+### 1.8 GDExtension 探针（阶段 B/C 之间的 gate）✅ 已交付（go）
 
-阶段 C 投入最大、不确定性最高，启动前用最小探针验证关键假设。探针以
-**Flecs 最小集成**为形态（也是 §1.6 选型的数据来源）：
+**结果（2026-08-16）：go——三数据全部达标，阶段 C 形态定案 = Flecs 集成。**
+实测环境：macOS arm64 / Godot 4.7.1 / Flecs 4.1.6 / godot-cpp master (10.0)。
 
-1. **编译链跑通**：Flecs amalgamated + godot-cpp，macOS 本地 + 三平台 CI；
-2. **最小集成**：实体/组件 Variant 列 + 原生查询游标 + `GF_EcsWorld` 门面最小子集；
-3. **三个实测数据**（回填 §1.6 的「边界开销硬约束」）：
-   - 单次 GDScript↔C++ 边界调用开销（μs 级）；
-   - 1 万实体查询：Flecs 原生游标 vs 现有 SparseSet 的耗时倍数；
-   - Flecs change detection 能否等价替换 §1.4 的变更日志语义（含消费 API）；
-4. **go/no-go**：数据达标 → 阶段 C 走 Flecs 集成；边界开销推翻「热循环整体在
-   C++ 侧」假设、或门面适配成本超预期 → 降级为自研窄化（只做列存储 + 游标），
-   或推迟阶段 C。
+| 数据点 | 实测 | go 标准 | 判定 |
+|--------|------|---------|------|
+| 边界调用开销（10 万次均值） | ping 无参 0.019μs / int 0.029μs / Variant(dict) 0.085μs（对照：GDScript 本地调用基线 0.096μs） | ≤ 5μs | ✅ 两个数量级余量 |
+| 1 万实体查询（遍历 + 字段求和） | Flecs 原生游标 688μs = **58.5x**；原生游标 + 逐实体回调 GDScript 3307μs = **12.2x**（基线：`execute()` 40216μs / `execute_entities()` 18566μs） | 20x / 5x | ✅ 双档达标 |
+| change detection 等价性 | 13 步操作序列对拍 12/13 事件对齐（含 set 相同值触发、add 已有失败不记、remove 不存在静默） | 语义可对拍 | ✅ 适配成本 = 门面两过滤规则 |
 
-**参考实现**：[godot-glecs](https://github.com/GsLogiMaker/godot-glecs) 的 `gd/`
-绑定层与 Flecs 官方仓库的 Godot 示例（不直接依赖：预编译无 macOS、无 license、
-单作者项目）。
+**关键结论（修正 §1.6 的假设）**：
 
-**探针成本**：约 1 周（编译链踩坑占大头）。§7 触发线未到之前，探针是阶段 C 的
-全部投入。
+1. **「热循环整体在 C++ 侧」的硬约束放宽**：Variant 在边界是引用计数浅传递，
+   逐实体回调形态已有 12.2x 收益——§1.6 第一步「存储 + 查询下沉」**单独交付
+   即性能回报**（GDScript 系统无缝切后端提速一个量级），不必等 §1.7 原生
+   系统执行环境。§1.7 仍是 10x→100x 的放大器，但不再是前置条件；
+2. **编译链事实更新**（回填 §1.6）：godot-cpp master (10.0) 内置
+   `extension_api-4-7.json`，`scons api_version=4.7` 直编无需 custom_api_file；
+   Flecs 官方仓库的 Godot 示例已从 master 移除，godot-glecs 是现存唯一绑定
+   参考（预编译仍无 macOS；license 事实修正：现为 MIT）；
+3. **change detection 两个适配点**（§1.6 门面必做）：set 首次时 Flecs 发
+   ADDED+CHANGED 两条（框架语义一条 CHANGED）→ 门面在 set 路径抑制 ADDED；
+   despawn 时 Flecs 自动发组件 REMOVED 事件（框架只记 removed_entity）→
+   门面在实体删除路径抑制组件事件；
+4. **对拍附带发现框架 bug（已修，2026-08-16）**：`GF_EcsWorld.remove_component`
+   对「实体没有该组件」仍递增 version + 记 REMOVED 事件——原生侧实现了正确
+   语义，对拍暴露了框架侧缺陷，修复随探针结论提交 main。
+
+**踩坑记录**（编译链占大头，与预估一致）：
+
+- Flecs release 无预编译资产、raw.githubusercontent 超时 → 走源码 tarball 取
+  `distr/flecs.c/flecs.h`；
+- SConstruct 相对路径相对自身目录解析（产物偏位到 gdextension/addons/）；
+- `.gdextension` 标签 `macos.debug` 与 scons 产物名 `template_debug` 不一致
+  （官方模板惯例：标签指向 `template_debug` 产物路径）；
+- Flecs v4 与 v3 API 差异：observer desc 用 `.query.terms`、迭代器事件在
+  `it->event`、xtor 钩子签名 `(ptr, count, type_info)`、无 `EcsAlive` 全局实体。
+
+**探针产物**：仓库内 `gdextension/`（SConstruct + `src/` 门面子集
+`GF_EcsNativeWorld` + 三个数据脚本），探针阶段不提交；go 后随 §1.6 第一步
+转正进 main（分发策略见 §1.6）。
 
 ---
 
@@ -553,10 +575,13 @@ Mutex 回传），使用方已用于后台地形生成；但 ECS 与线程零集
   ⬇ §1.5 列存储（已降级为 §1.6 的 API 设计参考，不实现）
   ✅ §6 一代收尾（线程统计接线 + 纯数据任务文档）
 
-阶段 B/C 之间（gate）⏳ 未启动
-  §1.8 GDExtension 探针（Flecs 最小集成 + 三个实测数据 → 阶段 C go/no-go）
+阶段 B/C 之间（gate）✅ 已交付（go）
+  §1.8 GDExtension 探针——三数据达标（边界开销 <0.1μs、查询 12.2x/58.5x、
+  change detection 可对拍），阶段 C 形态定案 = Flecs 集成
 
 阶段 C（C++ 底座，长期，战略投入）⏳ 未启动（触发线：单机 ≥ 10 万实体或 tick ≥ 30%）
+  探针已 go：第一步「存储 + 查询下沉」单独交付即有 12x 收益（GDScript 系统
+  无缝切后端），不必等 §1.7；§1.7 原生执行环境是 10x→100x 放大器。
   §1.6 GDExtension 存储 ──► §1.7 原生系统执行环境 ──► §6.2 并行模拟
 ```
 
@@ -583,5 +608,5 @@ Mutex 回传），使用方已用于后台地形生成；但 ECS 与线程零集
 |------|------|
 | A | 使用方（survival）热点系统分配归零（§1.1 已达成）；性能面板可显示子系统耗时（§4 已达成）；§1.2/§1.3 池化暂缓，不阻塞阶段 B |
 | B | 使用方存档从 FULL 切换 SEED_PATCH：体积/加载时间下降一个数量级（区域卸载/回访由使用方层自行实现，§5 已下沉） |
-| B/C gate | 探针三数据产出（边界开销 / 查询倍数 / change detection 等价性），阶段 C 形态定案 |
+| B/C gate | ✅ 已达成（2026-08-16）：三数据达标（0.019-0.085μs / 12.2x-58.5x / 12/13 对齐），阶段 C 形态定案 = Flecs 集成 |
 | C | 使用方 9 万实体场景：模拟 tick 从 GDScript 基线下降 10x+；固定步长 + 原生层决定论保持 |
