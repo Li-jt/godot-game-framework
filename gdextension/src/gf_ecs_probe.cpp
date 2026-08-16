@@ -10,8 +10,9 @@
 
 using namespace godot;
 
-// 定义在 gf_ecs_native_world.cpp
+// 定义在各自实现文件（gf_ecs_native_world.cpp / gf_ecs_native_system_host.cpp）
 void register_gf_ecs_native_world();
+void register_gf_ecs_native_system_host();
 
 class GF_EcsProbe : public RefCounted {
 	GDCLASS(GF_EcsProbe, RefCounted)
@@ -52,6 +53,7 @@ void initialize_gf_ecs_native(ModuleInitializationLevel p_level) {
 	}
 	ClassDB::register_class<GF_EcsProbe>();
 	register_gf_ecs_native_world();
+	register_gf_ecs_native_system_host();
 }
 
 void uninitialize_gf_ecs_native(ModuleInitializationLevel p_level) {

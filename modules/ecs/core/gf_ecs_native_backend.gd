@@ -168,6 +168,12 @@ func entities_with(p_type_key: int) -> PackedInt64Array:
 # 版本与重置
 # ============================================================
 
+## 底层 C++ GF_EcsNativeWorld 访问器（GF_EcsNativeSystemService 等
+## 框架内部单元用；使用方不直接依赖）。
+func get_native_world() -> GF_EcsNativeWorld:
+	return _native
+
+
 func get_version() -> int:
 	return _version
 
