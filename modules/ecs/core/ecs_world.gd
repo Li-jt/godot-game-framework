@@ -9,8 +9,11 @@ var _registry: GF_EcsComponentTypeRegistry = null
 var _storage_index: GF_EcsStorageIndex = null
 var _version: int = 0
 var _next_entity_id: int = 1
+## 原生后端门面（NATIVE 模式下非空；SPARSE_SET/ARCHETYPE 为 null）
+var _native_backend: GF_EcsNativeBackend = null
 ## 世界级变更日志（单帧生命周期，性能路线图 §1.4）。
 ## 每次 mutation 自动追加；消费方读取后调用 change_log.clear()。
+## NATIVE 模式下引用原生门面组装的日志（同构 API 面）。
 var change_log: GF_EcsChangeLog = null
 ## 世界级单例资源字典。与 Component 不同，Resource 全局只有一份，
 ## 通过 set_resource/get_resource 存取，不需要 Entity 访问。
@@ -18,10 +21,16 @@ var change_log: GF_EcsChangeLog = null
 var _resources: Dictionary = {}
 
 
-func _init() -> void:
+## [param p_backend] GF_EcsStorageIndex.StorageBackend 枚举值。
+## NATIVE 走 Flecs/GDExtension 后端（性能路线图 §1.6，需编译扩展，opt-in）；
+## 缺省 SPARSE_SET（纯 GDScript，零依赖）。
+func _init(p_backend: int = -1) -> void:
 	_registry = GF_EcsComponentTypeRegistry.new()
 	_storage_index = GF_EcsStorageIndex.new()
 	change_log = GF_EcsChangeLog.new()
+	if p_backend == GF_EcsStorageIndex.StorageBackend.NATIVE:
+		_native_backend = GF_EcsNativeBackend.new()
+		change_log = _native_backend.change_log
 
 
 # ============================================================
@@ -30,6 +39,8 @@ func _init() -> void:
 
 
 func spawn() -> int:
+	if _native_backend != null:
+		return _native_backend.spawn()
 	var id: int = _next_entity_id
 	_next_entity_id += 1
 	_entities[id] = true
@@ -39,6 +50,8 @@ func spawn() -> int:
 
 
 func despawn(p_entity: int) -> bool:
+	if _native_backend != null:
+		return _native_backend.despawn(p_entity)
 	if not _entities.has(p_entity):
 		return false
 	_entities.erase(p_entity)
@@ -52,11 +65,16 @@ func despawn(p_entity: int) -> bool:
 
 
 func has_entity(p_entity: int) -> bool:
+	if _native_backend != null:
+		return _native_backend.has_entity(p_entity)
 	return _entities.has(p_entity)
 
 
 ## 强制使用指定 ID 创建实体（供快照恢复使用，不自动分配 ID）。
 func _force_spawn(p_entity: int) -> void:
+	if _native_backend != null:
+		_native_backend.force_spawn(p_entity)
+		return
 	_entities[p_entity] = true
 	_next_entity_id = maxi(_next_entity_id, p_entity + 1)
 	_version += 1
@@ -64,6 +82,8 @@ func _force_spawn(p_entity: int) -> void:
 
 
 func entity_count() -> int:
+	if _native_backend != null:
+		return _native_backend.entity_count()
 	return _entities.size()
 
 
@@ -71,6 +91,8 @@ func entity_count() -> int:
 ## 供需要「发现新实体」的消费方（如 GrowthSystem 缓存增量维护）分帧扫描
 ## (last_cursor, max_entity_id()] 区间，避免周期性全量 query 的规模级尖峰。
 func max_entity_id() -> int:
+	if _native_backend != null:
+		return _native_backend.max_entity_id()
 	return _next_entity_id - 1
 
 
@@ -80,6 +102,11 @@ func max_entity_id() -> int:
 
 
 func add_component(p_entity: int, p_type: GDScript, p_data: Variant) -> GF_OperationResult:
+	if _native_backend != null:
+		var native_result: GF_OperationResult = _native_add_component(p_entity, p_type, p_data)
+		if native_result.is_fail():
+			return native_result
+		return GF_OperationResult.ok()
 	if not _entities.has(p_entity):
 		return GF_OperationResult.fail(GF_OperationResult.ERR_NOT_FOUND, "实体不存在: %d" % p_entity, "GF_EcsWorld")
 	var reg_result: GF_OperationResult = _registry.register_type(p_type)
@@ -96,6 +123,8 @@ func add_component(p_entity: int, p_type: GDScript, p_data: Variant) -> GF_Opera
 
 
 func set_component(p_entity: int, p_type: GDScript, p_data: Variant) -> GF_OperationResult:
+	if _native_backend != null:
+		return _native_set_component(p_entity, p_type, p_data)
 	if not _entities.has(p_entity):
 		return GF_OperationResult.fail(GF_OperationResult.ERR_NOT_FOUND, "实体不存在: %d" % p_entity, "GF_EcsWorld")
 	var reg_result: GF_OperationResult = _registry.register_type(p_type)
@@ -110,6 +139,8 @@ func set_component(p_entity: int, p_type: GDScript, p_data: Variant) -> GF_Opera
 
 
 func get_component(p_entity: int, p_type: GDScript) -> Variant:
+	if _native_backend != null:
+		return _native_get_component(p_entity, p_type)
 	if not _entities.has(p_entity):
 		return null
 	var type_id: int = _registry.type_id_of(p_type)
@@ -122,6 +153,9 @@ func get_component(p_entity: int, p_type: GDScript) -> Variant:
 
 
 func remove_component(p_entity: int, p_type: GDScript) -> void:
+	if _native_backend != null:
+		_native_remove_component(p_entity, p_type)
+		return
 	if not _entities.has(p_entity):
 		return
 	var type_id: int = _registry.type_id_of(p_type)
@@ -138,6 +172,8 @@ func remove_component(p_entity: int, p_type: GDScript) -> void:
 
 
 func has_component(p_entity: int, p_type: GDScript) -> bool:
+	if _native_backend != null:
+		return _native_has_component(p_entity, p_type)
 	if not _entities.has(p_entity):
 		return false
 	var type_id: int = _registry.type_id_of(p_type)
@@ -155,6 +191,8 @@ func has_component(p_entity: int, p_type: GDScript) -> bool:
 
 
 func get_version() -> int:
+	if _native_backend != null:
+		return _native_backend.get_version()
 	return _version
 
 
@@ -178,6 +216,8 @@ func has_resource(p_key: Variant) -> bool:
 
 ## 返回所有存活实体 ID 列表。
 func all_entities() -> PackedInt64Array:
+	if _native_backend != null:
+		return _native_backend.all_entities()
 	var result := PackedInt64Array()
 	for id in _entities.keys():
 		result.append(id)
@@ -186,6 +226,12 @@ func all_entities() -> PackedInt64Array:
 
 ## 重置世界（清空所有实体和组件，重置 ID 分配器）。
 func reset() -> void:
+	if _native_backend != null:
+		_native_backend.reset()
+		_registry = GF_EcsComponentTypeRegistry.new()
+		_storage_index = GF_EcsStorageIndex.new()
+		_resources.clear()
+		return
 	_entities.clear()
 	_storage_index.clear()
 	_registry = GF_EcsComponentTypeRegistry.new()
@@ -207,3 +253,56 @@ func _get_registry() -> GF_EcsComponentTypeRegistry:
 
 func _get_storage_index() -> GF_EcsStorageIndex:
 	return _storage_index
+
+
+## 原生后端门面访问器（GF_EcsQueryPlan 原生分支用；null = 非原生模式）。
+func _get_native_backend() -> GF_EcsNativeBackend:
+	return _native_backend
+
+
+# ============================================================
+# 原生后端 helper（NATIVE 模式下经 registry 解析 type_key 后委托门面）
+# ============================================================
+
+
+func _native_add_component(p_entity: int, p_type: GDScript, p_data: Variant) -> GF_OperationResult:
+	var reg_result: GF_OperationResult = _registry.register_type(p_type)
+	if reg_result.is_fail():
+		return reg_result
+	var type_key: int = reg_result.data
+	if not _native_backend.has_entity(p_entity):
+		return GF_OperationResult.fail(GF_OperationResult.ERR_NOT_FOUND, "实体不存在: %d" % p_entity, "GF_EcsWorld")
+	if not _native_backend.add_component(p_entity, type_key, p_data):
+		return GF_OperationResult.fail(GF_OperationResult.ERR_CONFLICT, "实体 %d 已拥有组件 %s" % [p_entity, _registry._type_name(p_type)], "GF_EcsWorld")
+	return GF_OperationResult.ok()
+
+
+func _native_set_component(p_entity: int, p_type: GDScript, p_data: Variant) -> GF_OperationResult:
+	var reg_result: GF_OperationResult = _registry.register_type(p_type)
+	if reg_result.is_fail():
+		return reg_result
+	var type_key: int = reg_result.data
+	if not _native_backend.set_component(p_entity, type_key, p_data):
+		return GF_OperationResult.fail(GF_OperationResult.ERR_NOT_FOUND, "实体不存在: %d" % p_entity, "GF_EcsWorld")
+	return GF_OperationResult.ok()
+
+
+func _native_get_component(p_entity: int, p_type: GDScript) -> Variant:
+	var type_key: int = _registry.type_id_of(p_type)
+	if type_key == 0:
+		return null
+	return _native_backend.get_component(p_entity, type_key)
+
+
+func _native_remove_component(p_entity: int, p_type: GDScript) -> void:
+	var type_key: int = _registry.type_id_of(p_type)
+	if type_key == 0:
+		return
+	_native_backend.remove_component(p_entity, type_key)
+
+
+func _native_has_component(p_entity: int, p_type: GDScript) -> bool:
+	var type_key: int = _registry.type_id_of(p_type)
+	if type_key == 0:
+		return false
+	return _native_backend.has_component(p_entity, type_key)
