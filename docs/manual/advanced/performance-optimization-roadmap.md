@@ -222,7 +222,19 @@ GDScript 版列存储不实现。本节保留作为 §1.6 原生后端的 API �
 
 （本节已降级为 API 设计参考，不实现，见本节状态。）
 
-### 1.6 GDExtension 存储后端（C++，长期）⏳ 未启动（§1.8 探针已 go，形态定案）
+### 1.6 GDExtension 存储后端（C++，长期）🏗 第一步「存储 + 查询下沉」已交付（2026-08-16）
+
+**第一步已交付**：`GF_EcsWorld.new(StorageBackend.NATIVE)` 切换原生后端，
+公共 API 面与 GDScript 后端完全一致（对拍测试 33 用例验证）。架构：
+C++ 侧 `GF_EcsNativeWorld`（Flecs world 封装，gdextension/）+ GDScript 侧
+`GF_EcsNativeBackend` 门面（实体 ID 单调映射 + 变更日志组装含两个过滤规则
++ type_key 对齐 registry）。§1.8 探针的两个 change detection 适配点已在
+门面落地。分发：godot-cpp submodule + Flecs amalgamated vendored +
+SConstruct（gdextension/README.md 有编译说明），使用方本地构建，opt-in。
+
+**尚待交付**：第二步 §1.7 原生系统执行环境（探针已证明第一步单独交付
+即有 12x 查询收益——GDScript 系统切后端零迁移提速）；多条件 query 下推
+C++ 侧（当前原生分支候选集取最小集 + GDScript 过滤，正确性优先）。
 
 **为什么必须 C++**：GDScript 的性能天花板在于——每实体组件是堆对象（无 SoA 布局）、
 字典查找、Variant 装箱、GC。戴森球 DOP 的「紧密排列数组 + 缓存友好 + 主动内存管理」
@@ -579,9 +591,11 @@ Mutex 回传），使用方已用于后台地形生成；但 ECS 与线程零集
   §1.8 GDExtension 探针——三数据达标（边界开销 <0.1μs、查询 12.2x/58.5x、
   change detection 可对拍），阶段 C 形态定案 = Flecs 集成
 
-阶段 C（C++ 底座，长期，战略投入）⏳ 未启动（触发线：单机 ≥ 10 万实体或 tick ≥ 30%）
-  探针已 go：第一步「存储 + 查询下沉」单独交付即有 12x 收益（GDScript 系统
-  无缝切后端），不必等 §1.7；§1.7 原生执行环境是 10x→100x 放大器。
+阶段 C（C++ 底座，长期，战略投入）🏗 进行中（触发线：单机 ≥ 10 万实体或 tick ≥ 30%）
+  ✅ 第一步「存储 + 查询下沉」已交付（2026-08-16）：NATIVE 后端 + 门面 +
+  对拍测试 33 用例；探针实测查询 12x-58x，GDScript 系统切后端零迁移。
+  ⏳ §1.7 原生系统执行环境（10x→100x 放大器）
+  ⏳ §6.2 并行模拟
   §1.6 GDExtension 存储 ──► §1.7 原生系统执行环境 ──► §6.2 并行模拟
 ```
 
