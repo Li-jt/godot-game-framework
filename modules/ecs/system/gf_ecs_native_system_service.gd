@@ -42,7 +42,7 @@ func set_world(p_world: GF_EcsWorld) -> GF_OperationResult:
 	if p_world == null:
 		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "世界不能为 null", module_name)
 	if _host == null:
-		return GF_OperationResult.fail(GF_OperationResult.ERR_UNAVAILABLE,
+		return GF_OperationResult.fail(GF_OperationResult.ERR_PRECONDITION,
 			"GDExtension 未加载，原生系统执行环境不可用", module_name)
 	var backend: GF_EcsNativeBackend = p_world._get_native_backend()
 	if backend == null or backend.get_native_world() == null:
