@@ -1,0 +1,10 @@
+[configuration]
+
+entry_symbol = "gf_ecs_native_init"
+compatibility_minimum = "4.7"
+reloadable = true
+
+[libraries]
+
+macos.debug = "res://addons/gf_ecs_native/bin/libgf_ecs_native.macos.template_debug.framework"
+macos.release = "res://addons/gf_ecs_native/bin/libgf_ecs_native.macos.template_release.framework"
