@@ -18,7 +18,11 @@
 class_name GF_EcsNativeBackend
 extends RefCounted
 
-var _native: GF_EcsNativeWorld = null
+## 底层 C++ 世界。**Variant 鸭子类型**——不 typed 引用 C++ 类
+## GF_EcsNativeWorld：GDExtension 未加载（纯 GDScript 使用方）时
+## typed 声明会让本文件编译失败、整个项目无法启动。运行时经
+## ClassDB 动态实例化，GDExtension 缺失时保持 null。
+var _native: Variant = null
 var _id_map: Dictionary = {}       # framework_id -> flecs_id
 var _reverse_map: Dictionary = {}  # flecs_id -> framework_id
 var _next_id: int = 1
@@ -28,7 +32,12 @@ var change_log: GF_EcsChangeLog = null
 
 
 func _init() -> void:
-	_native = GF_EcsNativeWorld.new()
+	if ClassDB.class_exists("GF_EcsNativeWorld"):
+		_native = ClassDB.instantiate("GF_EcsNativeWorld")
+	else:
+		push_error("[GF_EcsNativeBackend] GF_EcsNativeWorld 不可用："
+			+ "GDExtension 未编译/未加载（见 gdextension/README.md 编译指引），"
+			+ "NATIVE 模式不可用")
 	change_log = GF_EcsChangeLog.new()
 
 
@@ -169,8 +178,8 @@ func entities_with(p_type_key: int) -> PackedInt64Array:
 # ============================================================
 
 ## 底层 C++ GF_EcsNativeWorld 访问器（GF_EcsNativeSystemService 等
-## 框架内部单元用；使用方不直接依赖）。
-func get_native_world() -> GF_EcsNativeWorld:
+## 框架内部单元用；使用方不直接依赖）。GDExtension 缺失时为 null。
+func get_native_world() -> Variant:
 	return _native
 
 

@@ -29,8 +29,14 @@ func _init(p_backend: int = -1) -> void:
 	_storage_index = GF_EcsStorageIndex.new()
 	change_log = GF_EcsChangeLog.new()
 	if p_backend == GF_EcsStorageIndex.StorageBackend.NATIVE:
-		_native_backend = GF_EcsNativeBackend.new()
-		change_log = _native_backend.change_log
+		if ClassDB.class_exists("GF_EcsNativeWorld"):
+			_native_backend = GF_EcsNativeBackend.new()
+			change_log = _native_backend.change_log
+		else:
+			# GDExtension 未编译/未加载：降级回默认 GDScript 后端（纯代码分发策略，
+			# NATIVE 是 opt-in——使用方无编译链时世界照常可用）
+			push_error("[GF_EcsWorld] NATIVE 后端不可用（GDExtension 未加载），"
+				+ "已降级回 SPARSE_SET——见 gdextension/README.md 编译指引")
 
 
 # ============================================================

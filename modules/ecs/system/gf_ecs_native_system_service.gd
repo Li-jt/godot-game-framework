@@ -10,13 +10,20 @@
 class_name GF_EcsNativeSystemService
 extends GF_ModuleLifecycle
 
-var _host: GF_EcsNativeSystemHost = null
+## C++ 宿主。**Variant 鸭子类型**——不 typed 引用 C++ 类
+## GF_EcsNativeSystemHost（原因同 GF_EcsNativeBackend._native：
+## GDExtension 未加载时 typed 声明让项目编译失败）。
+var _host: Variant = null
 var _world: GF_EcsWorld = null
 var _tick_handle: GF_Scheduler.TickHandle = null
 
 
 func _on_init() -> GF_OperationResult:
-	_host = GF_EcsNativeSystemHost.new()
+	if ClassDB.class_exists("GF_EcsNativeSystemHost"):
+		_host = ClassDB.instantiate("GF_EcsNativeSystemHost")
+	else:
+		push_error("[GF_EcsNativeSystemService] GF_EcsNativeSystemHost 不可用："
+			+ "GDExtension 未编译/未加载，原生系统执行环境不可用")
 	return GF_OperationResult.ok()
 
 
@@ -34,8 +41,11 @@ func _on_dispose() -> GF_OperationResult:
 func set_world(p_world: GF_EcsWorld) -> GF_OperationResult:
 	if p_world == null:
 		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "世界不能为 null", module_name)
+	if _host == null:
+		return GF_OperationResult.fail(GF_OperationResult.ERR_UNAVAILABLE,
+			"GDExtension 未加载，原生系统执行环境不可用", module_name)
 	var backend: GF_EcsNativeBackend = p_world._get_native_backend()
-	if backend == null:
+	if backend == null or backend.get_native_world() == null:
 		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST,
 			"GF_EcsNativeSystemService 需要 NATIVE 后端的 GF_EcsWorld", module_name)
 	_world = p_world
@@ -73,4 +83,5 @@ func bind_to_scheduler() -> GF_OperationResult:
 
 
 func _on_tick(p_delta: float) -> void:
-	_host.tick_all(p_delta)
+	if _host != null:
+		_host.tick_all(p_delta)
