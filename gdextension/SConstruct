@@ -1,0 +1,31 @@
+#!/usr/bin/env python
+# GDExtension 探针构建脚本（性能路线图 §1.8）。
+# 构建产物输出到 addons/gf_ecs_native/bin/（addons/* 已被根 .gitignore 忽略）。
+
+env = SConscript("godot-cpp/SConstruct", {"api_version": "4.7"})
+
+env.Append(CPPPATH=["src/", "vendor/flecs/"])
+
+# Flecs amalgamated 是 C 源码，与扩展一起编进 dylib
+sources = Glob("src/*.cpp") + Glob("vendor/flecs/*.c")
+
+# 输出路径相对于本文件（gdextension/）解析，须回退一级到仓库根的 addons/
+output_dir = "../addons/gf_ecs_native/bin"
+platform = env["platform"]
+target = env["target"]
+lib_name = "libgf_ecs_native." + platform + "." + target
+
+if env["platform"] == "macos":
+    framework_dir = lib_name + ".framework"
+    library = env.SharedLibrary(
+        output_dir + "/" + framework_dir + "/" + lib_name,
+        source=sources,
+    )
+else:
+    library = env.SharedLibrary(
+        output_dir + "/" + lib_name + env["suffix"] + env["SHLIBSUFFIX"],
+        source=sources,
+    )
+
+env.NoCache(library)
+Default(library)

@@ -1,0 +1,4 @@
+# 本地构建产物
+/build/
+.sconsign.dblite
+*.os
