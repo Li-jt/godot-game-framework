@@ -151,6 +151,19 @@ func test_remove_component_clears() -> void:
 	assert_false(_world.has_component(id, FakeCompPosition))
 
 
+func test_remove_component_nonexistent_is_silent_no_version_change() -> void:
+	# 探针对拍发现：对「实体没有该组件」的 remove 应静默——
+	# 不递增 version、不记变更日志（与原生后端语义对齐）
+	var id := _world.spawn()
+	_world.add_component(id, FakeCompPosition, {"x": 0, "y": 0})
+	_world.remove_component(id, FakeCompPosition)
+	_world.change_log.clear()
+	var v0 := _world.get_version()
+	_world.remove_component(id, FakeCompPosition)  # 已移除，第二次 remove
+	assert_eq(_world.get_version(), v0, "remove 不存在组件不应递增版本")
+	assert_false(_world.change_log.has_changes(), "remove 不存在组件不应记变更日志")
+
+
 func test_has_component_true_after_add() -> void:
 	var id := _world.spawn()
 	_world.add_component(id, FakeCompPosition, {"x": 0, "y": 0})
