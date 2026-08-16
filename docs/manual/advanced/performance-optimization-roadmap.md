@@ -225,12 +225,15 @@ GDScript 版列存储不实现。本节保留作为 §1.6 原生后端的 API �
 ### 1.6 GDExtension 存储后端（C++，长期）🏗 第一步「存储 + 查询下沉」已交付（2026-08-16）
 
 **第一步已交付**：`GF_EcsWorld.new(StorageBackend.NATIVE)` 切换原生后端，
-公共 API 面与 GDScript 后端完全一致（对拍测试 33 用例验证）。架构：
+公共 API 面与 GDScript 后端完全一致（对拍测试 45 用例验证：world/query/
+change_log 33 + snapshot/delta/save 12）。架构：
 C++ 侧 `GF_EcsNativeWorld`（Flecs world 封装，gdextension/）+ GDScript 侧
 `GF_EcsNativeBackend` 门面（实体 ID 单调映射 + 变更日志组装含两个过滤规则
 + type_key 对齐 registry）。§1.8 探针的两个 change detection 适配点已在
 门面落地。分发：godot-cpp submodule + Flecs amalgamated vendored +
 SConstruct（gdextension/README.md 有编译说明），使用方本地构建，opt-in。
+快照/存档链路经公共 API 天然兼容（`GF_EcsSnapshotBuilder` 补原生分支后
+全模块对拍通过）。
 
 **尚待交付**：第二步 §1.7 原生系统执行环境（探针已证明第一步单独交付
 即有 12x 查询收益——GDScript 系统切后端零迁移提速）；多条件 query 下推
