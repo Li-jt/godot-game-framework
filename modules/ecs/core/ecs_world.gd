@@ -130,6 +130,8 @@ func remove_component(p_entity: int, p_type: GDScript) -> void:
 	var storage := _storage_index.get_storage(type_id)
 	if storage == null:
 		return
+	if not storage.contains(p_entity):
+		return  # 无此组件：静默返回，不递增版本、不记变更日志
 	storage.erase(p_entity)
 	_version += 1
 	change_log.record_component_change(p_entity, type_id, GF_EcsChangeLog.ChangeKind.COMPONENT_REMOVED)
