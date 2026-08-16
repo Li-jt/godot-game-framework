@@ -2,8 +2,8 @@
 // GDExtension 探针（性能路线图 §1.8）：验证编译链 + 边界调用开销测量目标。
 // 最小集成验证通过后，此文件演进为 GF_EcsNativeWorld 门面。
 
-#include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/classes/ref_counted.hpp>
+#include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/variant/variant.hpp>
 
 #include <flecs.h>
