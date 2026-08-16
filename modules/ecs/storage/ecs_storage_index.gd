@@ -4,7 +4,7 @@
 class_name GF_EcsStorageIndex
 extends GF_IEcsStorageIndex
 
-enum StorageBackend { SPARSE_SET, ARCHETYPE }
+enum StorageBackend { SPARSE_SET, ARCHETYPE, NATIVE }
 
 var _storages: Dictionary = {}  # int type_id -> GF_IEcsStorage
 

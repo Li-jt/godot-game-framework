@@ -19,6 +19,9 @@ func _init(p_with: Array, p_without: Array, p_optional: Array) -> void:
 ## 供只需实体 ID 的高频消费方使用（如系统缓存重建——数千实体时
 ## execute() 的每行 row 对象与组件字典分配是明显的周期性 GC 尖峰）。
 func execute_entities(p_world: GF_EcsWorld) -> PackedInt64Array:
+	var native_backend := p_world._get_native_backend()
+	if native_backend != null:
+		return _execute_entities_native(p_world, native_backend)
 	var registry := p_world._get_registry()
 	var storage_index := p_world._get_storage_index()
 
@@ -75,6 +78,9 @@ func execute_entities(p_world: GF_EcsWorld) -> PackedInt64Array:
 
 ## 对指定世界执行查询，返回匹配的实体和组件数据。
 func execute(p_world: GF_EcsWorld) -> GF_EcsQueryResult:
+	var native_backend := p_world._get_native_backend()
+	if native_backend != null:
+		return _execute_native(p_world, native_backend)
 	var registry := p_world._get_registry()
 	var storage_index := p_world._get_storage_index()
 
@@ -150,4 +156,67 @@ func execute(p_world: GF_EcsWorld) -> GF_EcsQueryResult:
 
 		result._rows.append(row)
 
+	return result
+
+
+# ============================================================
+# 原生后端分支（NATIVE 模式：候选集来自门面，过滤与行组装在 GDScript 侧）
+# ============================================================
+
+
+## 原生后端的零分配实体过滤：候选集取第一个 with 类型的最小集，
+## 其余条件走 has_component 逐实体过滤（正确性优先；原生多条件
+## query 下推到 C++ 侧是后续优化项）。
+func _execute_entities_native(p_world: GF_EcsWorld, p_backend: GF_EcsNativeBackend) -> PackedInt64Array:
+	var registry := p_world._get_registry()
+	var candidates: PackedInt64Array
+	if _with_types.is_empty():
+		candidates = p_world.all_entities()
+	else:
+		var first_key: int = registry.type_id_of(_with_types[0])
+		if first_key == 0:
+			return PackedInt64Array()
+		candidates = p_backend.entities_with(first_key)
+
+	var result := PackedInt64Array()
+	for entity in candidates:
+		if not p_world.has_entity(entity):
+			continue
+		var matches := true
+		for with_type in _with_types:
+			if not p_world.has_component(entity, with_type):
+				matches = false
+				break
+		if not matches:
+			continue
+		var excluded := false
+		for without_type in _without_types:
+			if p_world.has_component(entity, without_type):
+				excluded = true
+				break
+		if excluded:
+			continue
+		result.append(entity)
+	return result
+
+
+func _execute_native(p_world: GF_EcsWorld, p_backend: GF_EcsNativeBackend) -> GF_EcsQueryResult:
+	var registry := p_world._get_registry()
+	var optional_types: Array = []
+	for opt_type in _optional_types:
+		if registry.type_id_of(opt_type) != 0:
+			optional_types.append(opt_type)
+
+	var result := GF_EcsQueryResult.new()
+	result._required_types = _with_types
+	result._optional_types = optional_types
+	for entity in _execute_entities_native(p_world, p_backend):
+		var row := GF_EcsQueryRow.new()
+		row.entity = entity
+		for wtype in _with_types:
+			row._components[wtype] = p_world.get_component(entity, wtype)
+		for oname in optional_types:
+			if p_world.has_component(entity, oname):
+				row._components[oname] = p_world.get_component(entity, oname)
+		result._rows.append(row)
 	return result
