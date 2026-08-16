@@ -8,15 +8,15 @@
 // - 事件收集是 C++ 侧 buffer + flush_events() 打包返回（与 GF_EcsChangeLog
 //   「单帧生命周期 + clear」同构，等价性对拍见数据点 3）。
 
+#include <godot_cpp/classes/ref_counted.hpp>
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/core/memory.hpp>
-#include <godot_cpp/classes/ref_counted.hpp>
-#include <godot_cpp/variant/variant.hpp>
+#include <godot_cpp/templates/hash_map.hpp>
 #include <godot_cpp/variant/array.hpp>
+#include <godot_cpp/variant/callable.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
 #include <godot_cpp/variant/packed_int64_array.hpp>
-#include <godot_cpp/variant/callable.hpp>
-#include <godot_cpp/templates/hash_map.hpp>
+#include <godot_cpp/variant/variant.hpp>
 
 #include <flecs.h>
 
