@@ -184,7 +184,7 @@ func open(p_name: String, p_data: Dictionary = {}) -> GF_OperationResult:
 	if r_check.is_fail():
 		return r_check
 
-	_save_current_focus()
+	_save_current_focus(p_name)
 	if _active_panels.has(p_name) and def.singleton:
 		var existing: GF_UIPanel = _get_panel_safe(p_name)
 		if existing != null:
@@ -491,6 +491,15 @@ func unregister_panel_targets(p_panel: GF_UIPanel) -> void:
 	_drop_targets = filtered
 
 
+## 注销单个放置目标。格子被释放/移出场景树时自动调用，
+## 防止残留目标在 hit-test 中触发对已释放格子的调用。
+func unregister_target(p_target: GF_UIDropTarget) -> GF_OperationResult:
+	if p_target == null:
+		return GF_OperationResult.fail(GF_OperationResult.ERR_BAD_REQUEST, "target 不能为 null", module_name)
+	_drop_targets.erase(p_target)
+	return GF_OperationResult.ok()
+
+
 ## 获取 GF_UIDragManager Node。
 func get_drag_manager() -> GF_UIDragManager:
 	return _drag_manager
@@ -553,12 +562,14 @@ func _hit_test_target(p_mouse_pos: Vector2) -> GF_UIDropTarget:
 				continue
 			if target.panel != panel:
 				continue
-			if target.accept_filter.is_valid():
+			# 回调可能绑定到已释放的格子（面板重建时旧格子被 queue_free，
+			# 其 target 未及时注销）——调用前校验绑定对象，跳过失效目标
+			if target.accept_filter.is_valid() and is_instance_valid(target.accept_filter.get_object()):
 				if not target.accept_filter.call(_drag_manager.get_current_event().drag_data):
 					continue
 			# 动态 rect 提供者优先（布局变化实时生效），否则用静态面板局部坐标换算
 			var global_rect: Rect2
-			if target.rect_provider.is_valid():
+			if target.rect_provider.is_valid() and is_instance_valid(target.rect_provider.get_object()):
 				global_rect = target.rect_provider.call()
 			else:
 				global_rect = Rect2(panel.global_position + target.rect.position, target.rect.size)
@@ -770,23 +781,46 @@ func _get_global_mouse_pos() -> Vector2:
 	return Vector2.ZERO
 
 
-func _save_current_focus() -> void:
+func _save_current_focus(p_name: String) -> void:
 	if _ui_canvas == null or not is_instance_valid(_ui_canvas):
 		return
 	var vp: Viewport = _ui_canvas.get_viewport()
 	if vp == null:
 		return
 	var owner: Control = vp.gui_get_focus_owner()
-	if owner != null:
-		_focus_stack.push_back(owner)
+	if owner == null:
+		return
+	# 单例面板 reopen 时焦点可能已在面板内部：栈顶已记录打开前的焦点，跳过，
+	# 防止多次数据切换（open/reopen）把面板自身焦点反复入栈导致栈膨胀
+	if _is_focus_inside_panel(owner, p_name):
+		return
+	# 同一焦点不重复入栈
+	if not _focus_stack.is_empty() and _focus_stack.back() == owner:
+		return
+	_focus_stack.push_back(owner)
 
 
 func _restore_last_focus() -> void:
-	if _focus_stack.is_empty():
-		return
-	var prev: Control = _focus_stack.pop_back()
-	if is_instance_valid(prev):
-		prev.grab_focus()
+	# 栈中可能残留已释放/已移出场景树的焦点实例（面板 reopen 重建内容时，
+	# 入栈的旧焦点控件被销毁）——逐个弹出直到找到有效实例，避免把失效实例
+	# 赋给类型化变量报「Trying to assign invalid previously freed instance」。
+	while not _focus_stack.is_empty():
+		var prev: Variant = _focus_stack.pop_back()
+		if is_instance_valid(prev) and prev is Control and (prev as Control).is_inside_tree():
+			(prev as Control).grab_focus()
+			break
+
+
+## 焦点控件是否位于指定面板内（reopen 时用于跳过面板自身焦点）。
+func _is_focus_inside_panel(p_owner: Node, p_panel_name: String) -> bool:
+	if p_panel_name.is_empty():
+		return false
+	var n: Node = p_owner
+	while n != null:
+		if n is GF_UIPanel and (n as GF_UIPanel).panel_name == p_panel_name:
+			return true
+		n = n.get_parent()
+	return false
 
 
 func _apply_layer_order(p_kind: StringName) -> void:

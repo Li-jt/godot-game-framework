@@ -135,7 +135,8 @@ func _on_open(_p_data: Dictionary) -> void:
 | `on_leave` | `Callable` | 拖拽离开区域 |
 | `on_drop` | `Callable` | 松手放入，返回 true 接受/false 拒绝 |
 
-面板关闭时框架自动清理其所有 DropTarget，无需手动注销。
+面板关闭时框架自动清理其所有 DropTarget；`GF_UIDragSlot` 被释放/移出场景树时也会
+自动注销自己的 target，面板重建格子不会残留失效目标。
 
 ### 第四步：拖拽视觉 Ghost
 

@@ -322,6 +322,20 @@ func _reset_press_state() -> void:
 func _notification(p_what: int) -> void:
 	if p_what == NOTIFICATION_WM_WINDOW_FOCUS_OUT:
 		_reset_press_state()
+	elif p_what == NOTIFICATION_EXIT_TREE:
+		# 格子被释放/移出场景树（如面板重建时旧格子 queue_free）：
+		# 注销 drop target，防止残留目标在 hit-test 中调用已释放的格子
+		_unregister_drop_target()
+
+
+## 注销本格子的 drop target。幂等：未注册或无 UI 服务时直接返回。
+func _unregister_drop_target() -> void:
+	if not _drop_target_registered:
+		return
+	var ui := _find_ui_service()
+	if ui != null and _registered_target != null:
+		ui.unregister_target(_registered_target)
+	_drop_target_registered = false
 
 
 # ════════════════════════════════════════════
