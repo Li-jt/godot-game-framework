@@ -14,6 +14,17 @@
 - **GF_UIDragSlot 拖动时机**：由「按下即拖拽」改为「移动超过 `drag_start_threshold`
   （默认 8px）才拖拽」，使单击与拖动可区分；设为 `0` 可恢复按下即拖拽
 
+### 修复
+
+- **GF_UIService 焦点栈崩溃**：`_restore_last_focus` 遇已释放的焦点实例不再崩溃
+  （逐个弹出跳过失效实例）；`_save_current_focus` 跳过面板自身焦点 + 去重，
+  单例弹窗多次 open/reopen 不再反复入栈
+- **GF_UIDragSlot 释放时残留 drop target**：格子被释放/移出场景树时自动注销其
+  drop target，修复「面板重建格子后拖拽 hit-test 调用已释放格子」的报错
+  （表现：`_accepts` 不存在于 `GF_UIDragGhost`）
+- **GF_UIService hit-test 防御**：调用 accept_filter / rect_provider 前校验绑定
+  对象有效性，残留的失效目标直接跳过
+
 ---
 
 ## [0.3.0] — 2026-06-01
