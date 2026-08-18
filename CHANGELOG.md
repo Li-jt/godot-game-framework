@@ -1,5 +1,21 @@
 # Changelog
 
+## [Unreleased]
+
+### 新增
+
+- **GF_UIDragSlot 鼠标事件回调**：内置单击/双击/右键/拖动判定，子类按需重写
+  `_on_slot_pressed` / `_on_slot_released` / `_on_slot_clicked` / `_on_slot_double_clicked` /
+  `_on_slot_drag_started` / `_on_slot_drag_ended`，无需自行判断输入类型
+- **`drag_start_threshold` 配置**：拖动判定阈值（像素），按下后移动超过阈值才判定为拖动
+
+### 变更
+
+- **GF_UIDragSlot 拖动时机**：由「按下即拖拽」改为「移动超过 `drag_start_threshold`
+  （默认 8px）才拖拽」，使单击与拖动可区分；设为 `0` 可恢复按下即拖拽
+
+---
+
 ## [0.3.0] — 2026-06-01
 
 ### 重构

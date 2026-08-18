@@ -170,6 +170,7 @@ GF_UIDragSlot 是将拖拽源 + 放置目标打包好的 Control，拖到场景�
 | `swap_on_drop` | `bool` | `true` | 放入时是否交换（true=交换，false=移动） |
 | `drag_ghost_texture` | `Texture2D` | — | 拖拽时的图标（为空则自动取子节点 "Icon" 的纹理） |
 | `drag_ghost_offset` | `Vector2` | `(-24, -24)` | 图标相对于鼠标的偏移 |
+| `drag_start_threshold` | `float` | `8.0` | 拖动判定阈值（像素）。按下后移动超过此距离才判定为拖动，否则松开时判定为单击。设为 `0` 表示按下即拖拽 |
 
 **代码使用：**
 
@@ -204,6 +205,57 @@ slot.refresh_drop_target()
 - 鼠标按下空数据时 → 不拖拽
 - 有物品拖过且 `_accepts` 通过时 → 自动高亮（半透明白色覆盖）
 - 物品放入成功 → 发射 `slot_drop_received`
+
+### 第五步补充：格子鼠标事件回调（单击/双击/右键/拖动）
+
+GF_UIDragSlot 除了拖拽，还内置了鼠标事件的**判定逻辑**——单击、双击、右键、拖动
+由框架自动区分，子类只需重写需要的事件方法，无需自己判断输入类型：
+
+```gdscript
+class_name MyItemSlot
+extends GF_UIDragSlot
+
+
+func _on_slot_clicked(p_button: int) -> void:
+    match p_button:
+        MOUSE_BUTTON_LEFT:
+            _select_item()          # 左键单击：选中
+        MOUSE_BUTTON_RIGHT:
+            _open_context_menu()    # 右键单击：弹出菜单
+
+
+func _on_slot_double_clicked(p_button: int) -> void:
+    _use_item()                     # 双击：使用物品
+
+
+func _on_slot_drag_ended(p_accepted: bool) -> void:
+    if p_accepted:
+        _on_swap_success()
+```
+
+可重写的回调：
+
+| 回调 | 触发时机 |
+|------|---------|
+| `_on_slot_pressed(p_button)` | 任意鼠标按键按下 |
+| `_on_slot_released(p_button)` | 任意鼠标按键松开 |
+| `_on_slot_clicked(p_button)` | 单击：按下 → 松开，且移动未超过 `drag_start_threshold`。左/右/中键通用，通过 `p_button` 区分 |
+| `_on_slot_double_clicked(p_button)` | 双击：引擎按 OS 双击时间窗口检测（`InputEventMouseButton.double_click`） |
+| `_on_slot_drag_started()` | 拖动开始：按下后移动超过 `drag_start_threshold` 像素（仅左键 + 有数据） |
+| `_on_slot_drag_ended(p_accepted)` | 拖动结束（`p_accepted` 表示是否有目标接受了放置） |
+
+行为约定：
+
+- **单击 vs 拖动**：按下后移动超过 `drag_start_threshold`（默认 8px）判定为拖动，
+  否则松开时判定为单击。拖动一旦开始，本次按压不再触发单击；
+- **双击顺序**：双击时第一击仍会触发 `_on_slot_clicked`（标准行为），
+  第二击触发 `_on_slot_double_clicked`，且第二击的松开不再重复触发单击；
+- **右键**：右键单击通过 `_on_slot_clicked(MOUSE_BUTTON_RIGHT)` 上报，
+  右键不会触发拖拽；
+- **滑动**：按下后移动超过阈值但格子无数据 / `drag_enabled=false` 时，
+  视为滑动，既不拖拽也不触发单击；
+- 原有信号（`slot_drag_begin` / `slot_drop_received` 等）不受影响，可与回调共存；
+  对不继承的子类，信号仍是主要接入方式。
 
 ### 第六步：L2 便捷 API — begin_simple_drag
 
