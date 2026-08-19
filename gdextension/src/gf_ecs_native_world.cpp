@@ -31,6 +31,31 @@ void comp_dtor(void *p_ptr, int32_t p_count, const ecs_type_info_t *p_type_info)
 	}
 }
 
+// move：指针所有权转移，源槽置空。
+// 关键：列存的是堆指针，若 move 不清源，源表「空洞」会残留旧指针；
+// 实体移回原 archetype 复用空洞时，Flecs 默认 move_dtor（dtor 目标 + memcpy）
+// 会先释放空洞里的残留指针，再把同一（已释放）指针 memcpy 进目标槽 →
+// 后续 dtor double-free（libgf_ecs_native 崩溃根因，2026-08-20 报告）。
+// move 置空源后，move_dtor 对源的 dtor 变成无操作，空洞始终为 nullptr。
+void comp_move(void *p_dst, void *p_src, int32_t p_count, const ecs_type_info_t *p_type_info) {
+	Variant **dst = static_cast<Variant **>(p_dst);
+	Variant **src = static_cast<Variant **>(p_src);
+	for (int32_t i = 0; i < p_count; i++) {
+		dst[i] = src[i];
+		src[i] = nullptr;
+	}
+}
+
+// copy：深拷贝 Variant 值。列存的是指针，浅拷贝会让两个槽持有同一指针，
+// 各自 dtor 时 double-free（snapshot/复制路径会用到 copy 钩子）。
+void comp_copy(void *p_dst, const void *p_src, int32_t p_count, const ecs_type_info_t *p_type_info) {
+	Variant **dst = static_cast<Variant **>(p_dst);
+	const Variant *const *src = static_cast<const Variant *const *>(p_src);
+	for (int32_t i = 0; i < p_count; i++) {
+		dst[i] = (src[i] != nullptr) ? memnew(Variant(*src[i])) : nullptr;
+	}
+}
+
 // 组件名 → type_key（"Comp_<key>" 命名，事件回调时反解）
 String comp_name(int64_t p_type_key) {
 	return String("Comp_") + String::num_int64(p_type_key);
@@ -285,7 +310,10 @@ ecs_entity_t GF_EcsNativeWorld::get_or_create_comp(int64_t p_type_key) {
 	if (found != nullptr) {
 		return *found;
 	}
-	// 组件列存 Variant* 指针值，dtor 钩子负责释放堆 Variant
+	// 组件列存 Variant* 指针值，生命周期钩子必须完整：
+	// dtor 释放、move 转移并清源（防空洞残留悬空指针 double-free）、
+	// copy 深拷贝（防浅拷贝双释放）。只设 dtor 时 Flecs 默认 move 对指针
+	// 类型不安全（§1.6 设计工作「Variant 生命周期钩子」在此落地）。
 	CharString name_utf8 = comp_name(p_type_key).utf8();
 	ecs_entity_desc_t ent_desc = {};
 	ent_desc.name = name_utf8.get_data();
@@ -294,6 +322,8 @@ ecs_entity_t GF_EcsNativeWorld::get_or_create_comp(int64_t p_type_key) {
 	comp_desc.type.size = ECS_SIZEOF(Variant *);
 	comp_desc.type.alignment = ECS_ALIGNOF(Variant *);
 	comp_desc.type.hooks.dtor = comp_dtor;
+	comp_desc.type.hooks.move = comp_move;
+	comp_desc.type.hooks.copy = comp_copy;
 	ecs_entity_t comp = ecs_component_init(world, &comp_desc);
 
 	ecs_observer_desc_t obs = {};

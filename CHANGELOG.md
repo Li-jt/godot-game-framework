@@ -24,6 +24,11 @@
   （表现：`_accepts` 不存在于 `GF_UIDragGhost`）
 - **GF_UIService hit-test 防御**：调用 accept_filter / rect_provider 前校验绑定
   对象有效性，残留的失效目标直接跳过
+- **原生 ECS 后端（gdextension）组件列 double-free 崩溃**：`Variant*` 列补全
+  `move`/`copy` 生命周期钩子——`move` 转移指针并清源（防止 archetype 移动后
+  源表空洞残留悬空指针、复用空洞时被二次释放），`copy` 深拷贝（防止浅拷贝
+  双释放）。修复组件 add/remove（archetype 变更）后崩溃
+  （SIGABRT / `POINTER_BEING_FREED_WAS_NOT_ALLOCATED`），预编译二进制同步更新
 
 ---
 
