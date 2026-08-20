@@ -20,7 +20,8 @@ func get_context_stack() -> Array[GF_InputContext]:
 
 ## 判定指定动作是否被阻挡。
 ## p_event: 原始 Godot 事件
-## p_pointer_pos: 指针位置（非空间事件为 Vector2.INF）
+## p_pointer_pos: 指针位置（viewport 坐标；非空间事件为 Vector2.INF）。
+## POINTER_ONLY 命中检测内部会换算为 canvas 坐标，调用方无需关心拉伸窗口。
 func is_action_blocked(p_action_id: String, _p_event: InputEvent, p_pointer_pos: Vector2) -> bool:
 	# 1. Context allow 命中 -> 永不阻挡
 	if _context_allows(p_action_id):
@@ -42,6 +43,7 @@ func is_action_blocked(p_action_id: String, _p_event: InputEvent, p_pointer_pos:
 	return false
 
 
+## 原始事件级判定（resolver 每事件调用）。p_pointer_pos 同 [method is_action_blocked]。
 func is_action_blocked_raw(p_action_id: String, p_is_spatial: bool, p_pointer_pos: Vector2) -> bool:
 	if _context_allows(p_action_id): return false
 	if _context_blocks(p_action_id): return true
@@ -92,13 +94,29 @@ func _ui_always_blocks(p_action_id: String) -> bool:
 			return true
 	return false
 
-func _ui_pointer_blocks(p_action_id: String, p_pos: Vector2) -> bool:
+func _ui_pointer_blocks(p_action_id: String, p_viewport_pos: Vector2) -> bool:
 	if _ui_service == null: return false
 	if _ui_service.is_dragging(): return false
+	# 坐标系统一：InputEvent 的指针坐标是 viewport 空间，而面板命中检测
+	# （Control.get_global_rect）是 canvas 空间——stretch/mode=canvas_items
+	# 缩放窗口下两者不一致，必须换算（同 GF_UIDragManager._to_canvas 的坑，
+	# 见 ui_drag_manager.gd:55-57 注释）。换算前不阻挡，会导致点击透传到地图。
+	var canvas_pos := _to_canvas(p_viewport_pos)
 	# 只检查 z 顺序最顶层的命中面板：窗口重叠时被遮挡区域不阻挡
-	var top: GF_UIPanel = _ui_service.get_top_panel_at_position(p_pos)
+	var top: GF_UIPanel = _ui_service.get_top_panel_at_position(canvas_pos)
 	if top == null: return false
 	var def = top._panel_def
 	if def == null: return false
 	if def.input_block_mode != GF_UIPanelDef.InputBlockMode.POINTER_ONLY: return false
 	return def.blocked_action_ids.has("*") or def.blocked_action_ids.has(p_action_id)
+
+
+## viewport 坐标 → canvas 坐标（与 GF_UIDragManager._to_canvas 同一换算）。
+## 依赖 UI Root 的 make_canvas_position_local；无 UI 树时原样返回。
+func _to_canvas(p_viewport_pos: Vector2) -> Vector2:
+	if _ui_service == null or not _ui_service.has_method("get_ui_root"):
+		return p_viewport_pos
+	var ui_root: Control = _ui_service.get_ui_root()
+	if ui_root == null or not ui_root.is_inside_tree():
+		return p_viewport_pos
+	return ui_root.make_canvas_position_local(p_viewport_pos)
